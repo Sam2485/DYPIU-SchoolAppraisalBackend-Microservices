@@ -1,184 +1,95 @@
-# Security & Authorization Documentation
+# Security & Gateway Authentication Architecture
 
-This document describes the authentication and security implementation of the School Appraisal Backend API.
+This document describes the centralized authentication, authorization, and security framework implemented across the **School Appraisal Microservices Backend**.
 
 ## Core Security Technologies
-- **Authentication Engine**: Spring Security 6.x.
+- **API Gateway Security**: Reactive Spring Cloud Gateway WebFilter (`JwtAuthenticationFilter.java`).
 - **Token Mechanism**: Dual-Token Strategy using JSON Web Tokens (JWT) via `io.jsonwebtoken` (jjwt) version 0.12.x:
   - **Access Token**: Short/Medium-lived stateless token (24 hours duration).
-  - **Refresh Token**: Long-lived persisted UUID token (7 days duration) stored in PostgreSQL (`refresh_tokens` table).
-- **Hashing Algorithm**: BCrypt (strength 10) for password storage.
+  - **Refresh Token**: Long-lived persisted UUID token (7 days duration) stored in PostgreSQL (`refresh_tokens` table in `appraisal_auth_user_db`).
+- **Header Propagation**: API Gateway validates JWT tokens and injects trusted context headers (`X-User-Email`, `X-User-Role`) to downstream services.
+- **Hashing Algorithm**: BCrypt (strength 10) for user password hashing.
 - **Session Policy**: Stateless (`SessionCreationPolicy.STATELESS`).
 
 ---
 
-## 1. Role-Based Access Control (RBAC)
+## 1. Centralized Gateway JWT Filter (`api-gateway`)
 
-The system maps authorization checks dynamically using standard user roles. 
+All external client traffic passes through the **API Gateway** on Port `8080`. The Gateway enforces centralized security before forwarding requests downstream:
 
-### User Role Storage vs. Authority Mapping
-- **Database Representation**: Roles are stored in the database as lowercase strings in the `role` column of the `users` table (e.g. `"director"`, `"administrative"`, `"vice-chancellor"`, `"iqac"`, or specific auditor roles like `"academic-internal-auditor"`).
-- **Granted Authorities Mapping**: In `User.java` (implementing `UserDetails`), roles are dynamically converted to Spring Security granted authorities by converting to uppercase and prefixing with `"ROLE_"`:
-  ```java
-  @Override
-  public Collection<? extends GrantedAuthority> getAuthorities() {
-      return List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
-  }
-  ```
-  This maps database roles to:
-  - `"director"` ➔ `ROLE_DIRECTOR`
-  - `"administrative"` ➔ `ROLE_ADMINISTRATIVE`
-  - `"vice-chancellor"` ➔ `ROLE_VICE-CHANCELLOR`
-  - `"iqac"` ➔ `ROLE_IQAC`
-  - `"academic-internal-auditor"` ➔ `ROLE_ACADEMIC-INTERNAL-AUDITOR`
-  - `"academic-external-auditor"` ➔ `ROLE_ACADEMIC-EXTERNAL-AUDITOR`
-  - `"administrative-internal-auditor"` ➔ `ROLE_ADMINISTRATIVE-INTERNAL-AUDITOR`
-  - `"administrative-external-auditor"` ➔ `ROLE_ADMINISTRATIVE-EXTERNAL-AUDITOR`
+```text
+HTTP Request (Header: Authorization: Bearer <jwt-token>)
+                     │
+                     ▼
+┌─────────────────────────────────────────┐
+│     JwtAuthenticationFilter (Gateway)   │
+└────────────────────┬────────────────────┘
+                     │ (Validate JWT Signature & Claims)
+                     ▼
+┌─────────────────────────────────────────┐
+│ Inject Headers:                         │
+│   X-User-Email: director@dypiu.ac.in    │
+│   X-User-Role: ROLE_DIRECTOR            │
+└────────────────────┬────────────────────┘
+                     │ (Forward to Downstream Microservices)
+                     ▼
+┌─────────────────────────────────────────┐
+│ Downstream Microservice (8081 - 8085)   │
+└─────────────────────────────────────────┘
+```
 
-### Endpoint Rules & Authorization Matrix:
-- `/api/auth/**`: Allowed publicly without token.
-- `/uploads/**`: Allowed publicly (serves local static media assets).
-- `/api/submissions/all`: Secured via **Method-Level Security** (`@PreAuthorize("hasAnyRole('ROLE_VICE-CHANCELLOR', 'ROLE_IQAC', 'ROLE_ACADEMIC-INTERNAL-AUDITOR', 'ROLE_ACADEMIC-EXTERNAL-AUDITOR', 'ROLE_ADMINISTRATIVE-INTERNAL-AUDITOR', 'ROLE_ADMINISTRATIVE-EXTERNAL-AUDITOR')")`). Only VC, IQAC, or assigned/matched auditors can query all submissions. Submissions lists are filtered based on the calling user's role:
-  - **IQAC**: returns forms with status in `SUBMITTED`, `UNDER_REVIEW`, `AUDITOR_COMPLETED`, `APPROVED`, `SENT_BACK`.
-  - **VC**: returns forms only if status is `AUDITOR_COMPLETED` or `APPROVED` (hidden before audit completion).
-  - **Auditors**: returns only submissions where the auditor is explicitly assigned (listed in `forwardedToAuditorIds`/`forwardedToAuditorEmails`) or fallback matched (category, auditorType, and school/post match) with status `UNDER_REVIEW` or `AUDITOR_COMPLETED`.
-- `/api/submissions/{id}` and `/api/submissions/{id}/snapshots`: Access is authorized based on context checking:
-  - Owners can view their own forms.
-  - IQAC can view all forms.
-  - VC can view forms ONLY if status is `AUDITOR_COMPLETED` or `APPROVED` or `SENT_BACK` (access blocked otherwise).
-  - Auditors can view forms ONLY if they are explicitly assigned or fallback matched.
-- `/api/submissions/{id}/review`: Secured via **Method-Level Security** (`@PreAuthorize("hasAnyRole('ROLE_VICE-CHANCELLOR', 'ROLE_IQAC')")`). Only VC or IQAC can review. Review is blocked unless the submission status is `AUDITOR_COMPLETED`.
-- `/api/users/**`: Secured via **Manual Controller-Level Authorization Checks**. Every operation (GET, POST, PUT, DELETE) inside `UserController.java` manually checks that the authenticated user has the `"iqac"` role. If the check fails, the API responds with `403 Forbidden` (`You are not authorized to update/delete users` or `Only IQAC users can access this resource.`).
-- All other endpoints (including submission drafts/saving): Requires a valid authenticated user session (verified by the JWT authentication filter).
-- `/api/submissions/{id}` updates: Owners can update drafts. Auditors can edit only Part E/F auditor fields and set status to `AUDITOR_COMPLETED`. IQAC can edit forwarding fields. All edits blocked if form is `APPROVED`.
+### Whitelisted Public Endpoints (No JWT Required):
+- `/api/auth/login`
+- `/api/auth/register`
+- `/api/auth/refresh`
+- `/api/auth/forgot-password`
+- `/api/auth/reset-password`
+- `/api/auth/verify-otp`
+- `/api/auth/mfa`
+- `/uploads/**` (Static file proxying)
 
 ---
 
-## 2. JWT & Refresh Token Configuration
-Tokens are managed using a dual-token model balancing security and session longevity:
+## 2. Role-Based Access Control (RBAC)
 
-### 2.1 Access Token Schema:
-- **Lifespan**: 24 hours (`86400000` ms / `86400` seconds).
-- **Subject (`sub`)**: Email address of the user.
-- **Issued At (`iat`)**: Date-time of token issue.
-- **Expiration (`exp`)**: 24 hours from issuance.
-- **Custom Claims Payload**:
-  - `name`: User's display name.
-  - `designation`: User's title (e.g. Registrar, Director).
-  - `school`: Submitter's school/office.
-  - `role`: Authorization role (e.g. `director`, `iqac`).
-  - `post`: Canonical administrative post if applicable.
-  - `currentAcademicYear`: Active academic year label.
-  - `administrativePosts`: List of assigned administrative posts.
+Roles are mapped dynamically from database user accounts to Spring Security authorities:
 
-### 2.2 Refresh Token Schema:
-- **Lifespan**: 7 days (`604800000` ms / `604800` seconds).
-- **Storage**: Persisted in the `refresh_tokens` database table linked to `user_id`.
-- **Format**: Cryptographically random UUID string (e.g., `a6afec4d-c239-402b-91f2-e065c7b1d742`).
-- **Rotation & Revocation**:
-  - Automatically created on successful login or OTP verification.
-  - Replaces old refresh tokens for the user (enforces single active session per user account).
-  - Explicitly revoked/deleted upon invoking `POST /api/auth/logout`.
-  - Re-issuance via `POST /api/auth/refresh` grants a fresh 24-hour Access Token without requiring user re-authentication.
+### Granted Authorities Mapping:
+- `"director"` $\rightarrow$ `ROLE_DIRECTOR`
+- `"administrative"` $\rightarrow$ `ROLE_ADMINISTRATIVE`
+- `"vice-chancellor"` $\rightarrow$ `ROLE_VICE-CHANCELLOR`
+- `"iqac"` $\rightarrow$ `ROLE_IQAC`
+- `"academic-internal-auditor"` $\rightarrow$ `ROLE_ACADEMIC-INTERNAL-AUDITOR`
+- `"academic-external-auditor"` $\rightarrow$ `ROLE_ACADEMIC-EXTERNAL-AUDITOR`
+- `"administrative-internal-auditor"` $\rightarrow$ `ROLE_ADMINISTRATIVE-INTERNAL-AUDITOR`
+- `"administrative-external-auditor"` $\rightarrow$ `ROLE_ADMINISTRATIVE-EXTERNAL-AUDITOR`
+
+### Microservice Authorization Rules:
+1. **User Management (`auth-user-service`)**: `/api/users/**` endpoints require `ROLE_IQAC`.
+2. **Submissions & Workflows (`submission-service`)**: `/api/submissions/all` is scoped based on role (IQAC sees all active forms, VC sees `AUDITOR_COMPLETED` forms, Auditors see assigned/matched forms).
+3. **System Backups (`admin-service`)**: `/api/backup/**` endpoints require `ROLE_IQAC`.
 
 ---
 
-## 3. JWT Request Processing Flow
+## 3. JWT & Refresh Token Schema
 
-```
-HTTP Request
-     │
-     ▼
-┌────────────────────────┐
-│   JwtRequestFilter     │ <── Checks for 'Authorization: Bearer <token>' header
-└──────────┬─────────────┘
-           │ (If token valid)
-           ▼
-┌────────────────────────┐
-│ SecurityContextHolder  │ <── Mapped inside Security context of thread
-└──────────┬─────────────┘
-           │
-           ▼
-┌────────────────────────┐
-│   SecurityFilterChain  │ <── Verifies HTTP endpoints rules and roles
-└────────────────────────┘
-```
+### Access Token Schema:
+- **Lifespan**: 24 hours (`86400000` ms).
+- **Subject (`sub`)**: User email address.
+- **Claims Payload**: `name`, `designation`, `school`, `role`, `category`, `accountType`.
+
+### Refresh Token Schema:
+- **Lifespan**: 7 days (`604800000` ms).
+- **Storage**: Persisted in PostgreSQL table `refresh_tokens` inside `appraisal_auth_user_db`.
+- **Revocation**: Revoked upon `POST /api/auth/logout`. Re-issuance via `POST /api/auth/refresh` grants a fresh 24-hour Access Token.
 
 ---
 
 ## 4. CORS Policy
-To allow seamless connection with frontends (e.g., Vite/React developer servers running on localhost:5173), CORS is configured on the security level to:
-- Allowed Origins: Matches wildcard expressions or patterns (`*`).
-- Allowed HTTP Methods: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `PATCH`.
-- Allowed Headers: `Authorization`, `Content-Type`, `Cache-Control`.
-- Exposed Headers: `Authorization` (allowing the client to read token headers).
-- Allow Credentials: `true`.
 
----
-
----
-
-## 5. Password Reset Security
-To protect user accounts from token harvesting, the system secures reset tokens using a one-way hashing design and conditional response protection:
-1. **Token Generation:** The system generates a cryptographically secure random UUID token (`rawToken`) when a user requests a password reset.
-2. **One-Way Hashing:** The system hashes the `rawToken` using `SHA-256` before writing the hash value to the `password_reset_tokens` table.
-3. **Verification:** When the user clicks the reset link in their email and submits a new password, the system hashes the token parameter received from the client and queries the database using the hash. This prevents database-read access from compromising active tokens since the raw tokens are never written to disk.
-4. **Token Clean-up:** The system automatically purges expired or old reset tokens associated with the target email whenever a new reset request is made.
-5. **Conditional Response Hardening (Production vs Development):**
-   - **GCP Production Mode (`app.gcp.enabled=true`):** The raw token is strictly omitted from the API response payload in `/forgot-password`. Users must rely solely on the reset link received in their email.
-   - **Local Development Mode (`app.gcp.enabled=false`):** The raw token is returned inside the HTTP response under the `"token"` key to facilitate testing and mock mailer integration without requiring active mailbox configuration.
-
----
-
-## 6. Administrative Auditor Post-Level Access Control
-
-To restrict auditor privileges within the shared administrative audit form, the backend enforces fine-grained section-level authorization:
-
-### 1. Token Claims & Profile Payload
-- During login and profile requests, the server resolves all administrative posts assigned to the auditor from the `user_administrative_posts` table (and falls back to their single `post` field).
-- This is returned as the `administrativePosts` array in login claims and user response payloads, which the frontend uses to render fields as editable or read-only.
-
-### 2. Dynamically Injected Permissions Map
-When fetching a submission (`GET /api/submissions/{id}` and `GET /api/submissions/all`), the backend calculates and embeds a transient `permissions` object:
-```json
-{
-  "canView": true,
-  "editablePosts": ["library", "examination"],
-  "readOnlyPosts": ["registrar", "hr", "dean-student-welfare", "dean-placement", "accounts"],
-  "permissions": {
-    "library": { "canEdit": true },
-    "examination": { "canEdit": true },
-    "registrar": { "canEdit": false },
-    "hr": { "canEdit": false },
-    "dean-student-welfare": { "canEdit": false },
-    "dean-placement": { "canEdit": false },
-    "accounts": { "canEdit": false }
-  }
-}
-```
-
-### 3. Backend Payload Validation & Protection
-To prevent unauthorized field updates (e.g. through API payload tampering), the backend inspects any incoming update request (`PUT /api/submissions/{id}`):
-- It parses incoming `valuesData` and `tablesData` fields.
-- For every updated key, it classifies which administrative post/role owns that field or section (using `resolvePostForKey`).
-- If an auditor attempts to save a change to a key belonging to a post they are **not** explicitly assigned to, the request is instantly rejected by throwing a `SecurityException`, which the global exception handler returns as an **HTTP 403 Forbidden** error.
-- All VC, IQAC, and Director flows are bypassed, preserving their standard workspace permissions.
-
-### 4. Administrative Auditor Forwarding & Visibility
-To correctly route shared administrative audits to specialized auditors:
-- When IQAC forwards a submission (`PUT /api/submissions/{id}` with status `UNDER_REVIEW`), the backend validates the assignment using the auditor's administrative posts instead of generic display labels (e.g., "Administrative Office") or email/name fields.
-- The system resolves the submission's active posts from:
-  - `request.forwardedAdministrativePosts`
-  - `submission.administrativeProgress` keys (with status submitted/approved/under-review/auditor-completed)
-  - `valuesData.__administrativeSubmissionStatus` keys (where submitted=true)
-- It verifies that the selected auditor has at least one post overlapping with the submission's active posts.
-- For visibility (`GET /api/submissions/all`), an administrative auditor can see submissions in the dashboard if there is a post overlap OR if they are directly assigned by ID/Email.
-
-### 5. Administrative Audit External-Cycle Workflow
-When transitioning the administrative audit to the External cycle:
-- Creating the next cycle (`version: 2`, `reportCategory: "EXTERNAL"`) resets the `administrativeProgress` of all posts (`registrar`, `hr`, `dean-student-welfare`, `dean-placement`) to `DRAFT` and removes the `__administrativeSubmissionStatus` tracking object.
-- This unlocks the respective sections, allowing administrative contributors to edit and resubmit their assigned parts for the external cycle without affecting the archived Internal version.
-- To prevent early forwarding, the backend blocks forwarding to external auditors until all four required administrative contributors have submitted their sections.
-
-
-
+API Gateway configures reactive CORS headers to support frontend clients (e.g. Vite/React on localhost:5173 / 3000):
+- **Allowed Origin Patterns**: `*`
+- **Allowed HTTP Methods**: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `PATCH`
+- **Allowed Headers**: `*`
+- **Exposed Headers**: `Authorization`, `Content-Type`
+- **Allow Credentials**: `true`

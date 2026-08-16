@@ -43,5 +43,5 @@ out/
 .vscode/
 
 # Operating System Files
-    .DS_Store
-    Thumbs.db
+.DS_Store
+Thumbs.db
