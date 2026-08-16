@@ -1,0 +1,11 @@
+package com.director_appraisal.form_data_service;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class FormDataServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(FormDataServiceApplication.class, args);
+    }
+}

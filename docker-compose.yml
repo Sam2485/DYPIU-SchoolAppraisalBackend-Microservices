@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL Database Cluster
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: appraisal-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # 2. Auth & User Management Service (Port 8081)
+  # ---------------------------------------------------------------------------
+  auth-user-service:
+    build:
+      context: .
+      dockerfile: auth-user-service/Dockerfile
+    container_name: appraisal-auth-user-service
+    restart: always
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/appraisal_auth_user_db
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-appraisal@dypiu.ac.in}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-your_app_password}
+      MAIL_FROM: ${MAIL_FROM:-noreply@dypiu.edu.in}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8081}:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # 3. Form Section Data Service (Port 8082)
+  # ---------------------------------------------------------------------------
+  form-data-service:
+    build:
+      context: .
+      dockerfile: form-data-service/Dockerfile
+    container_name: appraisal-form-data-service
+    restart: always
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/appraisal_forms_db
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${FORMS_SERVICE_PORT:-8082}:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # 4. Submission & Workflow Service (Port 8083)
+  # ---------------------------------------------------------------------------
+  submission-service:
+    build:
+      context: .
+      dockerfile: submission-service/Dockerfile
+    container_name: appraisal-submission-service
+    restart: always
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/appraisal_submission_db
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      AUTH_SERVICE_URL: http://auth-user-service:8081
+      FORMS_SERVICE_URL: http://form-data-service:8082
+    ports:
+      - "${SUBMISSION_SERVICE_PORT:-8083}:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-user-service:
+        condition: service_started
+      form-data-service:
+        condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # 5. Attachment & Storage Service (Port 8084)
+  # ---------------------------------------------------------------------------
+  storage-service:
+    build:
+      context: .
+      dockerfile: storage-service/Dockerfile
+    container_name: appraisal-storage-service
+    restart: always
+    environment:
+      UPLOAD_LOCAL_PATH: ${UPLOAD_DIR:-/app/uploads}
+    ports:
+      - "${STORAGE_SERVICE_PORT:-8084}:8084"
+    volumes:
+      - uploads_data:${UPLOAD_DIR:-/app/uploads}
+
+  # ---------------------------------------------------------------------------
+  # 6. System Backup & Admin Service (Port 8085)
+  # ---------------------------------------------------------------------------
+  admin-service:
+    build:
+      context: .
+      dockerfile: admin-service/Dockerfile
+    container_name: appraisal-admin-service
+    restart: always
+    environment:
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
+      BACKUP_DIR: ${BACKUP_DIR:-/app/backups}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${ADMIN_SERVICE_PORT:-8085}:8085"
+    volumes:
+      - uploads_data:${UPLOAD_DIR:-/app/uploads}
+      - backups_data:${BACKUP_DIR:-/app/backups}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # 7. API Gateway Entrypoint (Port 8080)
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: appraisal-api-gateway
+    restart: always
+    environment:
+      AUTH_SERVICE_URL: http://auth-user-service:8081
+      FORMS_SERVICE_URL: http://form-data-service:8082
+      SUBMISSION_SERVICE_URL: http://submission-service:8083
+      STORAGE_SERVICE_URL: http://storage-service:8084
+      ADMIN_SERVICE_URL: http://admin-service:8085
+      JWT_SECRET: ${JWT_SECRET:-SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      - auth-user-service
+      - form-data-service
+      - submission-service
+      - storage-service
+      - admin-service
+
+volumes:
+  pgdata:
+  uploads_data:
+  backups_data:

@@ -1,3 +1,0 @@
-app:
-  upload:
-    local-path: ${LOCAL_STORAGE_DIR:${UPLOAD_LOCAL_PATH:/opt/myapp/uploads}}

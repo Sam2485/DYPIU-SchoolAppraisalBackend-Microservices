@@ -1,0 +1,22 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: admin-service
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+app:
+  upload:
+    local-path: ${UPLOAD_DIR:./uploads}
+  backup:
+    path: ${BACKUP_DIR:./backups}
+    db:
+      host: ${DB_HOST:localhost}
+      port: ${DB_PORT:5432}
+      name: ${DB_NAME:postgres}
+      username: ${DB_USERNAME:postgres}
+      password: ${DB_PASSWORD:postgres}

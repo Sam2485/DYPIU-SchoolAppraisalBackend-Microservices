@@ -1,0 +1,344 @@
+package com.director_appraisal.submission_service.model;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "submissions")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Submission {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String auditType; // academic, administrative
+
+    private String school;
+    
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String submittedBy;
+    
+    @Column(columnDefinition = "TEXT")
+    private String submittedByDetails;
+
+    private LocalDateTime submittedAt;
+
+    @Column(nullable = false)
+    private String status; // DRAFT, SUBMITTED, UNDER_REVIEW, AUDITOR_COMPLETED, APPROVED, FINAL
+
+    @Column(columnDefinition = "TEXT")
+    private String remarks;
+
+    private String reviewedBy;
+    private LocalDateTime reviewedAt;
+
+    // Legacy singular auditor fields
+    private Long forwardedToAuditorId;
+    private String forwardedToAuditorName;
+    private String forwardedToAuditorEmail;
+
+    // Plural auditor fields (storing JSON arrays of IDs, names, emails)
+    @Column(columnDefinition = "TEXT")
+    private String forwardedToAuditorIds;
+    @Column(columnDefinition = "TEXT")
+    private String forwardedToAuditorNames;
+    @Column(columnDefinition = "TEXT")
+    private String forwardedToAuditorEmails;
+
+    // Forwarding details
+    private String forwardedAuditorType; // internal | external
+    private String forwardedAuditCategory; // academic | administrative
+    private LocalDateTime forwardedAt;
+
+    // Auditor review stamps
+    private String auditorReviewedBy;
+    private String auditorReviewedByDesignation;
+    private String auditorReviewedByRole;
+    private String auditorReviewedByEmail;
+    private LocalDateTime auditorReviewedOn;
+
+    private Long rootSubmissionId;
+    private Long parentSubmissionId;
+    private Long previousApprovedSubmissionId;
+    private String academicYear;
+    private String auditCycle;
+    private String reportCategory;
+    private String schoolGroup;
+    private String administrativePost;
+    private LocalDateTime approvedAt;
+    private Long approvedByUserId;
+    private String approvedByName;
+    private String approvedByRole;
+    private String approvedByDesignation;
+    private Integer createdFromVersion;
+
+    @Column(columnDefinition = "TEXT")
+    private String valuesData; // JSON string of field values
+
+    @Column(columnDefinition = "TEXT")
+    private String tablesData; // JSON string of table contents
+
+    @Column(columnDefinition = "TEXT")
+    private String attachments; // JSON string of attachments list
+
+    @Builder.Default
+    private Integer version = 1;
+
+    @Builder.Default
+    private Boolean hasNextCycle = false;
+
+    private Long nextVersionId;
+
+    @Builder.Default
+    private Boolean auditorCorrectionRequested = false;
+
+    @Builder.Default
+    private Boolean correctionRequestedForAuditor = false;
+
+    @Builder.Default
+    private Boolean requiresAuditorResubmission = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String auditorCorrectionMessage;
+
+    private String auditorCorrectionRequestedBy;
+    private String auditorCorrectionRequestedByRole;
+    private LocalDateTime auditorCorrectionRequestedOn;
+    private LocalDateTime auditorResubmittedAt;
+
+    @Transient
+    private java.util.Map<String, Object> permissions;
+
+    @Transient
+    private java.util.List<java.util.Map<String, Object>> auditorAssignments;
+
+    @Transient
+    private java.util.Map<String, Object> auditorProgress;
+    
+    @Transient
+    private Boolean allAuditorsSubmitted;
+
+    @Transient
+    private Boolean allAssignedAuditorsSubmitted;
+
+    @com.fasterxml.jackson.annotation.JsonGetter("allAssignedAuditorsSubmitted")
+    public Boolean getAllAssignedAuditorsSubmittedForJson() {
+        return allAuditorsSubmitted;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("auditorAssignmentStatus")
+    public java.util.List<java.util.Map<String, Object>> getAuditorAssignmentStatusForJson() {
+        return auditorAssignments;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("auditorReviews")
+    public java.util.List<java.util.Map<String, Object>> getAuditorReviewsForJson() {
+        return auditorAssignments;
+    }
+
+    @Transient
+    private Boolean nextCycleStarted;
+
+    @com.fasterxml.jackson.annotation.JsonGetter("nextCycleStarted")
+    public Boolean getNextCycleStartedForJson() {
+        return (hasNextCycle != null && hasNextCycle) || nextVersionId != null || Boolean.TRUE.equals(nextCycleStarted);
+    }
+
+    @Column(columnDefinition = "TEXT")
+    private String forwardedAdministrativePosts;
+
+    @Column(columnDefinition = "TEXT")
+    private String forwardedToAuditorPosts;
+
+    @com.fasterxml.jackson.annotation.JsonGetter("auditType")
+    public String getAuditTypeForJson() {
+        return auditType != null ? auditType.toUpperCase() : null;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("reportCategory")
+    public String getReportCategoryForJson() {
+        return reportCategory != null ? reportCategory.toUpperCase() : null;
+    }
+
+    public String getStatus() {
+        return status != null ? status : "DRAFT";
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("academicYear")
+    public String getAcademicYearForJson() {
+        return academicYear != null ? academicYear : auditCycle;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("submittedOn")
+    public LocalDateTime getSubmittedOnForJson() {
+        return submittedAt;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("post")
+    public String getPostForJson() {
+        return administrativePost;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("department")
+    public String getDepartmentForJson() {
+        return administrativePost;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("schoolGroup")
+    public String getSchoolGroupForJson() {
+        return schoolGroup;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("hasNextCycle")
+    public boolean getHasNextCycleForJson() {
+        return hasNextCycle != null && hasNextCycle;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("overallStatus")
+    public String getOverallStatusForJson() {
+        if (!"administrative".equalsIgnoreCase(auditType)) {
+            return status;
+        }
+        if (status == null) {
+            return "DRAFT";
+        }
+        String upper = status.toUpperCase();
+        if (java.util.List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", "APPROVED", "FINAL", "SENT_BACK").contains(upper)) {
+            return upper;
+        }
+        java.util.Map<String, String> progress = getAdministrativeProgressForJson();
+        boolean hasProgress = progress.values().stream().anyMatch(value -> !"DRAFT".equalsIgnoreCase(value));
+        return hasProgress ? "IN_PROGRESS" : "DRAFT";
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("administrativeProgress")
+    public java.util.Map<String, String> getAdministrativeProgressForJson() {
+        java.util.Map<String, String> progress = new java.util.LinkedHashMap<>();
+        progress.put("registrar", "DRAFT");
+        progress.put("hr", "DRAFT");
+        progress.put("dean-student-welfare", "DRAFT");
+        progress.put("dean-placement", "DRAFT");
+        if (valuesData == null || valuesData.isBlank()) {
+            return progress;
+        }
+        try {
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(valuesData)
+                    .get("administrativeProgress");
+            if (node != null && node.isObject()) {
+                progress.replaceAll((post, value) -> node.path(post).asText(value));
+            }
+        } catch (Exception ignored) {
+            return progress;
+        }
+        return progress;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("submittedBy")
+    public Object getSubmittedByForJson() {
+        if ("administrative".equalsIgnoreCase(auditType)) {
+            if (submittedByDetails != null && !submittedByDetails.isBlank()) {
+                try {
+                    return new com.fasterxml.jackson.databind.ObjectMapper().readTree(submittedByDetails);
+                } catch (Exception ignored) {}
+            }
+            return defaultSubmittedByDetails();
+        }
+        return submittedBy;
+    }
+
+    private Object defaultSubmittedByDetails() {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.node.ObjectNode node = mapper.createObjectNode();
+        
+        String[] keys = {"registrar", "hr", "deanStudentWelfare", "deanPlacement"};
+        for (String key : keys) {
+            com.fasterxml.jackson.databind.node.ObjectNode roleNode = mapper.createObjectNode();
+            roleNode.put("submitted", false);
+            roleNode.putNull("submittedAt");
+            roleNode.putNull("name");
+            roleNode.putNull("email");
+            node.set(key, roleNode);
+        }
+        return node;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("sectionProgress")
+    public java.util.Map<String, String> getSectionProgressForJson() {
+        return getAdministrativeProgressForJson();
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("contributionProgress")
+    public java.util.Map<String, String> getContributionProgressForJson() {
+        return getAdministrativeProgressForJson();
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("contributorPosts")
+    public java.util.List<String> getContributorPostsForJson() {
+        java.util.List<String> list = new java.util.ArrayList<>();
+        java.util.Map<String, String> progress = getAdministrativeProgressForJson();
+        if (progress != null) {
+            progress.forEach((post, statusVal) -> {
+                if (statusVal != null && java.util.List.of("SUBMITTED", "APPROVED").contains(statusVal.toUpperCase())) {
+                    list.add(post);
+                }
+            });
+        }
+        return list;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("values")
+    public String getValuesForJson() {
+        return getValuesData();
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("tables")
+    public String getTablesForJson() {
+        return getTablesData();
+    }
+
+    public String getValuesData() {
+        return com.director_appraisal.submission_service.util.UrlPostProcessor.process(valuesData);
+    }
+
+    public String getTablesData() {
+        return com.director_appraisal.submission_service.util.UrlPostProcessor.process(tablesData);
+    }
+
+    public String getAttachments() {
+        return com.director_appraisal.submission_service.util.UrlPostProcessor.process(attachments);
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("forwardedAdministrativePosts")
+    public Object getForwardedAdministrativePostsForJson() {
+        if (forwardedAdministrativePosts != null && !forwardedAdministrativePosts.isBlank()) {
+            try {
+                return new com.fasterxml.jackson.databind.ObjectMapper().readValue(forwardedAdministrativePosts, java.util.List.class);
+            } catch (Exception ignored) {}
+        }
+        return java.util.List.of();
+    }
+
+    @com.fasterxml.jackson.annotation.JsonGetter("forwardedToAuditorPosts")
+    public Object getForwardedToAuditorPostsForJson() {
+        if (forwardedToAuditorPosts != null && !forwardedToAuditorPosts.isBlank()) {
+            try {
+                return new com.fasterxml.jackson.databind.ObjectMapper().readValue(forwardedToAuditorPosts, java.util.List.class);
+            } catch (Exception ignored) {}
+        }
+        return java.util.List.of();
+    }
+}
