@@ -2,12 +2,15 @@ HELP.md
 .gradle
 build/
 target/
+**/target/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
 
 .env
+*.pem
+*.key
 ### STS ###
 .apt_generated
 .classpath
@@ -39,4 +42,6 @@ out/
 ### VS Code ###
 .vscode/
 
-.env
+# Operating System Files
+    .DS_Store
+    Thumbs.db
