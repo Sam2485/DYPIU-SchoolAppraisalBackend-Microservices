@@ -1,5 +1,6 @@
 server:
-  port: 8081
+  port: ${PORT:${SERVER_PORT:9001}}
+
 
 spring:
   application:

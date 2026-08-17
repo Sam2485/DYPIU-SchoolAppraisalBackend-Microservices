@@ -73,7 +73,11 @@ additional_workspace_folders: []
 # list of additional paths to ignore in this project.
 # Same syntax as gitignore, so you can use * and **.
 # Note: global ignored_paths from serena_config.yml are also applied additively.
-ignored_paths: []
+ignored_paths:
+  - "**/target/**"
+  - "uploads/**"
+  - "backups/**"
+  - ".idea/**"
 
 # whether the project is in read-only mode
 # If set to true, all editing tools will be disabled and attempts to use them will result in an error
@@ -112,7 +116,8 @@ added_modes:
 
 # initial prompt for the project. It will always be given to the LLM upon activating the project
 # (contrary to the memories, which are loaded on demand).
-initial_prompt: ""
+initial_prompt: "You are working on the DYPIU Faculty Appraisal Microservices Backend (director-appraisal). Decomposed from the monolith into 6 Spring Boot 3.3.4 / Spring Cloud microservices: api-gateway (:9000), auth-user-service (:9001), form-data-service (:9002), submission-service (:9003), storage-service (:9004), and admin-service (:9005). The system uses 3 partitioned PostgreSQL databases (appraisal_auth_user_db, appraisal_forms_db, appraisal_submission_db) with Flyway V1-V21 migrations and OpenFeign inter-service REST clients. Always read mem:core as the primary memory entry point for project conventions, architecture, and database topology."
+
 
 # time budget (seconds) per tool call for the retrieval of additional symbol information
 # such as docstrings or parameter information.

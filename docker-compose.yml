@@ -23,7 +23,7 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
-  # 2. Auth & User Management Service (Port 8081)
+  # 2. Auth & User Management Service (Port 9001)
   # ---------------------------------------------------------------------------
   auth-user-service:
     build:
@@ -32,6 +32,7 @@ services:
     container_name: appraisal-auth-user-service
     restart: always
     environment:
+      SERVER_PORT: 9001
       DATABASE_URL: jdbc:postgresql://postgres:5432/appraisal_auth_user_db
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -42,13 +43,13 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-your_app_password}
       MAIL_FROM: ${MAIL_FROM:-noreply@dypiu.edu.in}
     ports:
-      - "${AUTH_SERVICE_PORT:-8081}:8081"
+      - "${AUTH_SERVICE_PORT:-9001}:9001"
     depends_on:
       postgres:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
-  # 3. Form Section Data Service (Port 8082)
+  # 3. Form Section Data Service (Port 9002)
   # ---------------------------------------------------------------------------
   form-data-service:
     build:
@@ -57,17 +58,18 @@ services:
     container_name: appraisal-form-data-service
     restart: always
     environment:
+      SERVER_PORT: 9002
       DATABASE_URL: jdbc:postgresql://postgres:5432/appraisal_forms_db
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "${FORMS_SERVICE_PORT:-8082}:8082"
+      - "${FORMS_SERVICE_PORT:-9002}:9002"
     depends_on:
       postgres:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
-  # 4. Submission & Workflow Service (Port 8083)
+  # 4. Submission & Workflow Service (Port 9003)
   # ---------------------------------------------------------------------------
   submission-service:
     build:
@@ -76,13 +78,14 @@ services:
     container_name: appraisal-submission-service
     restart: always
     environment:
+      SERVER_PORT: 9003
       DATABASE_URL: jdbc:postgresql://postgres:5432/appraisal_submission_db
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      AUTH_SERVICE_URL: http://auth-user-service:8081
-      FORMS_SERVICE_URL: http://form-data-service:8082
+      AUTH_SERVICE_URL: http://auth-user-service:9001
+      FORMS_SERVICE_URL: http://form-data-service:9002
     ports:
-      - "${SUBMISSION_SERVICE_PORT:-8083}:8083"
+      - "${SUBMISSION_SERVICE_PORT:-9003}:9003"
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,7 +95,7 @@ services:
         condition: service_started
 
   # ---------------------------------------------------------------------------
-  # 5. Attachment & Storage Service (Port 8084)
+  # 5. Attachment & Storage Service (Port 9004)
   # ---------------------------------------------------------------------------
   storage-service:
     build:
@@ -101,14 +104,15 @@ services:
     container_name: appraisal-storage-service
     restart: always
     environment:
+      SERVER_PORT: 9004
       UPLOAD_LOCAL_PATH: ${UPLOAD_DIR:-/app/uploads}
     ports:
-      - "${STORAGE_SERVICE_PORT:-8084}:8084"
+      - "${STORAGE_SERVICE_PORT:-9004}:9004"
     volumes:
       - uploads_data:${UPLOAD_DIR:-/app/uploads}
 
   # ---------------------------------------------------------------------------
-  # 6. System Backup & Admin Service (Port 8085)
+  # 6. System Backup & Admin Service (Port 9005)
   # ---------------------------------------------------------------------------
   admin-service:
     build:
@@ -117,6 +121,7 @@ services:
     container_name: appraisal-admin-service
     restart: always
     environment:
+      SERVER_PORT: 9005
       UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
       BACKUP_DIR: ${BACKUP_DIR:-/app/backups}
       DB_HOST: postgres
@@ -125,7 +130,7 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "${ADMIN_SERVICE_PORT:-8085}:8085"
+      - "${ADMIN_SERVICE_PORT:-9005}:9005"
     volumes:
       - uploads_data:${UPLOAD_DIR:-/app/uploads}
       - backups_data:${BACKUP_DIR:-/app/backups}
@@ -134,7 +139,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
-  # 7. API Gateway Entrypoint (Port 8080)
+  # 7. API Gateway Entrypoint (Port 9000)
   # ---------------------------------------------------------------------------
   api-gateway:
     build:
@@ -143,14 +148,15 @@ services:
     container_name: appraisal-api-gateway
     restart: always
     environment:
-      AUTH_SERVICE_URL: http://auth-user-service:8081
-      FORMS_SERVICE_URL: http://form-data-service:8082
-      SUBMISSION_SERVICE_URL: http://submission-service:8083
-      STORAGE_SERVICE_URL: http://storage-service:8084
-      ADMIN_SERVICE_URL: http://admin-service:8085
+      SERVER_PORT: 9000
+      AUTH_SERVICE_URL: http://auth-user-service:9001
+      FORMS_SERVICE_URL: http://form-data-service:9002
+      SUBMISSION_SERVICE_URL: http://submission-service:9003
+      STORAGE_SERVICE_URL: http://storage-service:9004
+      ADMIN_SERVICE_URL: http://admin-service:9005
       JWT_SECRET: ${JWT_SECRET:-SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}
     ports:
-      - "${GATEWAY_PORT:-8080}:8080"
+      - "${GATEWAY_PORT:-9000}:9000"
     depends_on:
       - auth-user-service
       - form-data-service
@@ -162,3 +168,4 @@ volumes:
   pgdata:
   uploads_data:
   backups_data:
+

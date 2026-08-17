@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
-@FeignClient(name = "auth-user-service", url = "${AUTH_SERVICE_URL:http://localhost:8081}")
+@FeignClient(name = "auth-user-service", url = "${AUTH_SERVICE_URL:http://localhost:9001}")
 public interface AuthUserClient {
+
 
     @GetMapping("/api/users/by-email/{email}")
     UserDto getUserByEmail(@PathVariable("email") String email);

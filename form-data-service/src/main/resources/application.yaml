@@ -1,5 +1,6 @@
 server:
-  port: 8082
+  port: ${PORT:${SERVER_PORT:9002}}
+
 
 spring:
   application:
