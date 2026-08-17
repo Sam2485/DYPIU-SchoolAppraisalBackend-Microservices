@@ -50,4 +50,4 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}
+    secret: ${JWT_SECRET:${JWT_SECRET_KEY:SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}}

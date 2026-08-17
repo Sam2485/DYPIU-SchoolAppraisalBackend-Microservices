@@ -6,7 +6,7 @@ spring:
   application:
     name: auth-user-service
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/appraisal_auth_db}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/appraisal_auth_user_db}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -32,7 +32,8 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}
+    secret: ${JWT_SECRET:${JWT_SECRET_KEY:SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}}
+
     expiration-ms: 86400000
     refresh-expiration-ms: 604800000
   mail:

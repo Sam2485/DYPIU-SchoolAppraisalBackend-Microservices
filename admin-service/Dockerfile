@@ -15,7 +15,7 @@ COPY admin-service/src admin-service/src
 RUN mvn package -DskipTests -pl admin-service -am -B
 
 FROM eclipse-temurin:21-jre-alpine
-RUN apk add --no-color postgresql-client
+RUN apk add --no-cache postgresql-client
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
 
@@ -24,7 +24,8 @@ RUN mkdir -p /app/uploads /app/backups && chown -R spring:spring /app/uploads /a
 COPY --from=build /app/admin-service/target/*.jar app.jar
 USER spring:spring
 
-EXPOSE 8085
+EXPOSE 9005
+
 
 ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \
