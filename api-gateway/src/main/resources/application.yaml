@@ -6,6 +6,8 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers, RETAIN_FIRST
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -22,6 +24,7 @@ spring:
               - Authorization
               - Content-Type
             allowCredentials: true
+
       routes:
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:9001}
