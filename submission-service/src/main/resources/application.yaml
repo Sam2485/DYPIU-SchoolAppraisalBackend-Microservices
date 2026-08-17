@@ -11,8 +11,9 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:false}
     baseline-on-migrate: true
