@@ -1,9 +1,7 @@
 -- =============================================================================
 -- PostgreSQL Database Dump: appraisal_submission_db
--- Target Microservice: submission-service (Port 8083)
--- Extracted from: school_appraisal_backup_2026-08-13.sql
--- System: DYPIU Director & Faculty Appraisal System
--- Date: school_appraisal_backup_2026-08-13.sql
+-- Target Microservice: submission-service (Port 9003)
+-- Source: school_appraisal_backup_2026-08-13.sql
 -- =============================================================================
 
 SET statement_timeout = 0;
