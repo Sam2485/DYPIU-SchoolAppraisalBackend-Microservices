@@ -53,54 +53,60 @@ public class AuthController {
         String email = identifier.trim().toLowerCase();
         String password = loginRequest.getPassword();
 
-        String clientIp = rateLimiterService.getClientIp(httpServletRequest);
-        String ipKey = "login:ip:" + clientIp;
-        String userKey = "login:user:" + email;
+        try {
+            String clientIp = rateLimiterService.getClientIp(httpServletRequest);
+            String ipKey = "login:ip:" + clientIp;
+            String userKey = "login:user:" + email;
 
-        RateLimiterService.RateLimitResult rateLimitResult = rateLimiterService.checkLimit(ipKey, userKey, "login");
-        if (!rateLimitResult.allowed) {
-            org.slf4j.LoggerFactory.getLogger(AuthController.class).warn(
-                "Rate limit exceeded for endpoint: login, client IP: {}, user: {}, timestamp: {}",
-                clientIp, email, java.time.Instant.now()
-            );
-            return ResponseEntity.status(429)
-                    .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
-                    .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
-                    .header("Retry-After", String.valueOf(rateLimitResult.retryAfter))
-                    .body(Map.of(
-                            "success", false,
-                            "message", "Too many requests. Please try again after one minute."
-                    ));
-        }
+            RateLimiterService.RateLimitResult rateLimitResult = rateLimiterService.checkLimit(ipKey, userKey, "login");
+            if (!rateLimitResult.allowed) {
+                org.slf4j.LoggerFactory.getLogger(AuthController.class).warn(
+                    "Rate limit exceeded for endpoint: login, client IP: {}, user: {}, timestamp: {}",
+                    clientIp, email, java.time.Instant.now()
+                );
+                return ResponseEntity.status(429)
+                        .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
+                        .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
+                        .header("Retry-After", String.valueOf(rateLimitResult.retryAfter))
+                        .body(Map.of(
+                                "success", false,
+                                "message", "Too many requests. Please try again after one minute."
+                        ));
+            }
 
-        User user = userService.findByEmail(email)
-                .orElse(null);
+            User user = userService.findByEmail(email)
+                    .orElse(null);
 
-        if (user == null || !userService.checkPassword(password, user.getPassword())) {
-            return ResponseEntity.badRequest()
-                    .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
-                    .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
-                    .body(Map.of("message", "Invalid email address or password."));
-        }
+            if (user == null || !userService.checkPassword(password, user.getPassword())) {
+                return ResponseEntity.badRequest()
+                        .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
+                        .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
+                        .body(Map.of("message", "Invalid email address or password."));
+            }
 
-        if (isMfaEnabled()) {
-            String loginSessionId = mfaService.createMfaSession(user);
+            if (isMfaEnabled()) {
+                String loginSessionId = mfaService.createMfaSession(user);
 
-            return ResponseEntity.ok()
-                    .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
-                    .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
-                    .body(Map.of(
-                            "mfaRequired", true,
-                            "loginSessionId", loginSessionId,
-                            "expiresIn", 300
-                    ));
-        } else {
-            return ResponseEntity.ok()
-                    .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
-                    .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
-                    .body(buildLoginResponseBody(user));
+                return ResponseEntity.ok()
+                        .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
+                        .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
+                        .body(Map.of(
+                                "mfaRequired", true,
+                                "loginSessionId", loginSessionId,
+                                "expiresIn", 300
+                        ));
+            } else {
+                return ResponseEntity.ok()
+                        .header("X-RateLimit-Limit", String.valueOf(rateLimitResult.limit))
+                        .header("X-RateLimit-Remaining", String.valueOf(rateLimitResult.remaining))
+                        .body(buildLoginResponseBody(user));
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AuthController.class).error("Error processing login request for {}: {}", email, e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("message", "Login error: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())));
         }
     }
+
 
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest verifyRequest) {
