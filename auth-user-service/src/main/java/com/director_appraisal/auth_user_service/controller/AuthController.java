@@ -173,12 +173,21 @@ public class AuthController {
         claims.put("administrativePosts", administrativePosts);
 
         String token = jwtService.generateToken(user, claims);
-        com.director_appraisal.auth_user_service.model.RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+        String refreshTokenStr = java.util.UUID.randomUUID().toString();
+        try {
+            com.director_appraisal.auth_user_service.model.RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+            if (refreshToken != null && refreshToken.getToken() != null) {
+                refreshTokenStr = refreshToken.getToken();
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AuthController.class).warn("Failed to persist refresh token to database: {}", e.getMessage());
+        }
 
         return new LoginResponse(
                 token,
-                refreshToken.getToken(),
+                refreshTokenStr,
                 604800L,
+
                 user.getEmail(),
                 user.getName(),
                 user.getDesignation(),
