@@ -7,6 +7,7 @@ import com.director_appraisal.submission_service.model.SubmissionAuditorAssignme
 import com.director_appraisal.submission_service.dto.UserDto;
 import com.director_appraisal.submission_service.client.AuthUserClient;
 import com.director_appraisal.submission_service.client.FormDataClient;
+import com.director_appraisal.submission_service.repository.AcademicYearRepository;
 import com.director_appraisal.submission_service.repository.SnapshotRepository;
 import com.director_appraisal.submission_service.repository.SubmissionAuditorAssignmentRepository;
 import com.director_appraisal.submission_service.repository.SubmissionRepository;
@@ -43,21 +44,55 @@ public class SubmissionService {
     private final AuthUserClient authUserClient;
     private final TableDataPromotionService tableDataPromotionService;
     private final SubmissionAuditorAssignmentRepository auditorAssignmentRepository;
+    private final AcademicYearRepository academicYearRepository;
     private final FormDataClient formDataClient;
-    // userAdministrativePostRepository removed
-    // attachmentService removed
+
+    public List<UserDto> safeGetAllUsers() {
+        try {
+            List<UserDto> users = authUserClient.getAllUsers();
+            return users != null ? users : List.of();
+        } catch (Exception e) {
+            log.warn("Failed to get all users from AuthUserClient: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    public UserDto safeGetUserByEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        try {
+            return authUserClient.getUserByEmail(email.trim());
+        } catch (Exception e) {
+            log.warn("Failed to get user by email [{}] from AuthUserClient: {}", email, e.getMessage());
+            return null;
+        }
+    }
+
+    public UserDto safeGetUserById(Long id) {
+        if (id == null) return null;
+        try {
+            return authUserClient.getUserById(id);
+        } catch (Exception e) {
+            log.warn("Failed to get user by id [{}] from AuthUserClient: {}", id, e.getMessage());
+            return null;
+        }
+    }
 
     public String getCurrentAcademicYearLabel() {
-        if (formDataClient != null) {
+        if (academicYearRepository != null) {
             try {
-                Map<String, Object> info = formDataClient.getAcademicYearInfo();
-                if (info != null && info.containsKey("activeYear")) {
-                    return (String) info.get("activeYear");
+                List<com.director_appraisal.submission_service.model.AcademicYear> active = academicYearRepository.findByActiveTrue();
+                if (!active.isEmpty() && active.get(0).getYearLabel() != null) {
+                    return active.get(0).getYearLabel();
                 }
-            } catch (Exception e) {}
+                List<com.director_appraisal.submission_service.model.AcademicYear> all = academicYearRepository.findAll();
+                if (!all.isEmpty() && all.get(all.size() - 1).getYearLabel() != null) {
+                    return all.get(all.size() - 1).getYearLabel();
+                }
+            } catch (Exception ignored) {}
         }
         return "2025-2026";
     }
+
 
     @Transactional
     public Submission getOrCreateSharedAdministrativeDraft(UserDto caller) {
@@ -90,8 +125,9 @@ public class SubmissionService {
                         
                         boolean isActive = false;
                         if (email != null && !email.isBlank()) {
-                            Optional<UserDto> uOpt = java.util.Optional.ofNullable(authUserClient.getUserByEmail(email.trim()))
+                            Optional<UserDto> uOpt = java.util.Optional.ofNullable(safeGetUserByEmail(email.trim()))
                                     .filter(u -> !Boolean.TRUE.equals(u.getDeleted()));
+
                             if (uOpt.isPresent()) {
                                 UserDto activeUser = uOpt.get();
                                 if (storedUserId == null || storedUserId.equals(activeUser.getId())) {
@@ -1016,7 +1052,7 @@ public class SubmissionService {
         }
         final String forwardingAuditType = auditType;
 
-        List<UserDto> allAuditors = authUserClient.getAllUsers().stream()
+        List<UserDto> allAuditors = safeGetAllUsers().stream()
                 .filter(u -> "auditor".equalsIgnoreCase(u.getAccountType()))
                 .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
                 .toList();
@@ -1042,7 +1078,7 @@ public class SubmissionService {
                         String audSchool = SchoolUtils.canonicalizeSchool(auditor.getSchool());
                         return audSchool != null && audSchool.equalsIgnoreCase(subSchool);
                     } else {
-                        UserDto submitter = authUserClient.getUserByEmail(submission.getEmail());
+                        UserDto submitter = safeGetUserByEmail(submission.getEmail());
                         if (submitter != null) {
                             return auditorHasAdministrativePost(auditor, submitter.getPost());
                         }
@@ -1091,7 +1127,8 @@ public class SubmissionService {
             return submission.getForwardedAuditCategory().trim().toLowerCase();
         }
 
-        Optional<UserDto> submitterOpt = java.util.Optional.ofNullable(authUserClient.getUserByEmail(submission.getEmail()));
+        Optional<UserDto> submitterOpt = java.util.Optional.ofNullable(safeGetUserByEmail(submission.getEmail()));
+
         if (submitterOpt.isPresent()) {
             String submitterRole = submitterOpt.get().getRole();
             if ("director".equalsIgnoreCase(submitterRole)) {
@@ -1224,8 +1261,9 @@ public class SubmissionService {
                         return true;
                     }
                     if (sub.getEmail() != null) {
-                        Optional<UserDto> submitter = java.util.Optional.ofNullable(authUserClient.getUserByEmail(sub.getEmail()));
+                        Optional<UserDto> submitter = java.util.Optional.ofNullable(safeGetUserByEmail(sub.getEmail()));
                         if (submitter.isPresent() && Boolean.TRUE.equals(submitter.get().getDeleted())) {
+
                             String currentYear = getCurrentAcademicYearLabel();
                             if (isSameAcademicYear(currentYear, sub.getAcademicYear()) || isSameAcademicYear(currentYear, sub.getAuditCycle())) {
                                 return false;
@@ -1409,15 +1447,16 @@ public class SubmissionService {
                     if (isCorrectionReturn) {
                         boolean auditorDeleted = false;
                         if (submission.getForwardedToAuditorId() != null) {
-                            Optional<UserDto> audOpt = java.util.Optional.ofNullable(authUserClient.getUserById(submission.getForwardedToAuditorId()));
+                            Optional<UserDto> audOpt = java.util.Optional.ofNullable(safeGetUserById(submission.getForwardedToAuditorId()));
                             if (audOpt.isPresent() && Boolean.TRUE.equals(audOpt.get().getDeleted())) {
                                 auditorDeleted = true;
                             }
                         } else {
                             List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
                             for (SubmissionAuditorAssignment ass : assignments) {
-                                Optional<UserDto> audOpt = java.util.Optional.ofNullable(authUserClient.getUserById(ass.getAuditorId()));
+                                Optional<UserDto> audOpt = java.util.Optional.ofNullable(safeGetUserById(ass.getAuditorId()));
                                 if (audOpt.isPresent() && Boolean.TRUE.equals(audOpt.get().getDeleted())) {
+
                                     auditorDeleted = true;
                                     break;
                                 }
@@ -1556,8 +1595,9 @@ public class SubmissionService {
     public void autoForwardToExternalAuditors(Submission submission) {
         if (submission == null) return;
         
-        List<UserDto> externalAuditors = authUserClient.getAllUsers().stream()
+        List<UserDto> externalAuditors = safeGetAllUsers().stream()
                 .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
+
                 .filter(u -> {
                     String role = u.getRole() != null ? u.getRole().toLowerCase() : "";
                     String type = u.getAuditorType() != null ? u.getAuditorType().toLowerCase() : "";
@@ -1819,7 +1859,7 @@ public class SubmissionService {
         if ("academic".equalsIgnoreCase(auditType)) {
             String canonicalSchool = SchoolUtils.canonicalizeSchool(submission.getSchool());
             if (canonicalSchool != null) {
-                List<UserDto> allUsers = authUserClient.getAllUsers();
+                List<UserDto> allUsers = safeGetAllUsers();
                 for (UserDto u : allUsers) {
                     boolean isActiveAuditor = !Boolean.TRUE.equals(u.getDeleted())
                             && "active".equalsIgnoreCase(u.getStatus())
@@ -1849,10 +1889,11 @@ public class SubmissionService {
         } else {
             targetAuditors = selectedAuditorIds.stream()
                     .distinct()
-                    .map(id -> authUserClient.getUserById(id))
+                    .map(this::safeGetUserById)
                     .filter(u -> u != null)
                     .collect(java.util.stream.Collectors.toList());
         }
+
 
         if (targetAuditors.isEmpty()) {
             throw new IllegalArgumentException("No active auditors found or selected for review.");
@@ -1998,10 +2039,11 @@ public class SubmissionService {
         if (submission.getAdministrativePost() != null && !submission.getAdministrativePost().isBlank()) {
             return submission.getAdministrativePost().trim().toLowerCase();
         }
-        return java.util.Optional.ofNullable(authUserClient.getUserByEmail(submission.getEmail()))
+        return java.util.Optional.ofNullable(safeGetUserByEmail(submission.getEmail()))
                 .map(UserDto::getPost)
                 .map(this::normalize)
                 .orElse(null);
+
     }
 
     private String resolveExpectedReportCategoryForApproval(Submission submission) {
@@ -2250,7 +2292,8 @@ public class SubmissionService {
         if (email == null || email.isBlank()) {
             return null;
         }
-        return java.util.Optional.ofNullable(authUserClient.getUserByEmail(email)).orElse(null);
+        return safeGetUserByEmail(email);
+
     }
 
     private AdministrativePayload prepareAdministrativePayload(Submission submission, UserDto caller, String incomingValuesData,
@@ -2508,7 +2551,7 @@ public class SubmissionService {
                 if (postNode != null && postNode.path("submitted").asBoolean()) {
                     String email = postNode.path("email").asText(null);
                     if (email != null && !email.isBlank()) {
-                        return java.util.Optional.ofNullable(authUserClient.getUserByEmail(email.trim()))
+                        return java.util.Optional.ofNullable(safeGetUserByEmail(email.trim()))
                                 .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
                                 .isPresent();
                     }
@@ -2593,8 +2636,9 @@ public class SubmissionService {
         String canonicalPost = canonicalAdministrativePost(post);
         if (canonicalPost == null) return false;
 
-        List<UserDto> allUsers = authUserClient.getAllUsers();
-        if (allUsers == null) return false;
+        List<UserDto> allUsers = safeGetAllUsers();
+        if (allUsers == null || allUsers.isEmpty()) return true;
+
         for (UserDto u : allUsers) {
             if (Boolean.TRUE.equals(u.getDeleted())) {
                 continue;

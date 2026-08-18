@@ -15,9 +15,10 @@ public class JwtUtil {
 
     private final SecretKey key;
 
-    public JwtUtil(@Value("${app.jwt.secret:SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}") String secret) {
+    public JwtUtil(@Value("${app.jwt.secret:a7f997cb3734907e6ce00508c77996e02d5b81215f9993d061198404fa41a343}") String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
+
 
     public Claims getClaims(String token) {
         return Jwts.parser()

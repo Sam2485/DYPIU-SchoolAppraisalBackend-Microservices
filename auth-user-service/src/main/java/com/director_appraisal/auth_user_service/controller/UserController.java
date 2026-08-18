@@ -427,7 +427,7 @@ public class UserController {
         return user != null && !Boolean.TRUE.equals(user.getDeleted());
     }
 
-    private Map<String, Object> toUserResponse(User user) {
+    public Map<String, Object> toUserResponse(User user) {
         String role = normalize(user.getRole());
         String accountType = normalize(user.getAccountType());
         if (isBlank(accountType)) {

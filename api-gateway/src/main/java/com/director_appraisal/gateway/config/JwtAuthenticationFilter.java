@@ -74,8 +74,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isPublicEndpoint(String path) {
+        if (path == null) return false;
+        if (path.startsWith("/api/auth/") || path.equals("/api/auth") || path.startsWith("/uploads/") || path.startsWith("/api/attachments/public/")) {
+            return true;
+        }
         return PUBLIC_ENDPOINTS.stream().anyMatch(endpoint -> path.equalsIgnoreCase(endpoint) || path.startsWith(endpoint + "/"));
     }
+
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
         ServerHttpResponse response = exchange.getResponse();

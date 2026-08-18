@@ -11,12 +11,13 @@ import java.util.List;
 public interface AuthUserClient {
 
 
-    @GetMapping("/api/users/by-email/{email}")
+    @GetMapping("/api/internal/users/by-email/{email}")
     UserDto getUserByEmail(@PathVariable("email") String email);
 
-    @GetMapping("/api/users/{id}")
+    @GetMapping("/api/internal/users/{id}")
     UserDto getUserById(@PathVariable("id") Long id);
 
-    @GetMapping("/api/users")
+    @GetMapping("/api/internal/users")
     List<UserDto> getAllUsers();
 }
+

@@ -45,7 +45,10 @@ public class UserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username)
+        if (username == null || username.isBlank()) {
+            throw new UsernameNotFoundException("Email cannot be empty");
+        }
+        return userRepository.findByEmailIgnoreCase(username.trim())
                 .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
     }
@@ -54,9 +57,10 @@ public class UserService implements UserDetailsService {
         if (email == null || email.isBlank()) {
             return Optional.empty();
         }
-        return userRepository.findByEmail(email.trim().toLowerCase())
+        return userRepository.findByEmailIgnoreCase(email.trim())
                 .filter(u -> !Boolean.TRUE.equals(u.getDeleted()));
     }
+
 
     public List<User> findAllUsers() {
         return userRepository.findAll().stream()

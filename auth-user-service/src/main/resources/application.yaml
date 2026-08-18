@@ -34,9 +34,10 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:${JWT_SECRET_KEY:SecretKeyForJWTAppraisalMustBeAtLeast256BitsLongForHMACSHA256}}
+    secret: ${JWT_SECRET:${JWT_SECRET_KEY:a7f997cb3734907e6ce00508c77996e02d5b81215f9993d061198404fa41a343}}
 
     expiration-ms: 86400000
+
     refresh-expiration-ms: 604800000
   mail:
     from: ${MAIL_FROM:noreply@dypiu.edu.in}

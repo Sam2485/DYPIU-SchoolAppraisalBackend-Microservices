@@ -25,20 +25,53 @@ import java.util.Optional;
 public class SubmissionController {
 
     private final SubmissionService submissionService;
-    
     private final AuthUserClient authUserClient;
+    private final jakarta.servlet.http.HttpServletRequest httpRequest;
 
     private String getCurrentUserEmail() {
-        return "admin@dypiu.edu.in";
+        if (httpRequest != null) {
+            String headerEmail = httpRequest.getHeader("X-User-Email");
+            if (headerEmail != null && !headerEmail.isBlank()) {
+                return headerEmail.trim().toLowerCase();
+            }
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                try {
+                    String token = authHeader.substring(7).trim();
+                    int firstDot = token.indexOf('.');
+                    int secondDot = token.indexOf('.', firstDot + 1);
+                    if (firstDot > 0 && secondDot > firstDot) {
+                        String payload = new String(java.util.Base64.getUrlDecoder().decode(token.substring(firstDot + 1, secondDot)), java.nio.charset.StandardCharsets.UTF_8);
+                        com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
+                        if (jsonNode.has("sub")) {
+                            return jsonNode.get("sub").asText().trim().toLowerCase();
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        return "iqac@dypiu.ac.in";
+    }
+
+    private UserDto safeGetUserByEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        try {
+            return authUserClient.getUserByEmail(email.trim());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private UserDto getCurrentUserDetails() {
-        try {
-            UserDto u = authUserClient.getUserByEmail(getCurrentUserEmail());
+        String email = getCurrentUserEmail();
+        if (email != null && !email.isBlank()) {
+            UserDto u = safeGetUserByEmail(email);
             if (u != null) return u;
-        } catch (Exception ignored) {}
-        return UserDto.builder().email("admin@dypiu.edu.in").name("Admin User").role("iqac").build();
+        }
+        return UserDto.builder().email(email).name("User").role("iqac").build();
     }
+
+
 
     @GetMapping("/my-draft")
     public ResponseEntity<Submission> getMyDraft(
@@ -269,8 +302,9 @@ public ResponseEntity<List<Submission>> getPreviousReports(@RequestParam(require
 
         if (!"APPROVED".equalsIgnoreCase(submission.getStatus()) && !"FINAL".equalsIgnoreCase(submission.getStatus())) {
             if (submission.getEmail() != null) {
-                java.util.Optional<UserDto> submitter = java.util.Optional.ofNullable(authUserClient.getUserByEmail(submission.getEmail().trim().toLowerCase()));
+                java.util.Optional<UserDto> submitter = java.util.Optional.ofNullable(safeGetUserByEmail(submission.getEmail().trim().toLowerCase()));
                 if (submitter.isPresent() && Boolean.TRUE.equals(submitter.get().getDeleted())) {
+
                     String currentYear = submissionService.getCurrentAcademicYearLabel();
                     if (submissionService.isSameAcademicYear(currentYear, submission.getAcademicYear()) || submissionService.isSameAcademicYear(currentYear, submission.getAuditCycle())) {
                         throw new IllegalArgumentException("Submission not found with ID: " + id);
@@ -756,8 +790,9 @@ public void downloadAttachments(@PathVariable Long id,
         if ("academic".equalsIgnoreCase(submission.getAuditType())) {
             entityName = SchoolUtils.canonicalizeSchool(submission.getSchool());
         } else {
-            entityName = Optional.ofNullable(authUserClient.getUserByEmail(submission.getEmail()))
+            entityName = Optional.ofNullable(safeGetUserByEmail(submission.getEmail()))
                     .map(UserDto::getPost)
+
                     .orElse(submission.getAdministrativePost());
             entityName = formatAdministrativePost(entityName);
         }
