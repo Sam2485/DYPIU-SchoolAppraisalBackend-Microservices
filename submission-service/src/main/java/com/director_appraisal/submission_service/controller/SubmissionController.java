@@ -12,17 +12,20 @@ import org.springframework.http.ResponseEntity;
 
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/submissions")
 @RequiredArgsConstructor
 @CrossOrigin
 public class SubmissionController {
+
 
     private final SubmissionService submissionService;
     private final AuthUserClient authUserClient;
