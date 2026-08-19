@@ -67,4 +67,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     @Query("select distinct s.academicYear from Submission s where s.academicYear is not null and s.academicYear != ''")
     List<String> findDistinctAcademicYears();
+
+    @Query("select distinct s.auditCycle from Submission s where s.auditCycle is not null and s.auditCycle != ''")
+    List<String> findDistinctAuditCycles();
 }
+
