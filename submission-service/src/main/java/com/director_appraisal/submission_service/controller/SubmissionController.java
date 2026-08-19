@@ -84,8 +84,9 @@ public class SubmissionController {
             @RequestParam(required = false, defaultValue = "false") boolean includeHistorical,
             @RequestParam(required = false, defaultValue = "false") boolean shared) {
         UserDto user = getCurrentUserDetails();
-        String normalizedAuditType = normalizeAuditType(auditType);
+        String normalizedAuditType = resolveAuditTypeForCaller(user, auditType);
         String requestedYear = firstNonBlank(academicYear, auditCycle, cycleId);
+
         boolean includeNonDrafts = includeSubmitted || includeApproved || includeHistorical;
 
         Submission draft = submissionService.getDraftForUser(
@@ -122,18 +123,30 @@ public class SubmissionController {
         return ResponseEntity.ok(submitted);
     }
 
-    private String normalizeAuditType(String auditType) {
-        if (auditType == null || auditType.isBlank() || "null".equalsIgnoreCase(auditType.trim())) {
-            throw new IllegalArgumentException("Audit type is required");
+    private String resolveAuditTypeForCaller(UserDto user, String requestAuditType) {
+        if (requestAuditType != null && !requestAuditType.isBlank() && !"null".equalsIgnoreCase(requestAuditType.trim()) && !"undefined".equalsIgnoreCase(requestAuditType.trim())) {
+            return requestAuditType.trim().toLowerCase();
         }
-        return auditType.trim().toLowerCase();
+        if (user != null) {
+            String role = user.getRole() != null ? user.getRole().trim().toLowerCase() : "";
+            if ("director".equals(role)) {
+                return "academic";
+            }
+            if ("administrative".equals(role)) {
+                return "administrative";
+            }
+            if (user.getCategory() != null && !user.getCategory().isBlank()) {
+                return user.getCategory().trim().toLowerCase();
+            }
+        }
+        return "academic";
     }
 
     private void validateAuditTypeForRole(String role, String auditType) {
-        if (auditType == null) {
+        if (role == null || auditType == null) {
             return;
         }
-        String roleLower = role.toLowerCase();
+        String roleLower = role.trim().toLowerCase();
         String typeLower = auditType.trim().toLowerCase();
         
         if (roleLower.contains("auditor")) {
@@ -145,7 +158,7 @@ public class SubmissionController {
             }
             return;
         }
-
+        
         if ("director".equals(roleLower) && !"academic".equals(typeLower)) {
             throw new IllegalArgumentException("Academic Directors can only submit academic audits");
         }
@@ -158,12 +171,12 @@ public class SubmissionController {
     }
 
     @PostMapping("/save-draft")
-    public ResponseEntity<Submission> saveDraft(@RequestBody FormSubmissionRequest request) {
-        String auditType = normalizeAuditType(request.getAuditType());
+    public ResponseEntity<Submission> saveDraft(@RequestBody(required = false) FormSubmissionRequest request) {
         String email = getCurrentUserEmail();
         UserDto user = getCurrentUserDetails();
+        String auditType = resolveAuditTypeForCaller(user, request != null ? request.getAuditType() : null);
         validateAuditTypeForRole(user.getRole(), auditType);
-        if (request.isSharedAdministrativeForm() && "administrative".equals(auditType)) {
+        if (request != null && request.isSharedAdministrativeForm() && "administrative".equals(auditType)) {
             return ResponseEntity.ok(submissionService.saveSharedAdministrativeContribution(user, request.getContributorPost(),
                     request.getSections(), request.getValuesData(), request.getTablesData(), request.getAttachments(), false));
         }
@@ -172,20 +185,20 @@ public class SubmissionController {
                 auditType,
                 user.getSchool(),
                 user.getName(),
-                request.getValuesData(),
-                request.getTablesData(),
-                request.getAttachments()
+                request != null ? request.getValuesData() : null,
+                request != null ? request.getTablesData() : null,
+                request != null ? request.getAttachments() : null
         );
         return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/submit")
-    public ResponseEntity<Submission> submitForm(@RequestBody FormSubmissionRequest request) {
-        String auditType = normalizeAuditType(request.getAuditType());
+    public ResponseEntity<Submission> submitForm(@RequestBody(required = false) FormSubmissionRequest request) {
         String email = getCurrentUserEmail();
         UserDto user = getCurrentUserDetails();
+        String auditType = resolveAuditTypeForCaller(user, request != null ? request.getAuditType() : null);
         validateAuditTypeForRole(user.getRole(), auditType);
-        if (request.isSharedAdministrativeForm() && "administrative".equals(auditType)) {
+        if (request != null && request.isSharedAdministrativeForm() && "administrative".equals(auditType)) {
             return ResponseEntity.ok(submissionService.saveSharedAdministrativeContribution(user, request.getContributorPost(),
                     request.getSections(), request.getValuesData(), request.getTablesData(), request.getAttachments(), true));
         }
@@ -194,22 +207,23 @@ public class SubmissionController {
                 auditType,
                 user.getSchool(),
                 user.getName(),
-                request.getValuesData(),
-                request.getTablesData(),
-                request.getAttachments()
+                request != null ? request.getValuesData() : null,
+                request != null ? request.getTablesData() : null,
+                request != null ? request.getAttachments() : null
         );
         return ResponseEntity.ok(submitted);
     }
 
     @PutMapping("/save-draft")
-    public ResponseEntity<Submission> updateDraft(@RequestBody FormSubmissionRequest request) {
+    public ResponseEntity<Submission> updateDraft(@RequestBody(required = false) FormSubmissionRequest request) {
         return saveDraft(request);
     }
 
     @PutMapping("/submit")
-    public ResponseEntity<Submission> updateAndSubmitForm(@RequestBody FormSubmissionRequest request) {
+    public ResponseEntity<Submission> updateAndSubmitForm(@RequestBody(required = false) FormSubmissionRequest request) {
         return submitForm(request);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<Submission> updateSubmission(@PathVariable Long id, @RequestBody FormSubmissionRequest request) {
