@@ -3431,14 +3431,14 @@ public class SubmissionService {
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
             String role = user.getRole() != null ? user.getRole().toLowerCase() : "";
             if ("administrative".equals(role)) {
-                String post = canonicalAdministrativePost(user.getPost());
+                String post = canonicalAdministrativePost(user.getPost() != null ? user.getPost() : user.getDesignation());
                 if (post != null) {
                     String overallStatus = submission.getStatus();
                     boolean isDraft = "DRAFT".equalsIgnoreCase(overallStatus) || "SENT_BACK".equalsIgnoreCase(overallStatus);
                     if (isDraft) {
                         java.util.Map<String, String> progress = submission.getAdministrativeProgressForJson();
                         String postStatus = progress.get(post);
-                        if (postStatus == null || "DRAFT".equalsIgnoreCase(postStatus) || "IN_PROGRESS".equalsIgnoreCase(postStatus)) {
+                        if (postStatus == null || "DRAFT".equalsIgnoreCase(postStatus) || "IN_PROGRESS".equalsIgnoreCase(postStatus) || "PENDING".equalsIgnoreCase(postStatus)) {
                             canEditContribution = true;
                             contributionStatus = "pending";
                         } else {
@@ -3473,6 +3473,7 @@ public class SubmissionService {
         }
         
         permissionMap.put("canEditContribution", canEditContribution);
+        permissionMap.put("canEdit", canEditContribution);
         permissionMap.put("cycleType", cycleType);
         permissionMap.put("version", version);
         permissionMap.put("contributionStatus", contributionStatus);
@@ -3482,6 +3483,7 @@ public class SubmissionService {
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
             if (isIqac || isVc) {
                 permissionMap.put("canView", true);
+                permissionMap.put("canEdit", false);
                 permissionMap.put("editablePosts", java.util.Collections.emptyList());
                 permissionMap.put("readOnlyPosts", java.util.List.of("registrar", "hr", "dean-student-welfare", "dean-placement", "library", "examination", "accounts"));
                 
@@ -3511,17 +3513,44 @@ public class SubmissionService {
                 }
                 
                 permissionMap.put("canView", true);
+                permissionMap.put("canEdit", false);
+                permissionMap.put("editablePosts", editablePosts);
+                permissionMap.put("readOnlyPosts", readOnlyPosts);
+                permissionMap.put("permissions", perPostPerms);
+            } else if ("administrative".equalsIgnoreCase(user.getRole())) {
+                String myPost = canonicalAdministrativePost(user.getPost() != null ? user.getPost() : user.getDesignation());
+                java.util.List<String> allPosts = java.util.List.of("registrar", "hr", "dean-student-welfare", "dean-placement", "library", "examination", "accounts");
+                
+                java.util.List<String> editablePosts = new java.util.ArrayList<>();
+                java.util.List<String> readOnlyPosts = new java.util.ArrayList<>();
+                java.util.Map<String, Object> perPostPerms = new java.util.HashMap<>();
+                
+                for (String post : allPosts) {
+                    boolean isMyPost = (myPost != null && (myPost.equalsIgnoreCase(post) || myPost.contains(post) || post.contains(myPost)));
+                    boolean canEditThisPost = isMyPost && canEditContribution;
+                    if (canEditThisPost) {
+                        editablePosts.add(post);
+                    } else {
+                        readOnlyPosts.add(post);
+                    }
+                    perPostPerms.put(post, java.util.Map.of("canEdit", canEditThisPost));
+                }
+                
+                permissionMap.put("canView", true);
+                permissionMap.put("canEdit", canEditContribution);
                 permissionMap.put("editablePosts", editablePosts);
                 permissionMap.put("readOnlyPosts", readOnlyPosts);
                 permissionMap.put("permissions", perPostPerms);
             } else {
                 permissionMap.put("canView", true);
+                permissionMap.put("canEdit", canEditContribution);
                 permissionMap.put("editablePosts", java.util.Collections.emptyList());
                 permissionMap.put("readOnlyPosts", java.util.Collections.emptyList());
                 permissionMap.put("permissions", java.util.Collections.emptyMap());
             }
         } else {
             permissionMap.put("canView", true);
+            permissionMap.put("canEdit", canEditContribution);
             permissionMap.put("editablePosts", java.util.Collections.emptyList());
             permissionMap.put("readOnlyPosts", java.util.Collections.emptyList());
             permissionMap.put("permissions", java.util.Collections.emptyMap());
@@ -3532,6 +3561,7 @@ public class SubmissionService {
             permissionMap.put("canEdit", false);
             permissionMap.put("isHistorical", true);
         }
+
 
         submission.setPermissions(permissionMap);
     }
