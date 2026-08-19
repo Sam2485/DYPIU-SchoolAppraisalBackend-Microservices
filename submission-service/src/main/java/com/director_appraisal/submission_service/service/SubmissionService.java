@@ -1856,17 +1856,37 @@ public class SubmissionService {
         }
 
         List<UserDto> targetAuditors = new java.util.ArrayList<>();
-        if ("academic".equalsIgnoreCase(auditType)) {
+        if (selectedAuditorIds != null && !selectedAuditorIds.isEmpty()) {
+            for (Long id : selectedAuditorIds) {
+                if (id != null) {
+                    UserDto u = safeGetUserById(id);
+                    if (u != null) {
+                        targetAuditors.add(u);
+                    }
+                }
+            }
+        }
+
+        if (targetAuditors.isEmpty() && "academic".equalsIgnoreCase(auditType)) {
             String canonicalSchool = SchoolUtils.canonicalizeSchool(submission.getSchool());
-            if (canonicalSchool != null) {
-                List<UserDto> allUsers = safeGetAllUsers();
-                for (UserDto u : allUsers) {
-                    boolean isActiveAuditor = !Boolean.TRUE.equals(u.getDeleted())
-                            && "active".equalsIgnoreCase(u.getStatus())
-                            && "auditor".equalsIgnoreCase(u.getAccountType())
-                            && "academic".equalsIgnoreCase(u.getCategory())
-                            && requestedType.equalsIgnoreCase(u.getAuditorType());
-                    if (isActiveAuditor) {
+            List<UserDto> allUsers = safeGetAllUsers();
+            for (UserDto u : allUsers) {
+                if (Boolean.TRUE.equals(u.getDeleted())) continue;
+                if (u.getStatus() != null && !"active".equalsIgnoreCase(u.getStatus())) continue;
+
+                String role = u.getRole() != null ? u.getRole().toLowerCase() : "";
+                String accountType = u.getAccountType() != null ? u.getAccountType().toLowerCase() : "";
+                String category = u.getCategory() != null ? u.getCategory().toLowerCase() : "";
+                String auditorType = u.getAuditorType() != null ? u.getAuditorType().toLowerCase() : "";
+
+                boolean isAuditor = "auditor".equals(accountType) || role.contains("auditor");
+                boolean matchesCategory = category.isEmpty() || "academic".equals(category) || role.contains("academic");
+                boolean matchesType = auditorType.isEmpty() || requestedType.equalsIgnoreCase(auditorType) || role.contains(requestedType);
+
+                if (isAuditor && matchesCategory && matchesType) {
+                    if (canonicalSchool == null) {
+                        targetAuditors.add(u);
+                    } else {
                         List<String> auditorSchools = u.getSchoolsList();
                         boolean matchesSchool = false;
                         for (String sch : auditorSchools) {
@@ -1875,7 +1895,7 @@ public class SubmissionService {
                                 break;
                             }
                         }
-                        if (!matchesSchool && auditorSchools.isEmpty() && u.getSchool() != null) {
+                        if (!matchesSchool && u.getSchool() != null) {
                             if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(u.getSchool()))) {
                                 matchesSchool = true;
                             }
@@ -1886,14 +1906,7 @@ public class SubmissionService {
                     }
                 }
             }
-        } else {
-            targetAuditors = selectedAuditorIds.stream()
-                    .distinct()
-                    .map(this::safeGetUserById)
-                    .filter(u -> u != null)
-                    .collect(java.util.stream.Collectors.toList());
         }
-
 
         if (targetAuditors.isEmpty()) {
             throw new IllegalArgumentException("No active auditors found or selected for review.");
@@ -1977,55 +1990,16 @@ public class SubmissionService {
     }
 
     private void validateSelectedAuditor(UserDto auditor, String auditType, String requestedType, Submission submission, java.util.Set<String> submissionPosts) {
+        if (auditor == null) {
+            throw new IllegalArgumentException("Auditor cannot be null");
+        }
         String role = normalize(auditor.getRole());
         String accountType = normalize(auditor.getAccountType());
-        if (!"auditor".equals(accountType) && (role == null || !role.contains("auditor"))) {
-            throw new IllegalArgumentException("Selected user is not an auditor: " + auditor.getEmail());
-        }
-        
-        String auditorCategory = auditor.getCategory() != null && !auditor.getCategory().isBlank() 
-                ? auditor.getCategory() 
-                : "academic";
-        if (!auditorCategory.equalsIgnoreCase(auditType)) {
-            throw new IllegalArgumentException("Selected auditor category does not match submission audit type: " + auditor.getEmail());
-        }
-
-        String auditorType = auditor.getAuditorType() != null && !auditor.getAuditorType().isBlank()
-                ? auditor.getAuditorType()
-                : "internal";
-        if (!auditorType.equalsIgnoreCase(requestedType)) {
-            throw new IllegalArgumentException("Selected auditor type does not match requested auditor type: " + auditor.getEmail());
-        }
-
-        if ("academic".equalsIgnoreCase(auditType)) {
-            String submissionSchool = SchoolUtils.canonicalizeSchool(submission.getSchool());
-            if (submissionSchool == null) {
-                throw new IllegalArgumentException("Submission school is missing.");
-            }
-            boolean matchesSchool = false;
-            List<String> schoolsList = auditor.getSchoolsList();
-            for (String sch : schoolsList) {
-                if (submissionSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sch))) {
-                    matchesSchool = true;
-                    break;
-                }
-            }
-            if (!matchesSchool && schoolsList.isEmpty() && auditor.getSchool() != null) {
-                String auditorSchool = SchoolUtils.canonicalizeSchool(auditor.getSchool());
-                if (submissionSchool.equalsIgnoreCase(auditorSchool)) {
-                    matchesSchool = true;
-                }
-            }
-            if (!matchesSchool) {
-                throw new IllegalArgumentException("Academic auditor must match the submission school: " + auditor.getEmail());
-            }
-        } else if ("administrative".equalsIgnoreCase(auditType)) {
-            java.util.Set<String> auditorPosts = resolveAdministrativePosts(auditor);
-            if (submissionPosts.isEmpty() || !hasPostOverlap(auditorPosts, submissionPosts)) {
-                System.out.println("[AUDIT_DEBUG] Warning: Selected administrative auditor has no overlap with submitted posts: " + auditor.getEmail());
-            }
+        if (!"auditor".equalsIgnoreCase(accountType) && (role == null || !role.toLowerCase().contains("auditor"))) {
+            System.out.println("[AUDIT_DEBUG] Notice: Forwarding to selected user: " + auditor.getEmail() + " role=" + role);
         }
     }
+
 
     private boolean auditorHasAdministrativePost(UserDto auditor, String post) {
         if (post == null || post.isBlank() || auditor == null) {
