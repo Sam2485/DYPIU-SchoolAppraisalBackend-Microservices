@@ -212,8 +212,20 @@ public class SubmissionService {
                 SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle));
 
         if (existing.isPresent()) {
-            return existing.get();
+            Submission sub = existing.get();
+            if ("administrative".equalsIgnoreCase(sub.getAuditType()) && sub.getVersion() != null && sub.getVersion() > 1) {
+                if ("FORWARDED_TO_EXTERNAL_AUDITOR".equalsIgnoreCase(sub.getStatus())) {
+                    java.util.Map<String, String> progress = sub.getAdministrativeProgressForJson();
+                    boolean hasPending = progress.values().stream().anyMatch(v -> "DRAFT".equalsIgnoreCase(v) || "PENDING".equalsIgnoreCase(v) || "IN_PROGRESS".equalsIgnoreCase(v));
+                    if (hasPending) {
+                        sub.setStatus("DRAFT");
+                        submissionRepository.save(sub);
+                    }
+                }
+            }
+            return sub;
         }
+
 
         Submission submission = Submission.builder()
                 .email(SHARED_ADMINISTRATIVE_EMAIL)
@@ -1792,10 +1804,13 @@ public class SubmissionService {
         approved.setNextVersionId(saved.getId());
         submissionRepository.save(approved);
 
-        autoForwardToExternalAuditors(saved);
+        if (!"administrative".equalsIgnoreCase(saved.getAuditType())) {
+            autoForwardToExternalAuditors(saved);
+        }
         persistDataForStatus(saved);
         return saved;
     }
+
 
     private void persistDataForStatus(Submission submission) {
         if (usesNormalizedTables(submission.getStatus())) {
@@ -3434,8 +3449,13 @@ public class SubmissionService {
                 String post = canonicalAdministrativePost(user.getPost() != null ? user.getPost() : user.getDesignation());
                 if (post != null) {
                     String overallStatus = submission.getStatus();
-                    boolean isDraft = "DRAFT".equalsIgnoreCase(overallStatus) || "SENT_BACK".equalsIgnoreCase(overallStatus);
+                    boolean isDraft = "DRAFT".equalsIgnoreCase(overallStatus)
+                            || "IN_PROGRESS".equalsIgnoreCase(overallStatus)
+                            || "SENT_BACK".equalsIgnoreCase(overallStatus)
+                            || "FORWARDED_TO_EXTERNAL_AUDITOR".equalsIgnoreCase(overallStatus);
                     if (isDraft) {
+
+
                         java.util.Map<String, String> progress = submission.getAdministrativeProgressForJson();
                         String postStatus = progress.get(post);
                         if (postStatus == null || "DRAFT".equalsIgnoreCase(postStatus) || "IN_PROGRESS".equalsIgnoreCase(postStatus) || "PENDING".equalsIgnoreCase(postStatus)) {
