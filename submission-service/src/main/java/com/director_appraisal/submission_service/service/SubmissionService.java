@@ -1509,9 +1509,11 @@ public class SubmissionService {
                                 submission,
                                 forwardedAuditorType,
                                 requestForwardedToAuditorIds,
+                                requestForwardedToAuditorEmails,
                                 forwardedAdministrativePosts,
                                 forwardedToAuditorPosts
                         );
+
                     }
                 }
                 submission.setStatus("UNDER_REVIEW");
@@ -1808,7 +1810,7 @@ public class SubmissionService {
         return status != null && NORMALIZED_TABLE_STATUSES.contains(status.toUpperCase());
     }
 
-    private void assignSelectedAuditorsForReview(Submission submission, String forwardedAuditorType, List<Long> selectedAuditorIds, List<String> forwardedAdministrativePosts, List<String> forwardedToAuditorPosts) {
+    private void assignSelectedAuditorsForReview(Submission submission, String forwardedAuditorType, List<Long> selectedAuditorIds, List<String> forwardedToAuditorEmails, List<String> forwardedAdministrativePosts, List<String> forwardedToAuditorPosts) {
         if (submission.getId() == null) {
             throw new IllegalStateException("Submission must be saved before auditor assignment");
         }
@@ -1827,6 +1829,9 @@ public class SubmissionService {
         if (auditType == null || auditType.isBlank()) {
             throw new IllegalArgumentException("Audit type is required to forward submission to auditor");
         }
+
+        log.info("[AUDIT_ASSIGN] assignSelectedAuditorsForReview started: subId={}, school={}, auditType={}, requestedType={}, selectedIds={}, forwardedEmails={}",
+                submission.getId(), submission.getSchool(), auditType, requestedType, selectedAuditorIds, forwardedToAuditorEmails);
 
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
             ObjectMapper mapper = new ObjectMapper();
@@ -1854,10 +1859,13 @@ public class SubmissionService {
         }
 
         List<UserDto> targetAuditors = new java.util.ArrayList<>();
+        
+        // 1. Try finding by selected IDs
         if (selectedAuditorIds != null && !selectedAuditorIds.isEmpty()) {
             for (Long id : selectedAuditorIds) {
                 if (id != null) {
                     UserDto u = safeGetUserById(id);
+                    log.info("[AUDIT_ASSIGN] Resolved user by ID [{}]: {}", id, u != null ? u.getEmail() : "null");
                     if (u != null) {
                         targetAuditors.add(u);
                     }
@@ -1865,10 +1873,28 @@ public class SubmissionService {
             }
         }
 
-        if (targetAuditors.isEmpty() && "academic".equalsIgnoreCase(auditType)) {
+        // 2. Try finding by forwarded emails
+        if (targetAuditors.isEmpty() && forwardedToAuditorEmails != null && !forwardedToAuditorEmails.isEmpty()) {
+            for (String em : forwardedToAuditorEmails) {
+                if (em != null && !em.isBlank()) {
+                    UserDto u = safeGetUserByEmail(em.trim());
+                    log.info("[AUDIT_ASSIGN] Resolved user by Email [{}]: {}", em, u != null ? u.getEmail() : "null");
+                    if (u != null) {
+                        targetAuditors.add(u);
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback: Search all active matching auditors from auth service
+        if (targetAuditors.isEmpty()) {
             String canonicalSchool = SchoolUtils.canonicalizeSchool(submission.getSchool());
             List<UserDto> allUsers = safeGetAllUsers();
+            log.info("[AUDIT_ASSIGN] Fallback search from {} total users for school={}", allUsers.size(), canonicalSchool);
             for (UserDto u : allUsers) {
+                log.info("[AUDIT_ASSIGN] User entry: id={}, email={}, name={}, role={}, accountType={}, category={}, auditorType={}, schools={}, status={}, deleted={}",
+                        u.getId(), u.getEmail(), u.getName(), u.getRole(), u.getAccountType(), u.getCategory(), u.getAuditorType(), u.getSchoolsList(), u.getStatus(), u.getDeleted());
+
                 if (Boolean.TRUE.equals(u.getDeleted())) continue;
                 if (u.getStatus() != null && !"active".equalsIgnoreCase(u.getStatus())) continue;
 
@@ -1877,38 +1903,49 @@ public class SubmissionService {
                 String category = u.getCategory() != null ? u.getCategory().toLowerCase() : "";
                 String auditorType = u.getAuditorType() != null ? u.getAuditorType().toLowerCase() : "";
 
-                boolean isAuditor = "auditor".equals(accountType) || role.contains("auditor");
-                boolean matchesCategory = category.isEmpty() || "academic".equals(category) || role.contains("academic");
+                boolean isAuditor = "auditor".equalsIgnoreCase(accountType) || role.contains("auditor");
+                boolean matchesCategory = category.isEmpty() || auditType.equalsIgnoreCase(category) || role.contains(auditType);
                 boolean matchesType = auditorType.isEmpty() || requestedType.equalsIgnoreCase(auditorType) || role.contains(requestedType);
 
                 if (isAuditor && matchesCategory && matchesType) {
-                    if (canonicalSchool == null) {
-                        targetAuditors.add(u);
-                    } else {
-                        List<String> auditorSchools = u.getSchoolsList();
-                        boolean matchesSchool = false;
-                        for (String sch : auditorSchools) {
-                            if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sch))) {
-                                matchesSchool = true;
-                                break;
-                            }
-                        }
-                        if (!matchesSchool && u.getSchool() != null) {
-                            if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(u.getSchool()))) {
-                                matchesSchool = true;
-                            }
-                        }
-                        if (matchesSchool) {
+                    if ("academic".equalsIgnoreCase(auditType)) {
+                        if (canonicalSchool == null) {
                             targetAuditors.add(u);
+                        } else {
+                            List<String> auditorSchools = u.getSchoolsList();
+                            boolean matchesSchool = false;
+                            for (String sch : auditorSchools) {
+                                if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sch))) {
+                                    matchesSchool = true;
+                                    break;
+                                }
+                            }
+                            if (!matchesSchool && u.getSchool() != null) {
+                                if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(u.getSchool()))) {
+                                    matchesSchool = true;
+                                }
+                            }
+                            if (matchesSchool) {
+                                targetAuditors.add(u);
+                                log.info("[AUDIT_ASSIGN] Matched active academic auditor: {}", u.getEmail());
+                            }
                         }
+                    } else {
+                        targetAuditors.add(u);
+                        log.info("[AUDIT_ASSIGN] Matched active administrative auditor: {}", u.getEmail());
                     }
                 }
             }
         }
 
         if (targetAuditors.isEmpty()) {
+            log.error("[AUDIT_ASSIGN] ERROR: No active auditors found or selected for review! subId={}, school={}, auditType={}, requestedType={}, selectedIds={}, forwardedEmails={}",
+                    submission.getId(), submission.getSchool(), auditType, requestedType, selectedAuditorIds, forwardedToAuditorEmails);
             throw new IllegalArgumentException("No active auditors found or selected for review.");
         }
+
+        log.info("[AUDIT_ASSIGN] Final target auditors count: {}", targetAuditors.size());
+
 
         java.util.Set<String> submissionPosts = resolveSubmissionPosts(submission, forwardedAdministrativePosts);
 

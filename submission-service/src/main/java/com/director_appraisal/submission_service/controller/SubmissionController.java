@@ -324,15 +324,18 @@ public class SubmissionController {
             selectedKeys = request.getReturnedAuditorAssignmentKeys();
         }
 
+        log.info("PUT /api/submissions/{} called by {}: status={}, forwardedAuditorType={}, effectiveIds={}, effectiveEmails={}",
+                id, user.getEmail(), request.getStatus(), request.getEffectiveAuditorType(), request.getEffectiveAuditorIds(), request.getEffectiveAuditorEmails());
+
         Submission updated = submissionService.updateSubmission(
                 id,
                 user,
                 request.getStatus(),
-                request.getForwardedAuditorType(),
-                request.getForwardedAuditCategory(),
-                request.getForwardedToAuditorIds(),
-                request.getForwardedToAuditorNames(),
-                request.getForwardedToAuditorEmails(),
+                request.getEffectiveAuditorType(),
+                request.getEffectiveAuditCategory(),
+                request.getEffectiveAuditorIds(),
+                request.getEffectiveAuditorNames(),
+                request.getEffectiveAuditorEmails(),
                 request.getValuesData(),
                 request.getTablesData(),
                 request.getAttachments(),
@@ -351,6 +354,7 @@ public class SubmissionController {
         );
         return ResponseEntity.ok(updated);
     }
+
 
     @PostMapping("/{id}/auditor-submit")
 public ResponseEntity<?> submitAuditorReview(@PathVariable Long id, @RequestBody AuditorSubmitRequest request) {
@@ -480,6 +484,7 @@ public ResponseEntity<Submission> createNextCycle(
     }
 
     @Data
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class FormSubmissionRequest {
         private String auditType;
         private String academicYear;
@@ -494,10 +499,21 @@ public ResponseEntity<Submission> createNextCycle(
         private String contributorPost;
         private List<String> sections;
         private String forwardedAuditorType;
+        private String auditorType;
         private String forwardedAuditCategory;
+        private String auditCategory;
         private List<Long> forwardedToAuditorIds;
+        private List<Long> auditorIds;
+        private Long forwardedToAuditorId;
+        private Long auditorId;
         private List<String> forwardedToAuditorNames;
+        private List<String> auditorNames;
+        private String forwardedToAuditorName;
+        private String auditorName;
         private List<String> forwardedToAuditorEmails;
+        private List<String> auditorEmails;
+        private String forwardedToAuditorEmail;
+        private String auditorEmail;
         private List<String> forwardedAdministrativePosts;
         private List<String> forwardedToAuditorPosts;
         private List<String> assignmentKeys;
@@ -513,7 +529,48 @@ public ResponseEntity<Submission> createNextCycle(
         private String auditorCorrectionRequestedOn;
         private String auditorResubmittedAt;
         private String remarks;
+
+        public List<Long> getEffectiveAuditorIds() {
+            List<Long> ids = new java.util.ArrayList<>();
+            if (forwardedToAuditorIds != null) ids.addAll(forwardedToAuditorIds);
+            if (auditorIds != null) ids.addAll(auditorIds);
+            if (forwardedToAuditorId != null) ids.add(forwardedToAuditorId);
+            if (auditorId != null) ids.add(auditorId);
+            return ids.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        }
+
+        public List<String> getEffectiveAuditorEmails() {
+            List<String> emails = new java.util.ArrayList<>();
+            if (forwardedToAuditorEmails != null) emails.addAll(forwardedToAuditorEmails);
+            if (auditorEmails != null) emails.addAll(auditorEmails);
+            if (forwardedToAuditorEmail != null && !forwardedToAuditorEmail.isBlank()) emails.add(forwardedToAuditorEmail);
+            if (auditorEmail != null && !auditorEmail.isBlank()) emails.add(auditorEmail);
+            return emails.stream().filter(s -> s != null && !s.isBlank()).distinct().toList();
+        }
+
+        public List<String> getEffectiveAuditorNames() {
+            List<String> names = new java.util.ArrayList<>();
+            if (forwardedToAuditorNames != null) names.addAll(forwardedToAuditorNames);
+            if (auditorNames != null) names.addAll(auditorNames);
+            if (forwardedToAuditorName != null && !forwardedToAuditorName.isBlank()) names.add(forwardedToAuditorName);
+            if (auditorName != null && !auditorName.isBlank()) names.add(auditorName);
+            return names.stream().filter(s -> s != null && !s.isBlank()).distinct().toList();
+        }
+
+        public String getEffectiveAuditorType() {
+            if (forwardedAuditorType != null && !forwardedAuditorType.isBlank()) return forwardedAuditorType.trim();
+            if (auditorType != null && !auditorType.isBlank()) return auditorType.trim();
+            return "internal";
+        }
+
+        public String getEffectiveAuditCategory() {
+            if (forwardedAuditCategory != null && !forwardedAuditCategory.isBlank()) return forwardedAuditCategory.trim();
+            if (auditCategory != null && !auditCategory.isBlank()) return auditCategory.trim();
+            if (auditType != null && !auditType.isBlank()) return auditType.trim();
+            return "academic";
+        }
     }
+
 
     @Data
     public static class ReviewRequest {
