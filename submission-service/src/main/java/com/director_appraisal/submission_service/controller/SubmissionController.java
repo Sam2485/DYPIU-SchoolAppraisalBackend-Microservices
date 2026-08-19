@@ -146,7 +146,7 @@ public class SubmissionController {
 
 
     @GetMapping("/my-draft")
-    public ResponseEntity<Submission> getMyDraft(
+    public ResponseEntity<?> getMyDraft(
             @RequestParam(required = false) String auditType,
             @RequestParam(required = false) String academicYear,
             @RequestParam(required = false) String auditCycle,
@@ -155,22 +155,33 @@ public class SubmissionController {
             @RequestParam(required = false, defaultValue = "false") boolean includeApproved,
             @RequestParam(required = false, defaultValue = "false") boolean includeHistorical,
             @RequestParam(required = false, defaultValue = "false") boolean shared) {
-        UserDto user = getCurrentUserDetails();
-        String normalizedAuditType = resolveAuditTypeForCaller(user, auditType);
-        String requestedYear = firstNonBlank(academicYear, auditCycle, cycleId);
+        try {
+            UserDto user = getCurrentUserDetails();
+            String normalizedAuditType = resolveAuditTypeForCaller(user, auditType);
+            String requestedYear = firstNonBlank(academicYear, auditCycle, cycleId);
 
-        boolean includeNonDrafts = includeSubmitted || includeApproved || includeHistorical;
+            boolean includeNonDrafts = includeSubmitted || includeApproved || includeHistorical;
 
-        Submission draft = submissionService.getDraftForUser(
-                user,
-                normalizedAuditType,
-                requestedYear,
-                includeNonDrafts,
-                shared
-        );
-        submissionService.populatePermissions(draft, user);
-        return ResponseEntity.ok(draft);
+            log.info("getMyDraft: email={}, role={}, post={}, auditType={}, requestedYear={}, shared={}",
+                    user.getEmail(), user.getRole(), user.getPost(), normalizedAuditType, requestedYear, shared);
+
+            Submission draft = submissionService.getDraftForUser(
+                    user,
+                    normalizedAuditType,
+                    requestedYear,
+                    includeNonDrafts,
+                    shared
+            );
+            if (draft != null) {
+                submissionService.populatePermissions(draft, user);
+            }
+            return ResponseEntity.ok(draft);
+        } catch (Exception e) {
+            log.error("Error in getMyDraft: {}", e.getMessage(), e);
+            throw e;
+        }
     }
+
 
     private String firstNonBlank(String... values) {
         if (values == null) return null;

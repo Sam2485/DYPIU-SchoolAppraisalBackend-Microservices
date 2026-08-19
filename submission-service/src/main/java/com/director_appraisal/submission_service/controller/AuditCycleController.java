@@ -106,21 +106,36 @@ public class AuditCycleController {
     }
 
     private Map<String, Object> buildAcademicYearInfo() {
-        String active = submissionService.getCurrentAcademicYearLabel();
-        String compactActive = toShortYearFormat(active);
-        Set<String> allYears = collectAllYears(active);
+        try {
+            String active = submissionService.getCurrentAcademicYearLabel();
+            String compactActive = toShortYearFormat(active);
+            Set<String> allYears = collectAllYears(active);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("activeYear", active);
-        response.put("currentAcademicYear", active);
-        response.put("currentYear", active);
-        response.put("compactActiveYear", compactActive);
-        response.put("auditCycle", compactActive);
-        response.put("years", allYears);
-        response.put("availableYears", allYears);
-        response.put("academicYears", allYears);
-        return response;
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("activeYear", active);
+            response.put("currentAcademicYear", active);
+            response.put("currentYear", active);
+            response.put("compactActiveYear", compactActive);
+            response.put("auditCycle", compactActive);
+            response.put("years", allYears);
+            response.put("availableYears", allYears);
+            response.put("academicYears", allYears);
+            return response;
+        } catch (Exception e) {
+            log.error("Error building academic year info: {}", e.getMessage(), e);
+            Map<String, Object> fallback = new LinkedHashMap<>();
+            fallback.put("activeYear", "2025-2026");
+            fallback.put("currentAcademicYear", "2025-2026");
+            fallback.put("currentYear", "2025-2026");
+            fallback.put("compactActiveYear", "2025-26");
+            fallback.put("auditCycle", "2025-26");
+            fallback.put("years", List.of("2025-26", "2025-2026"));
+            fallback.put("availableYears", List.of("2025-26", "2025-2026"));
+            fallback.put("academicYears", List.of("2025-26", "2025-2026"));
+            return fallback;
+        }
     }
+
 
     private Set<String> collectAllYears(String currentActive) {
         Set<String> years = new LinkedHashSet<>();

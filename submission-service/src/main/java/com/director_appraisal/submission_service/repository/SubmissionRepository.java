@@ -65,10 +65,11 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             """)
     List<Submission> findSubmissionsByEmailAndAuditTypeAndYearLabels(@Param("email") String email, @Param("auditType") String auditType, @Param("yearLabels") List<String> yearLabels);
 
-    @Query("select distinct s.academicYear from Submission s where s.academicYear is not null and s.academicYear != ''")
+    @Query("select distinct s.academicYear from Submission s where s.academicYear is not null")
     List<String> findDistinctAcademicYears();
 
-    @Query("select distinct s.auditCycle from Submission s where s.auditCycle is not null and s.auditCycle != ''")
+    @Query("select distinct s.auditCycle from Submission s where s.auditCycle is not null")
     List<String> findDistinctAuditCycles();
 }
+
 
