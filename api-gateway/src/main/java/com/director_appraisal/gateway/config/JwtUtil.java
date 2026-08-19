@@ -45,4 +45,32 @@ public class JwtUtil {
             return null;
         }
     }
+
+    public String extractRole(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return (String) claims.get("role");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String extractSchool(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return (String) claims.get("school");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String extractName(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return (String) claims.get("name");
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
+

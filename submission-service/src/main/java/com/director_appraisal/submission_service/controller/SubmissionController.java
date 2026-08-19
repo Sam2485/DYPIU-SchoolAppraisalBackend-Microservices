@@ -64,12 +64,81 @@ public class SubmissionController {
 
     private UserDto getCurrentUserDetails() {
         String email = getCurrentUserEmail();
+        String roleFromContext = null;
+        String schoolFromContext = null;
+        String nameFromContext = null;
+        String postFromContext = null;
+        String categoryFromContext = null;
+
+        if (httpRequest != null) {
+            String headerRole = httpRequest.getHeader("X-User-Role");
+            if (headerRole != null && !headerRole.isBlank()) roleFromContext = headerRole.trim();
+            String headerSchool = httpRequest.getHeader("X-User-School");
+            if (headerSchool != null && !headerSchool.isBlank()) schoolFromContext = headerSchool.trim();
+            String headerName = httpRequest.getHeader("X-User-Name");
+            if (headerName != null && !headerName.isBlank()) nameFromContext = headerName.trim();
+
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                try {
+                    String token = authHeader.substring(7).trim();
+                    int firstDot = token.indexOf('.');
+                    int secondDot = token.indexOf('.', firstDot + 1);
+                    if (firstDot > 0 && secondDot > firstDot) {
+                        String payload = new String(java.util.Base64.getUrlDecoder().decode(token.substring(firstDot + 1, secondDot)), java.nio.charset.StandardCharsets.UTF_8);
+                        com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
+                        if (jsonNode.has("role") && (roleFromContext == null || roleFromContext.isBlank())) {
+                            roleFromContext = jsonNode.get("role").asText();
+                        }
+                        if (jsonNode.has("school") && (schoolFromContext == null || schoolFromContext.isBlank())) {
+                            schoolFromContext = jsonNode.get("school").asText();
+                        }
+                        if (jsonNode.has("name") && (nameFromContext == null || nameFromContext.isBlank())) {
+                            nameFromContext = jsonNode.get("name").asText();
+                        }
+                        if (jsonNode.has("post") && (postFromContext == null || postFromContext.isBlank())) {
+                            postFromContext = jsonNode.get("post").asText();
+                        }
+                        if (jsonNode.has("category") && (categoryFromContext == null || categoryFromContext.isBlank())) {
+                            categoryFromContext = jsonNode.get("category").asText();
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
         if (email != null && !email.isBlank()) {
             UserDto u = safeGetUserByEmail(email);
-            if (u != null) return u;
+            if (u != null) {
+                if ((u.getRole() == null || u.getRole().isBlank()) && roleFromContext != null) {
+                    u.setRole(roleFromContext);
+                }
+                if ((u.getSchool() == null || u.getSchool().isBlank()) && schoolFromContext != null) {
+                    u.setSchool(schoolFromContext);
+                }
+                if ((u.getName() == null || u.getName().isBlank()) && nameFromContext != null) {
+                    u.setName(nameFromContext);
+                }
+                if ((u.getPost() == null || u.getPost().isBlank()) && postFromContext != null) {
+                    u.setPost(postFromContext);
+                }
+                if ((u.getCategory() == null || u.getCategory().isBlank()) && categoryFromContext != null) {
+                    u.setCategory(categoryFromContext);
+                }
+                return u;
+            }
         }
-        return UserDto.builder().email(email).name("User").role("iqac").build();
+
+        return UserDto.builder()
+                .email(email)
+                .name(nameFromContext != null ? nameFromContext : "User")
+                .role(roleFromContext != null ? roleFromContext : "director")
+                .school(schoolFromContext)
+                .post(postFromContext)
+                .category(categoryFromContext)
+                .build();
     }
+
 
 
 

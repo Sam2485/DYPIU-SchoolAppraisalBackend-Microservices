@@ -64,14 +64,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return onError(exchange, "Invalid or expired authorization token.", HttpStatus.UNAUTHORIZED);
         }
 
-        // 5. Extract user email and attach X-User-Email header
+        // 5. Extract user claims and attach headers
         String userEmail = jwtUtil.extractEmail(token);
-        ServerHttpRequest modifiedRequest = request.mutate()
-                .header("X-User-Email", userEmail != null ? userEmail : "")
-                .build();
+        String userRole = jwtUtil.extractRole(token);
+        String userSchool = jwtUtil.extractSchool(token);
+        String userName = jwtUtil.extractName(token);
 
-        return chain.filter(exchange.mutate().request(modifiedRequest).build());
+        ServerHttpRequest.Builder reqBuilder = request.mutate();
+        if (userEmail != null) reqBuilder.header("X-User-Email", userEmail);
+        if (userRole != null) reqBuilder.header("X-User-Role", userRole);
+        if (userSchool != null) reqBuilder.header("X-User-School", userSchool);
+        if (userName != null) reqBuilder.header("X-User-Name", userName);
+
+        return chain.filter(exchange.mutate().request(reqBuilder.build()).build());
     }
+
 
     private boolean isPublicEndpoint(String path) {
         if (path == null) return false;
