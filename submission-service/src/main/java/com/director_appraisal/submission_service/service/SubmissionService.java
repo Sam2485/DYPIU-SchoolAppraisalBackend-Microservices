@@ -1816,11 +1816,9 @@ public class SubmissionService {
             auditorAssignmentRepository.deleteBySubmissionId(submission.getId());
             auditorAssignmentRepository.flush();
         }
-        if (selectedAuditorIds == null || selectedAuditorIds.isEmpty()) {
-            throw new IllegalArgumentException("At least one auditor must be selected");
-        }
 
         String requestedType = cleanAuditorType(forwardedAuditorType);
+
         if (requestedType == null || !List.of("internal", "external").contains(requestedType)) {
             throw new IllegalArgumentException("Forwarded auditor type must be INTERNAL or EXTERNAL");
         }
