@@ -62,6 +62,14 @@ public class AttachmentService {
         return storageService.deleteFile(objectName);
     }
 
+    private static final java.util.Set<String> ALLOWED_EXTENSIONS = java.util.Set.of(
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "png", "jpg", "jpeg", "webp"
+    );
+
+    private static final java.util.Set<String> BLOCKED_EXTENSIONS = java.util.Set.of(
+            "exe", "bat", "cmd", "sh", "jsp", "jspx", "php", "phtml", "asp", "aspx", "dll", "so", "cgi", "pl", "py", "jar", "war", "vbs", "js", "mjs", "xhtml", "svg", "html", "htm"
+    );
+
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is required.");
@@ -75,7 +83,23 @@ public class AttachmentService {
         if (originalFilename == null || originalFilename.isBlank()) {
             throw new IllegalArgumentException("Invalid filename.");
         }
+
+        String lowerName = originalFilename.trim().toLowerCase(Locale.ROOT);
+        int dotIndex = lowerName.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex == lowerName.length() - 1) {
+            throw new IllegalArgumentException("File must have a valid extension.");
+        }
+
+        String extension = lowerName.substring(dotIndex + 1);
+        if (BLOCKED_EXTENSIONS.contains(extension)) {
+            throw new SecurityException("Upload of executable, script, or potentially unsafe file type (." + extension + ") is strictly prohibited.");
+        }
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("File type (." + extension + ") is not supported. Allowed formats: PDF, DOCX, XLSX, PPTX, CSV, TXT, PNG, JPG, WEBP.");
+        }
     }
+
 
     private UploadCandidate buildUploadCandidate(MultipartFile file, String userEmail) throws IOException {
         String originalFilename = file.getOriginalFilename();

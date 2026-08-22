@@ -494,8 +494,11 @@ public class UserController {
         response.put("auditorRole", user.getAuditorRole());
         response.put("status", Boolean.TRUE.equals(user.getDeleted()) ? "deleted" : (user.getStatus() != null ? user.getStatus() : "active"));
         response.put("deleted", Boolean.TRUE.equals(user.getDeleted()));
+        response.put("universityId", user.getUniversityId() != null ? user.getUniversityId() : 1L);
+        response.put("universityCode", user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : "dypiu");
         return response;
     }
+
 
     private String getPostForDesignation(String designation) {
         return ADMINISTRATIVE_POSTS.entrySet().stream()

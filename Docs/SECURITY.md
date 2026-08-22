@@ -1,95 +1,109 @@
-# Security & Gateway Authentication Architecture
+# Security, Authentication & Multi-Tenancy Architecture
 
-This document describes the centralized authentication, authorization, and security framework implemented across the **School Appraisal Microservices Backend**.
-
-## Core Security Technologies
-- **API Gateway Security**: Reactive Spring Cloud Gateway WebFilter (`JwtAuthenticationFilter.java`).
-- **Token Mechanism**: Dual-Token Strategy using JSON Web Tokens (JWT) via `io.jsonwebtoken` (jjwt) version 0.12.x:
-  - **Access Token**: Short/Medium-lived stateless token (24 hours duration).
-  - **Refresh Token**: Long-lived persisted UUID token (7 days duration) stored in PostgreSQL (`refresh_tokens` table in `appraisal_auth_user_db`).
-- **Header Propagation**: API Gateway validates JWT tokens and injects trusted context headers (`X-User-Email`, `X-User-Role`) to downstream services.
-- **Hashing Algorithm**: BCrypt (strength 10) for user password hashing.
-- **Session Policy**: Stateless (`SessionCreationPolicy.STATELESS`).
+This document describes the authentication, authorization, multi-tenant isolation, and threat protection mechanisms implemented across the **Multi-University Dynamic Faculty & School Appraisal Backend**.
 
 ---
 
-## 1. Centralized Gateway JWT Filter (`api-gateway`)
-
-All external client traffic passes through the **API Gateway** on Port `8080`. The Gateway enforces centralized security before forwarding requests downstream:
+## 🛡️ Core Security Architecture
 
 ```text
-HTTP Request (Header: Authorization: Bearer <jwt-token>)
+HTTP Request (Header: Authorization: Bearer <jwt-token>, X-Correlation-Id: <uuid>)
                      │
                      ▼
-┌─────────────────────────────────────────┐
-│     JwtAuthenticationFilter (Gateway)   │
-└────────────────────┬────────────────────┘
-                     │ (Validate JWT Signature & Claims)
-                     ▼
-┌─────────────────────────────────────────┐
-│ Inject Headers:                         │
-│   X-User-Email: director@dypiu.ac.in    │
-│   X-User-Role: ROLE_DIRECTOR            │
-└────────────────────┬────────────────────┘
-                     │ (Forward to Downstream Microservices)
-                     ▼
-┌─────────────────────────────────────────┐
-│ Downstream Microservice (8081 - 8085)   │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│              API GATEWAY (Port 9000)                   │
+│  1. Ingress Rate Limiter (Sliding Window: 5 req/min)   │
+│  2. JwtAuthenticationFilter (HMAC-SHA256 Signature)   │
+│  3. Claim Extraction & Tenant Scoping                  │
+└──────────────────────────┬─────────────────────────────┘
+                           │ (Inject Verified Context Headers)
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Context Headers:                                       │
+│   X-User-Email: director@dypiu.ac.in                   │
+│   X-User-Role: ROLE_DIRECTOR                           │
+│   X-University-Id: 1                                   │
+│   X-University-Code: dypiu                             │
+│   X-Correlation-Id: e1a3f742-8321-4f91-912a-...        │
+└──────────────────────────┬─────────────────────────────┘
+                           │ (Forward to Target Microservices 9001 - 9005)
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ Downstream Microservice Controller / Service Layer     │
+│  - MdcLoggingFilter (Correlation in SLF4J MDC)         │
+│  - Role Verification & Tenant Filtering                │
+│  - Standardized ApiErrorResponse on Violation          │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Whitelisted Public Endpoints (No JWT Required):
-- `/api/auth/login`
-- `/api/auth/register`
-- `/api/auth/refresh`
-- `/api/auth/forgot-password`
-- `/api/auth/reset-password`
-- `/api/auth/verify-otp`
-- `/api/auth/mfa`
-- `/uploads/**` (Static file proxying)
+---
+
+## 1. Centralized Ingress Security (`api-gateway` - Port 9000)
+
+All client traffic arrives through the **API Gateway** on Port `9000`. The Gateway enforces centralized authentication and defensive filtering:
+
+### A. JWT Bearer Token Validation
+- **Token Format**: Standard RFC 7519 JSON Web Token signed with HMAC-SHA256 (`jjwt 0.12.5`).
+- **Token Lifespan**: 24 hours (`86400000` ms).
+- **Claims Payload**:
+  - `sub` / `email`: User login identifier.
+  - `role`: Granted system authority (`"director"`, `"iqac"`, `"vice-chancellor"`, `"administrative"`, `"auditor"`).
+  - `universityId`: Tenant numeric ID (e.g. `1`).
+  - `universityCode`: Tenant slug (e.g. `"dypiu"`).
+  - `school`, `post`, `designation`, `name`.
+
+### B. Whitelisted Public Endpoints (No JWT Required):
+- `/api/auth/login` (Authentication)
+- `/api/auth/register` (Account creation)
+- `/api/auth/refresh` (Token renewal)
+- `/api/auth/forgot-password` & `/api/auth/reset-password` (Password recovery)
+- `/api/auth/verify-otp` & `/api/auth/mfa` (MFA challenges)
+- `/api/config/active` & `/api/config/branding` (Dynamic public form definitions)
+- `/api/universities/**` (`GET` operations)
+- `/uploads/**` (Static attachment streaming)
 
 ---
 
-## 2. Role-Based Access Control (RBAC)
+## 2. Multi-Factor Authentication & Rate Limiting
 
-Roles are mapped dynamically from database user accounts to Spring Security authorities:
+### A. Multi-Factor Authentication (MFA)
+- Users with MFA enabled receive a 6-digit cryptographic OTP via email upon password verification.
+- OTP verification is enforced before the JWT access token is granted.
+- Failed attempts exceed limits and invalidate the login session.
 
-### Granted Authorities Mapping:
-- `"director"` $\rightarrow$ `ROLE_DIRECTOR`
-- `"administrative"` $\rightarrow$ `ROLE_ADMINISTRATIVE`
-- `"vice-chancellor"` $\rightarrow$ `ROLE_VICE-CHANCELLOR`
-- `"iqac"` $\rightarrow$ `ROLE_IQAC`
-- `"academic-internal-auditor"` $\rightarrow$ `ROLE_ACADEMIC-INTERNAL-AUDITOR`
-- `"academic-external-auditor"` $\rightarrow$ `ROLE_ACADEMIC-EXTERNAL-AUDITOR`
-- `"administrative-internal-auditor"` $\rightarrow$ `ROLE_ADMINISTRATIVE-INTERNAL-AUDITOR`
-- `"administrative-external-auditor"` $\rightarrow$ `ROLE_ADMINISTRATIVE-EXTERNAL-AUDITOR`
-
-### Microservice Authorization Rules:
-1. **User Management (`auth-user-service`)**: `/api/users/**` endpoints require `ROLE_IQAC`.
-2. **Submissions & Workflows (`submission-service`)**: `/api/submissions/all` is scoped based on role (IQAC sees all active forms, VC sees `AUDITOR_COMPLETED` forms, Auditors see assigned/matched forms).
-3. **System Backups (`admin-service`)**: `/api/backup/**` endpoints require `ROLE_IQAC`.
+### B. Sliding-Window Rate Limiting
+- Prevents brute-force credential stuffing and DoS attacks.
+- Configured on sensitive routes (e.g. `POST /api/auth/login` capped at **5 requests per minute per IP**).
+- Violations return `429 Too Many Requests` with a standard `Retry-After` header.
 
 ---
 
-## 3. JWT & Refresh Token Schema
+## 3. Multi-Tenant Security & Tenant Isolation
 
-### Access Token Schema:
-- **Lifespan**: 24 hours (`86400000` ms).
-- **Subject (`sub`)**: User email address.
-- **Claims Payload**: `name`, `designation`, `school`, `role`, `category`, `accountType`.
+Tenant boundary enforcement operates at 3 levels:
 
-### Refresh Token Schema:
-- **Lifespan**: 7 days (`604800000` ms).
-- **Storage**: Persisted in PostgreSQL table `refresh_tokens` inside `appraisal_auth_user_db`.
-- **Revocation**: Revoked upon `POST /api/auth/logout`. Re-issuance via `POST /api/auth/refresh` grants a fresh 24-hour Access Token.
+1. **Ingress Extraction**: Gateway parses `universityId` and `universityCode` from JWT claims or request parameters and forwards them downstream.
+2. **Service Scoping**: `form-data-service` and `submission-service` queries enforce database-level tenant filters (`WHERE university_id = :uniId`).
+3. **Cross-Tenant Guarding**: Prevents user from University A accessing or modifying resources belonging to University B.
 
 ---
 
-## 4. CORS Policy
+## 4. Role-Based Access Control (RBAC)
 
-API Gateway configures reactive CORS headers to support frontend clients (e.g. Vite/React on localhost:5173 / 3000):
-- **Allowed Origin Patterns**: `*`
-- **Allowed HTTP Methods**: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `PATCH`
-- **Allowed Headers**: `*`
-- **Exposed Headers**: `Authorization`, `Content-Type`
-- **Allow Credentials**: `true`
+Spring Security authorities are mapped directly from user roles:
+
+| Role String | Granted Authority | Authorized Operations |
+| :--- | :--- | :--- |
+| `"super_admin"` / `"admin"` | `ROLE_SUPER_ADMIN` / `ROLE_ADMIN` | Form Studio visual canvas, schema publishing, version rollbacks |
+| `"iqac"` | `ROLE_IQAC` | Full system audit review, user management, system backups |
+| `"vice-chancellor"` | `ROLE_VICE-CHANCELLOR` | Executive appraisal reviews, institutional reporting |
+| `"director"` | `ROLE_DIRECTOR` | Academic appraisal draft creation, document uploads, submission |
+| `"administrative"` | `ROLE_ADMINISTRATIVE` | Administrative section draft editing and submission |
+| `"auditor"` | `ROLE_AUDITOR` | Per-school auditor evaluations, scoring, and feedback |
+
+---
+
+## 5. Defensive Logging & Sanitization
+
+- **Zero Secret Exposure**: Request and response log interceptors in frontends and backend filters redact all passwords, JWT tokens, refresh tokens, and private keys.
+- **End-to-End Tracing**: `X-Correlation-Id` is generated at client request initiation, propagated across Gateway and OpenFeign clients, and bound to SLF4J MDC context.

@@ -43,6 +43,13 @@ public class User implements UserDetails {
     private String schools;
     private String avatarUrl;
 
+    @Builder.Default
+    private Long universityId = 1L;
+
+    @Builder.Default
+    private String universityCode = "dypiu";
+
+
     public List<String> getSchoolsList() {
         if (schools == null || schools.isBlank()) {
             return List.of();

@@ -19,11 +19,51 @@ public class RateLimiterService {
             this.limit = limit;
             this.retryAfter = retryAfter;
         }
+
+        public boolean isAllowed() {
+            return allowed;
+        }
+
+        public long getRetryAfterSeconds() {
+            return retryAfter;
+        }
+    }
+
+    private final java.util.Map<String, AttemptTracker> attemptsMap = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static class AttemptTracker {
+        private final java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger(0);
+        private volatile long resetTime = System.currentTimeMillis() + 60_000L;
+
+        public synchronized boolean incrementAndCheck(int maxLimit) {
+            long now = System.currentTimeMillis();
+            if (now > resetTime) {
+                count.set(0);
+                resetTime = now + 60_000L;
+            }
+            return count.incrementAndGet() <= maxLimit;
+        }
+
+        public long getRetryAfter() {
+            long diff = resetTime - System.currentTimeMillis();
+            return Math.max(0, diff / 1000L);
+        }
+
+        public int getCurrentCount() {
+            return count.get();
+        }
     }
 
     public RateLimitResult checkLimit(String ipKey, String userKey, String type) {
-        return new RateLimitResult(true, 5, 5, 0);
+        String key = (ipKey != null ? ipKey : "unknown") + ":" + (userKey != null ? userKey : "anonymous") + ":" + type;
+        AttemptTracker tracker = attemptsMap.computeIfAbsent(key, k -> new AttemptTracker());
+        int maxAttempts = 5;
+        boolean allowed = tracker.incrementAndCheck(maxAttempts);
+        long remaining = Math.max(0, maxAttempts - tracker.getCurrentCount());
+        long retryAfter = allowed ? 0 : tracker.getRetryAfter();
+        return new RateLimitResult(allowed, remaining, maxAttempts, retryAfter);
     }
+
 
     public String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
         if (request == null) return "127.0.0.1";

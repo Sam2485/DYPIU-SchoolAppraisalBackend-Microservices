@@ -72,5 +72,26 @@ public class JwtUtil {
             return null;
         }
     }
+
+    public String extractUniversityId(String token) {
+        try {
+            Claims claims = getClaims(token);
+            Object uid = claims.get("universityId");
+            return uid != null ? String.valueOf(uid) : "1";
+        } catch (Exception e) {
+            return "1";
+        }
+    }
+
+    public String extractUniversityCode(String token) {
+        try {
+            Claims claims = getClaims(token);
+            String code = (String) claims.get("universityCode");
+            return (code != null && !code.isBlank()) ? code : "dypiu";
+        } catch (Exception e) {
+            return "dypiu";
+        }
+    }
 }
+
 

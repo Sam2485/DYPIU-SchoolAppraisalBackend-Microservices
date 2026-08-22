@@ -1,0 +1,57 @@
+{
+  "system": "Multi-University Faculty Appraisal System",
+  "version": "2.0.0",
+  "totalServices": 6,
+  "totalEndpoints": 82,
+  "services": [
+    {
+      "name": "api-gateway",
+      "port": 9000,
+      "routes": [
+        { "path": "/api/auth/**", "target": "http://localhost:9001" },
+        { "path": "/api/users/**", "target": "http://localhost:9001" },
+        { "path": "/api/academic/**", "target": "http://localhost:9002" },
+        { "path": "/api/administrative/**", "target": "http://localhost:9002" },
+        { "path": "/api/config/**", "target": "http://localhost:9002" },
+        { "path": "/api/admin/config/**", "target": "http://localhost:9002" },
+        { "path": "/api/universities/**", "target": "http://localhost:9002" },
+        { "path": "/api/tables/**", "target": "http://localhost:9002" },
+        { "path": "/api/submissions/**", "target": "http://localhost:9003" },
+        { "path": "/api/audit-cycles/**", "target": "http://localhost:9003" },
+        { "path": "/api/attachments/**", "target": "http://localhost:9004" },
+        { "path": "/uploads/**", "target": "http://localhost:9004" },
+        { "path": "/api/backup/**", "target": "http://localhost:9005" }
+      ]
+    },
+    {
+      "name": "auth-user-service",
+      "port": 9001,
+      "database": "appraisal_auth_user_db",
+      "endpointCount": 23
+    },
+    {
+      "name": "form-data-service",
+      "port": 9002,
+      "database": "appraisal_forms_db",
+      "endpointCount": 30
+    },
+    {
+      "name": "submission-service",
+      "port": 9003,
+      "database": "appraisal_submission_db",
+      "endpointCount": 22
+    },
+    {
+      "name": "storage-service",
+      "port": 9004,
+      "database": "Disk / GCS",
+      "endpointCount": 3
+    },
+    {
+      "name": "admin-service",
+      "port": 9005,
+      "database": "PostgreSQL Shell / Disk",
+      "endpointCount": 4
+    }
+  ]
+}

@@ -36,10 +36,32 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/mfa"
     );
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
+        String method = request.getMethod() != null ? request.getMethod().name() : "UNKNOWN";
+
+        // 0. Extract or generate Correlation ID
+        String incomingCorrId = request.getHeaders().getFirst("X-Correlation-Id");
+        if (incomingCorrId == null || incomingCorrId.isBlank()) {
+            incomingCorrId = request.getHeaders().getFirst("X-Correlation-ID");
+        }
+        if (incomingCorrId == null || incomingCorrId.isBlank()) {
+            incomingCorrId = request.getHeaders().getFirst("X-Request-Id");
+        }
+        final String correlationId = (incomingCorrId != null && !incomingCorrId.isBlank() && incomingCorrId.length() <= 64)
+                ? incomingCorrId.trim()
+                : java.util.UUID.randomUUID().toString();
+
+        long startTime = System.currentTimeMillis();
+        log.info("[GATEWAY_REQUEST_START] correlationId={} method={} path={} ip={}",
+                correlationId, method, path, request.getRemoteAddress() != null ? request.getRemoteAddress().getHostString() : "unknown");
+
+        // Attach correlationId to outgoing response
+        exchange.getResponse().getHeaders().set("X-Correlation-Id", correlationId);
 
         // 1. Allow OPTIONS requests (CORS preflight)
         if (request.getMethod() == HttpMethod.OPTIONS) {
@@ -48,37 +70,64 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // 2. Allow public auth endpoints
         if (isPublicEndpoint(path)) {
-            return chain.filter(exchange);
+            ServerHttpRequest mutatedReq = request.mutate()
+                    .header("X-Correlation-Id", correlationId)
+                    .build();
+            return chain.filter(exchange.mutate().request(mutatedReq).build())
+                    .doFinally(signalType -> {
+                        long duration = System.currentTimeMillis() - startTime;
+                        log.info("[GATEWAY_REQUEST_END] correlationId={} method={} path={} status={} durationMs={}",
+                                correlationId, method, path, exchange.getResponse().getStatusCode(), duration);
+                    });
         }
 
         // 3. Check for Authorization header
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return onError(exchange, "Authorization token is missing.", HttpStatus.UNAUTHORIZED);
+            return onError(exchange, "Authorization token is missing.", HttpStatus.UNAUTHORIZED, "AUTH_TOKEN_MISSING", correlationId);
         }
 
         String token = authHeader.substring(7).trim();
 
         // 4. Validate token
         if (!jwtUtil.validateToken(token)) {
-            return onError(exchange, "Invalid or expired authorization token.", HttpStatus.UNAUTHORIZED);
+            return onError(exchange, "Invalid or expired authorization token.", HttpStatus.UNAUTHORIZED, "AUTH_TOKEN_INVALID", correlationId);
         }
 
-        // 5. Extract user claims and attach headers
+        // 5. Extract verified user claims and attach safe downstream headers
         String userEmail = jwtUtil.extractEmail(token);
         String userRole = jwtUtil.extractRole(token);
         String userSchool = jwtUtil.extractSchool(token);
         String userName = jwtUtil.extractName(token);
+        String universityId = jwtUtil.extractUniversityId(token);
+        String universityCode = jwtUtil.extractUniversityCode(token);
 
         ServerHttpRequest.Builder reqBuilder = request.mutate();
+        // Strip any spoofed headers from client
+        reqBuilder.headers(httpHeaders -> {
+            httpHeaders.remove("X-User-Email");
+            httpHeaders.remove("X-User-Role");
+            httpHeaders.remove("X-User-School");
+            httpHeaders.remove("X-User-Name");
+            httpHeaders.remove("X-University-Id");
+            httpHeaders.remove("X-University-Code");
+        });
+
+        reqBuilder.header("X-Correlation-Id", correlationId);
         if (userEmail != null) reqBuilder.header("X-User-Email", userEmail);
         if (userRole != null) reqBuilder.header("X-User-Role", userRole);
         if (userSchool != null) reqBuilder.header("X-User-School", userSchool);
         if (userName != null) reqBuilder.header("X-User-Name", userName);
+        if (universityId != null) reqBuilder.header("X-University-Id", universityId);
+        if (universityCode != null) reqBuilder.header("X-University-Code", universityCode);
 
-        return chain.filter(exchange.mutate().request(reqBuilder.build()).build());
+        return chain.filter(exchange.mutate().request(reqBuilder.build()).build())
+                .doFinally(signalType -> {
+                    long duration = System.currentTimeMillis() - startTime;
+                    log.info("[GATEWAY_REQUEST_END] correlationId={} method={} path={} status={} durationMs={}",
+                            correlationId, method, path, exchange.getResponse().getStatusCode(), duration);
+                });
     }
-
 
     private boolean isPublicEndpoint(String path) {
         if (path == null) return false;
@@ -88,13 +137,23 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return PUBLIC_ENDPOINTS.stream().anyMatch(endpoint -> path.equalsIgnoreCase(endpoint) || path.startsWith(endpoint + "/"));
     }
 
-
-    private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
+    private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus, String errorCode, String correlationId) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(httpStatus);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        response.getHeaders().set("X-Correlation-Id", correlationId);
 
-        String jsonResponse = String.format("{\"success\":false,\"message\":\"%s\"}", err);
+        String path = exchange.getRequest().getURI().getPath();
+        String jsonResponse = String.format(
+                "{\"timestamp\":\"%s\",\"status\":%d,\"error\":\"%s\",\"code\":\"%s\",\"message\":\"%s\",\"service\":\"api-gateway\",\"path\":\"%s\",\"correlationId\":\"%s\"}",
+                java.time.Instant.now().toString(),
+                httpStatus.value(),
+                httpStatus.getReasonPhrase(),
+                errorCode,
+                err.replace("\"", "\\\""),
+                path,
+                correlationId
+        );
         byte[] bytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
         DataBuffer buffer = response.bufferFactory().wrap(bytes);
 
@@ -106,3 +165,4 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return -1; // Run before routing
     }
 }
+

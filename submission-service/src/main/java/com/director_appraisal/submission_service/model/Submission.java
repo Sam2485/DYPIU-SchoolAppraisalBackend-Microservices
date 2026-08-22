@@ -26,7 +26,16 @@ public class Submission {
     @Column(nullable = false)
     private String auditType; // academic, administrative
 
+    private Long schemaVersionId;
+
+    @Builder.Default
+    private Long universityId = 1L;
+
+    @Builder.Default
+    private String universityCode = "dypiu";
+
     private String school;
+
     
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String submittedBy;

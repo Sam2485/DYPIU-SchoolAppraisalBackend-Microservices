@@ -23,7 +23,10 @@ spring:
             exposedHeaders:
               - Authorization
               - Content-Type
+              - X-Correlation-Id
+              - X-Request-Id
             allowCredentials: true
+
 
       routes:
         - id: auth-service
@@ -34,7 +37,8 @@ spring:
         - id: form-data-service
           uri: ${FORMS_SERVICE_URL:http://localhost:9002}
           predicates:
-            - Path=/api/academic/**, /api/administrative/**
+            - Path=/api/academic/**, /api/administrative/**, /api/config/**, /api/admin/config/**, /api/universities/**
+
 
         - id: submission-service
           uri: ${SUBMISSION_SERVICE_URL:http://localhost:9003}

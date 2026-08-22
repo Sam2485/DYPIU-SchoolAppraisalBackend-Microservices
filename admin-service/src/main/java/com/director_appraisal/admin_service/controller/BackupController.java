@@ -21,8 +21,17 @@ public class BackupController {
 
     private final BackupService backupService;
 
+    private static final java.util.Set<String> AUTHORIZED_ROLES = java.util.Set.of("super_admin", "admin", "iqac");
+
+    private boolean isAuthorized(String role) {
+        return role != null && AUTHORIZED_ROLES.contains(role.trim().toLowerCase(java.util.Locale.ROOT));
+    }
+
     @GetMapping("/db")
-    public ResponseEntity<?> downloadDbDump() {
+    public ResponseEntity<?> downloadDbDump(@RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        if (userRole != null && !isAuthorized(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Access denied. Requires admin privileges."));
+        }
         try {
             byte[] sqlData = backupService.createDatabaseBackup();
             return ResponseEntity.ok()
@@ -36,7 +45,12 @@ public class BackupController {
     }
 
     @PostMapping("/db/restore")
-    public ResponseEntity<?> restoreDbDump(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> restoreDbDump(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        if (userRole != null && !isAuthorized(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Access denied. Requires admin privileges."));
+        }
         if (file.isEmpty() || !Objects.requireNonNull(file.getOriginalFilename()).endsWith(".sql")) {
             return ResponseEntity.badRequest().body(Map.of("message", "Only SQL dump files (.sql) are allowed."));
         }
@@ -50,7 +64,10 @@ public class BackupController {
     }
 
     @GetMapping("/uploads")
-    public ResponseEntity<?> downloadUploadsZip() {
+    public ResponseEntity<?> downloadUploadsZip(@RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        if (userRole != null && !isAuthorized(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Access denied. Requires admin privileges."));
+        }
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             backupService.createUploadsBackup(baos);
@@ -67,7 +84,12 @@ public class BackupController {
     }
 
     @PostMapping("/uploads/restore")
-    public ResponseEntity<?> restoreUploadsZip(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> restoreUploadsZip(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        if (userRole != null && !isAuthorized(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Access denied. Requires admin privileges."));
+        }
         if (file.isEmpty() || !Objects.requireNonNull(file.getOriginalFilename()).endsWith(".zip")) {
             return ResponseEntity.badRequest().body(Map.of("message", "Only ZIP backup archives (.zip) are allowed."));
         }
@@ -80,3 +102,4 @@ public class BackupController {
         }
     }
 }
+

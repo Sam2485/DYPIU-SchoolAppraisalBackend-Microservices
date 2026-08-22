@@ -668,6 +668,14 @@ public class SubmissionService {
             return sub;
         }
 
+        Long schemaVersionId = 1L;
+        try {
+            Map<String, Object> cfg = formDataClient.getActiveConfig(auditType, "dypiu");
+            if (cfg != null && cfg.get("versionId") != null) {
+                schemaVersionId = Long.valueOf(cfg.get("versionId").toString());
+            }
+        } catch (Exception ignored) {}
+
         Submission submission = Submission.builder()
                 .email(email)
                 .auditType(auditType)
@@ -679,12 +687,16 @@ public class SubmissionService {
                 .auditCycle(toAuditCycle(academicYear))
                 .reportCategory("INTERNAL")
                 .version(1)
+                .schemaVersionId(schemaVersionId)
+                .universityId(1L)
+                .universityCode("dypiu")
                 .build();
         Submission saved = submissionRepository.save(submission);
         saved.setRootSubmissionId(saved.getId());
         Submission finalSaved = submissionRepository.save(saved);
         populateAuditorProgressAndAssignments(finalSaved);
         return finalSaved;
+
     }
 
     @Transactional
