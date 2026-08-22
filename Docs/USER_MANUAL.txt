@@ -1,0 +1,338 @@
+================================================================================
+          MULTI-UNIVERSITY FACULTY & SCHOOL APPRAISAL SYSTEM
+                      COMPLETE USER MANUAL & TESTING GUIDE
+================================================================================
+
+Welcome to the Multi-University Faculty and School Appraisal System!
+
+This manual is a step-by-step guide written in simple, clear language to help
+you test and use all features of the system—from designing custom appraisal
+forms as an Administrator to filling, submitting, reviewing, and exporting
+reports as Faculty Directors and Reviewers.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. System Overview & Quick Access Links
+2. Default User Roles & Login Accounts
+3. PART 1: ADMIN FORM STUDIO (Form Designer & Versioning)
+   3.1. Selecting and Managing Universities
+   3.2. Viewing Schemas & Creating a New Draft Version
+   3.3. Building Sections, Tables, and Input Fields
+   3.4. Supported Input Field Types
+   3.5. Reordering Sections, Tables, and Columns
+   3.6. Testing with Live Form Preview
+   3.7. Publishing the Schema (Activating for Faculty)
+   3.8. Rolling Back to a Previous Version
+4. PART 2: MAIN APPRAISAL PORTAL (Faculty & Directors)
+   4.1. Logging In
+   4.2. Navigating the Dynamic Appraisal Form
+   4.3. Filling Form Fields & Adding Dynamic Table Rows
+   4.4. Uploading PDF and Image Attachments
+   4.5. Saving Drafts (Auto-Save and Manual Save)
+   4.6. Final Submission
+5. PART 3: REVIEW & EVALUATION (IQAC, Vice-Chancellor & Auditors)
+   5.1. Viewing Submitted School Appraisals
+   5.2. Verifying Uploaded Documents
+   5.3. Providing Review Remarks & Scores
+   5.4. Approving, Forwarding to Auditors, or Requesting Changes
+   5.5. Exporting Reports to Excel and PDF
+6. Frequently Asked Questions (FAQ) & Troubleshooting Tips
+
+================================================================================
+1. SYSTEM OVERVIEW & QUICK ACCESS LINKS
+================================================================================
+
+The system consists of two web applications connected to a secure backend:
+
+1. ADMIN FORM STUDIO (For Administrators):
+   - URL: http://localhost:3005
+   - Purpose: Manage universities, customize forms, add/remove columns,
+     create drafts, preview forms live, and publish active forms.
+
+2. MAIN APPRAISAL PORTAL (For Faculty, Directors, Reviewers & Auditors):
+   - URL: http://localhost:5173
+   - Purpose: Fill appraisal data, upload proof documents, save drafts,
+     submit forms, conduct audits, and download Excel/PDF reports.
+
+Recommended Browser: Google Chrome, Microsoft Edge, Mozilla Firefox, or Safari.
+
+================================================================================
+2. DEFAULT USER ROLES & TEST LOGIN ACCOUNTS
+================================================================================
+
+For testing purposes, you can log in with the following test credentials:
+
++-------------------------------------+-----------------------+---------------------+
+| Role / Account Type                 | Username / Email      | Password            |
++-------------------------------------+-----------------------+---------------------+
+| System Administrator / Form Admin   | admin                 | [Use Admin Portal]  |
+| School Director (Academic)          | director@dypiu.ac.in  | Director@123        |
+| Administrative Officer (Registrar)  | admin@dypiu.ac.in     | Admin@123           |
+| IQAC Quality Cell Reviewer          | iqac@dypiu.ac.in      | Iqac@123            |
+| Vice-Chancellor (Executive)         | vc@dypiu.ac.in        | Vc@123              |
+| Academic Auditor (Internal)         | auditor.ac@dypiu.ac.in| Auditor@123         |
+| Administrative Auditor              | auditor.ad@dypiu.ac.in| Auditor@123         |
++-------------------------------------+-----------------------+---------------------+
+
+* Note: All passwords are case-sensitive.
+
+================================================================================
+3. PART 1: ADMIN FORM STUDIO (Form Designer & Versioning)
+================================================================================
+
+Access: Open your browser and go to http://localhost:3005
+
+--------------------------------------------------------------------------------
+3.1. Selecting and Managing Universities
+--------------------------------------------------------------------------------
+1. In the top navigation bar, click the "University" dropdown.
+2. Select your University (for example, "D. Y. Patil International University").
+3. To add a new university:
+   - Click "Universities" in the top bar.
+   - Click "+ Add University".
+   - Enter University Name, Unique Code (e.g. "mit_wpu"), Domain, and Brand Colors.
+   - Click "Save University".
+   - Each university has its own completely separate forms and branding!
+
+--------------------------------------------------------------------------------
+3.2. Viewing Schemas & Creating a New Draft Version
+--------------------------------------------------------------------------------
+1. Click on the "Schemas" tab in the top navigation bar.
+2. You will see the appraisal forms available (e.g., "Academic Audit Schema" or
+   "Administrative Audit Schema").
+3. To make changes, you do NOT edit the live form directly. Instead:
+   - Find the schema you want to edit.
+   - Click the "+ Create New Draft" button.
+   - The system creates a safe Draft Version (e.g., Version 2 - DRAFT).
+   - Click "Open Builder" to start designing!
+
+--------------------------------------------------------------------------------
+3.3. Building Sections, Tables, and Input Fields
+--------------------------------------------------------------------------------
+In the Form Builder Canvas, you can design forms with 3 simple building blocks:
+
+A. SECTIONS (Major Parts of the Appraisal):
+   - Click "+ Add Section".
+   - Enter a Title (e.g., "Part A: Academic & Curriculum Activities").
+   - Set Section Number (e.g., "A" or "1") and Owner Role.
+   - Click "Save Section".
+
+B. TABLES (Data Grids inside a Section):
+   - Under your section, click "+ Add Table".
+   - Enter Title (e.g., "Board of Studies Meetings Conducted").
+   - Choose whether the table is "Repeatable" (allows users to add multiple rows)
+     or "Fixed".
+   - Click "Save Table".
+
+C. FIELDS / COLUMNS (Inputs inside a Table or Section):
+   - Under the table, click "+ Add Column / Field".
+   - Enter the Label (e.g., "Date of Meeting").
+   - Select the Field Type (see section 3.4 below).
+   - Mark whether it is Required (mandatory).
+   - Click "Save Field".
+
+--------------------------------------------------------------------------------
+3.4. Supported Input Field Types
+--------------------------------------------------------------------------------
+You can choose from 8 field types:
+1. TEXT        - For short single-line text (e.g., Title, Name, City).
+2. NUMBER      - For numeric values (e.g., Student Count, Intake, Marks).
+3. DATE        - Displays a calendar date picker.
+4. SELECT      - Dropdown choice (type options separated by commas, e.g.,
+                 "Yes, No, In Progress").
+5. TEXTAREA    - For long descriptions and multi-line remarks.
+6. ATTACHMENT  - Secure document upload box for PDFs, Word files, or Images.
+7. EMAIL       - Validated email address input.
+8. URL         - Validated web link / website URL input.
+
+--------------------------------------------------------------------------------
+3.5. Reordering Sections, Tables, and Columns
+--------------------------------------------------------------------------------
+- Use the Up (↑) and Down (↓) arrow buttons next to any Section, Table, or
+  Column to adjust its position.
+- The new order is automatically saved.
+
+--------------------------------------------------------------------------------
+3.6. Testing with Live Form Preview
+--------------------------------------------------------------------------------
+1. In the Form Builder Canvas, click the "👁️ Live Form Preview" button at the top.
+2. The system renders your form exactly as faculty members will see it!
+3. Test entering numbers, selecting dropdowns, and adding table rows.
+4. Click "Back to Builder" when you are satisfied with your design.
+
+--------------------------------------------------------------------------------
+3.7. Publishing the Schema (Activating for Faculty)
+--------------------------------------------------------------------------------
+1. When your form design is ready, click the green "🚀 Publish Version" button.
+2. A confirmation prompt will appear. Click "Confirm".
+3. The system will:
+   - Freeze the draft so it cannot be accidentally edited.
+   - Mark this version as "PUBLISHED".
+   - Make it immediately live for all faculty members on the Main Portal!
+   - No code deployment or restart needed!
+
+--------------------------------------------------------------------------------
+3.8. Rolling Back to a Previous Version
+--------------------------------------------------------------------------------
+1. If you ever need to revert to an older form version, go to "Schemas".
+2. In the Version History timeline, find the older published version.
+3. Click "Rollback to this Version".
+4. The system will instantly switch the active form back to that version.
+
+================================================================================
+4. PART 2: MAIN APPRAISAL PORTAL (Faculty & Directors)
+================================================================================
+
+Access: Open your browser and go to http://localhost:5173
+
+--------------------------------------------------------------------------------
+4.1. Logging In
+--------------------------------------------------------------------------------
+1. Enter your University Email and Password on the login screen.
+   (Example: director@dypiu.ac.in / Director@123)
+2. Click "Sign In".
+3. You will be directed straight to your personalized Appraisal Dashboard.
+
+--------------------------------------------------------------------------------
+4.2. Navigating the Dynamic Appraisal Form
+--------------------------------------------------------------------------------
+- The portal automatically loads the active published form created by your
+  University Administrator.
+- You will see tabs or accordion panels representing each Section (e.g., Part A,
+  Part B, Part C).
+- In the top header, you will see your School Name, Academic Year, and Current
+  Form Status (e.g., "DRAFT").
+
+--------------------------------------------------------------------------------
+4.3. Filling Form Fields & Adding Dynamic Table Rows
+--------------------------------------------------------------------------------
+1. Click on a Section to expand it.
+2. Fill in the fields:
+   - Text boxes: Type your information.
+   - Date inputs: Click the calendar icon to pick a date.
+   - Numbers: Enter numeric values.
+   - Dropdowns: Select the applicable choice from the list.
+3. Adding Table Rows:
+   - For repeatable tables (e.g., Patents, Publications, Guest Lectures),
+     click the "+ Add Row" button at the bottom of the table.
+   - Fill in each column.
+   - To remove a row, click the red "✕ Remove" button on that row.
+
+--------------------------------------------------------------------------------
+4.4. Uploading PDF and Image Attachments
+--------------------------------------------------------------------------------
+1. Wherever an attachment is required (e.g., Meeting Minutes, Grant Letters,
+   Certificates), you will see an "📎 Upload" button.
+2. Click "Upload" and choose your file from your computer.
+3. Supported file formats: PDF (.pdf), Word (.docx), Images (.jpg, .png).
+4. Maximum file size: 25 MB per file.
+5. Once uploaded, you will see a green "📄 View Doc" button. You can click it
+   anytime to preview your uploaded file.
+6. To replace a document, click the "✕" delete icon and upload the new file.
+
+--------------------------------------------------------------------------------
+4.5. Saving Drafts (Auto-Save and Manual Save)
+--------------------------------------------------------------------------------
+1. You do NOT have to complete the entire form in one sitting!
+2. Click the "💾 Save Draft" button at the bottom right of the screen.
+3. A success message "Draft saved successfully" will appear.
+4. You can safely log out or close your browser.
+5. When you log back in, all your entered data, table rows, and uploaded
+   documents will be automatically restored.
+
+--------------------------------------------------------------------------------
+4.6. Final Submission
+--------------------------------------------------------------------------------
+1. Once all mandatory fields (marked with a red asterisk *) are completed:
+2. Review your entries across all sections.
+3. Click the "📤 Submit Appraisal" button.
+4. A confirmation dialogue will display asking if you are ready to finalize.
+5. Click "Confirm Submission".
+6. Your form status will change to "SUBMITTED" and lock into read-only mode.
+7. Your appraisal is now forwarded to the IQAC, Reviewers, and Auditors.
+
+================================================================================
+5. PART 3: REVIEW & EVALUATION (IQAC, Vice-Chancellor & Auditors)
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1. Viewing Submitted School Appraisals
+--------------------------------------------------------------------------------
+1. Log in as IQAC (iqac@dypiu.ac.in), Vice-Chancellor (vc@dypiu.ac.in), or
+   Auditor (auditor.ac@dypiu.ac.in).
+2. Go to the "Review Dashboard" or "Submissions Queue".
+3. You will see a table listing all submitted school reports, showing:
+   - School Name
+   - Director / Submitter Name
+   - Academic Year
+   - Submission Date
+   - Current Audit Status (e.g., "SUBMITTED", "UNDER_REVIEW", "APPROVED")
+4. Click "Review Form" or "View Submission" on any row to open the complete report.
+
+--------------------------------------------------------------------------------
+5.2. Verifying Uploaded Documents
+--------------------------------------------------------------------------------
+- Inside the submission view, all uploaded proofs will appear with clickable
+  "📄 View Doc" links.
+- Click any document link to open and inspect the proof in a new tab.
+- To download all attachments for that school at once, click the
+  "📦 Download All Attachments (.zip)" button.
+
+--------------------------------------------------------------------------------
+5.3. Providing Review Remarks & Scores
+--------------------------------------------------------------------------------
+1. Scroll to the "Review & Evaluation Section" at the bottom.
+2. Enter your Evaluator Remarks, Quality Recommendations, or SWOC Feedback.
+3. If scoring is enabled, enter marks for each criterion.
+
+--------------------------------------------------------------------------------
+5.4. Approving, Forwarding, or Requesting Changes
+--------------------------------------------------------------------------------
+Choose the appropriate action:
+- "Forward to Auditor": Assigns the submission to internal/external audit panels.
+- "Approve Appraisal": Marks the appraisal as officially approved by IQAC/VC.
+- "Request Revisions / Send Back": Sends the form back to the Director with
+  your comments so they can edit and re-submit.
+
+--------------------------------------------------------------------------------
+5.5. Exporting Reports to Excel and PDF
+--------------------------------------------------------------------------------
+At the top right of the review page, you have 3 export options:
+1. "📊 Export to Excel (.xlsx)":
+   - Downloads a spreadsheet with structured sheets for each form section.
+2. "📄 Export to PDF (.pdf)":
+   - Generates a print-ready, formatted institutional audit report with
+     university header and branding.
+3. "📚 Consolidated University Excel":
+   - (For IQAC/VC) Downloads a single master workbook comparing all schools
+     across the university side-by-side.
+
+================================================================================
+6. FREQUENTLY ASKED QUESTIONS (FAQ) & TROUBLESHOOTING
+================================================================================
+
+Q1: I made a change in the Admin Form Studio, but faculty do not see it. Why?
+A1: Make sure you clicked the green "🚀 Publish Version" button in the Form
+    Studio. Changes in "DRAFT" versions are not visible to users until published.
+
+Q2: What file formats and sizes are allowed for proof attachments?
+A2: PDF documents (.pdf), Word documents (.docx), and Images (.jpg, .png).
+    The file size limit is 25 MB per attachment.
+
+Q3: Can I edit my appraisal form after clicking "Submit"?
+A3: Once submitted, the form is locked to prevent accidental modifications during
+    the official audit. If you need to make changes, contact the IQAC reviewer
+    to "Send Back" the submission for revision.
+
+Q4: How do I switch between different Universities?
+A4: In the Admin Form Studio, click the University selector dropdown in the top
+    navigation bar to switch between institutions.
+
+Q5: What happens if my internet disconnects while filling the form?
+A5: You can click "Save Draft" frequently. If your session expires, simply sign
+    in again and your saved draft data will be loaded automatically.
+
+================================================================================
+                            END OF USER MANUAL
+================================================================================
