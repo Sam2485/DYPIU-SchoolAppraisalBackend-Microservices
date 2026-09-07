@@ -33,7 +33,11 @@ public class SubmissionService {
     private static final List<String> REVIEWER_VISIBLE_STATUSES = List.of("SUBMITTED", "UNDER_REVIEW", STATUS_APPROVED_LEGACY, STATUS_FINAL);
     private static final List<String> IQAC_VISIBLE_STATUSES = List.of("DRAFT", "SUBMITTED", "UNDER_REVIEW", "FORWARDED_TO_INTERNAL_AUDITOR", "INTERNAL_AUDITOR_COMPLETED", "FORWARDED_TO_EXTERNAL_AUDITOR", "AUDITOR_COMPLETED", "EXTERNAL_AUDITOR_COMPLETED", STATUS_APPROVED_LEGACY, STATUS_FINAL);
     private static final List<String> VC_VISIBLE_STATUSES = List.of("AUDITOR_COMPLETED", "EXTERNAL_AUDITOR_COMPLETED", STATUS_APPROVED_LEGACY, STATUS_FINAL);
-    private static final List<String> NORMALIZED_TABLE_STATUSES = List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", STATUS_APPROVED_LEGACY, STATUS_FINAL);
+    private static final List<String> NORMALIZED_TABLE_STATUSES = List.of(
+            "SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", 
+            "FORWARDED_TO_EXTERNAL_AUDITOR", "FORWARDED_TO_INTERNAL_AUDITOR", 
+            STATUS_APPROVED_LEGACY, STATUS_FINAL
+    );
     private static final List<String> EDITABLE_CYCLE_STATUSES = List.of("DRAFT", "SUBMITTED", "SENT_BACK");
     private static final List<String> ADMIN_POSTS = List.of("registrar", "hr", "dean-student-welfare", "dean-placement");
     private static final String SHARED_ADMINISTRATIVE_EMAIL = "administrative.shared@dypiu.ac.in";
@@ -1636,11 +1640,10 @@ public class SubmissionService {
 
     @Transactional
     public void autoForwardToExternalAuditors(Submission submission) {
-        if (submission == null) return;
+        if (submission == null || submission.getId() == null) return;
         
         List<UserDto> externalAuditors = safeGetAllUsers().stream()
-                .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
-
+                .filter(u -> u != null && u.getId() != null && !Boolean.TRUE.equals(u.getDeleted()))
                 .filter(u -> {
                     String role = u.getRole() != null ? u.getRole().toLowerCase() : "";
                     String type = u.getAuditorType() != null ? u.getAuditorType().toLowerCase() : "";
@@ -1656,9 +1659,11 @@ public class SubmissionService {
                 externalAuditors = externalAuditors.stream()
                         .filter(u -> {
                             List<String> schoolsList = u.getSchoolsList();
-                            for (String sch : schoolsList) {
-                                if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sch))) {
-                                    return true;
+                            if (schoolsList != null) {
+                                for (String sch : schoolsList) {
+                                    if (canonicalSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sch))) {
+                                        return true;
+                                    }
                                 }
                             }
                             return school.equalsIgnoreCase(u.getSchool());
@@ -1677,13 +1682,16 @@ public class SubmissionService {
         List<String> emails = new java.util.ArrayList<>();
         List<String> posts = new java.util.ArrayList<>();
 
+        LocalDateTime assignedAt = LocalDateTime.now();
+
         for (UserDto auditor : externalAuditors) {
+            if (auditor.getId() == null) continue;
             ids.add(auditor.getId());
-            names.add(auditor.getName());
-            emails.add(auditor.getEmail());
+            if (auditor.getName() != null) names.add(auditor.getName());
+            if (auditor.getEmail() != null) emails.add(auditor.getEmail());
             
             String post = "academic".equalsIgnoreCase(submission.getAuditType()) 
-                    ? (auditor.getSchoolsList().isEmpty() ? auditor.getSchool() : auditor.getSchoolsList().get(0)) 
+                    ? (auditor.getSchoolsList() != null && !auditor.getSchoolsList().isEmpty() ? auditor.getSchoolsList().get(0) : auditor.getSchool()) 
                     : auditor.getPost();
             if (post != null) posts.add(post);
 
@@ -1697,9 +1705,9 @@ public class SubmissionService {
                         .auditorEmail(auditor.getEmail())
                         .auditorType("external")
                         .category(submission.getAuditType())
-                        .post(post)
+                        .post(post != null ? post : submission.getSchool())
                         .status("PENDING")
-                        .assignedAt(LocalDateTime.now())
+                        .assignedAt(assignedAt)
                         .build();
                 auditorAssignmentRepository.save(assignment);
             }
@@ -1716,7 +1724,7 @@ public class SubmissionService {
 
         submission.setForwardedAuditorType("external");
         submission.setStatus("FORWARDED_TO_EXTERNAL_AUDITOR");
-        submission.setForwardedAt(LocalDateTime.now());
+        submission.setForwardedAt(assignedAt);
         submissionRepository.save(submission);
     }
 
@@ -1749,6 +1757,10 @@ public class SubmissionService {
         }
 
         Long rootSubmissionId = resolveRootSubmissionId(approved);
+        if (approved.getRootSubmissionId() == null) {
+            approved.setRootSubmissionId(approved.getId());
+            submissionRepository.save(approved);
+        }
         int expectedNextVersion = approved.getVersion() + 1;
 
         // Check if next cycle already exists in the database (e.g. from prior deployment or concurrency)
@@ -1791,8 +1803,12 @@ public class SubmissionService {
         Submission next = Submission.builder()
                 .email(approved.getEmail())
                 .auditType(approved.getAuditType())
+                .schemaVersionId(approved.getSchemaVersionId())
+                .universityId(approved.getUniversityId() != null ? approved.getUniversityId() : 1L)
+                .universityCode(approved.getUniversityCode() != null && !approved.getUniversityCode().isBlank() ? approved.getUniversityCode() : "dypiu")
                 .school(approved.getSchool())
                 .submittedBy(approved.getSubmittedBy())
+                .submittedByDetails(approved.getSubmittedByDetails())
                 .status("DRAFT")
                 .valuesData(nextValues)
                 .tablesData(nextTables)
@@ -1819,9 +1835,9 @@ public class SubmissionService {
                 .approvedByRole(null)
                 .approvedByDesignation(null)
                 .remarks(null)
-                .auditorCorrectionRequested(null)
-                .correctionRequestedForAuditor(null)
-                .requiresAuditorResubmission(null)
+                .auditorCorrectionRequested(false)
+                .correctionRequestedForAuditor(false)
+                .requiresAuditorResubmission(false)
                 .auditorCorrectionMessage(null)
                 .hasNextCycle(false)
                 .nextVersionId(null)

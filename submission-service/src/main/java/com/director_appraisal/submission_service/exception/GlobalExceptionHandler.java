@@ -68,8 +68,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(DataIntegrityViolationException e, HttpServletRequest req) {
         Throwable rootCause = getRootCause(e);
         log.error("[DATABASE_CONSTRAINT_VIOLATION] path={} message={} rootCause={}",
-                req.getRequestURI(), e.getMessage(), rootCause.getMessage(), e);
-        return build(HttpStatus.CONFLICT, "DATABASE_CONSTRAINT_VIOLATION", "Database constraint violation.", req, null);
+                req.getRequestURI(), e.getMessage(), rootCause != null ? rootCause.getMessage() : "null", e);
+        String detailedMsg = rootCause != null && rootCause.getMessage() != null 
+                ? "Database constraint violation: " + rootCause.getMessage() 
+                : "Database constraint violation.";
+        return build(HttpStatus.CONFLICT, "DATABASE_CONSTRAINT_VIOLATION", detailedMsg, req, null);
     }
 
     @ExceptionHandler(Exception.class)
