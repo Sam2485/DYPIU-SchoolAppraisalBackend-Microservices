@@ -43,7 +43,7 @@ public class SchoolUtils {
 
     public static boolean isValidSchool(String school) {
         if (school == null) return false;
-        return VALID_SCHOOLS_LOWERCASE.contains(school.trim().toLowerCase(Locale.ROOT));
+        return !school.trim().isBlank();
     }
 
     public static String canonicalizeSchool(String school) {
