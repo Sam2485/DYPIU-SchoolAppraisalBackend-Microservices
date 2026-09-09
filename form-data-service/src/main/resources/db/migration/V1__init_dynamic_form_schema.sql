@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS form_schemas (
     audit_type VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    assigned_schools VARCHAR(2000) DEFAULT 'ALL',
     active_version_number INTEGER,
     active_version_id BIGINT,
     status VARCHAR(50) DEFAULT 'ACTIVE',
@@ -96,11 +97,10 @@ CREATE TABLE IF NOT EXISTS form_fields (
 
 CREATE TABLE IF NOT EXISTS academic_years (
     id BIGSERIAL PRIMARY KEY,
-    academic_year VARCHAR(50) NOT NULL UNIQUE,
-    is_current BOOLEAN DEFAULT FALSE,
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    year_label VARCHAR(255) NOT NULL,
+    active BOOLEAN DEFAULT FALSE,
+    started_at TIMESTAMP WITHOUT TIME ZONE,
+    closed_at TIMESTAMP WITHOUT TIME ZONE
 );
 
 CREATE TABLE IF NOT EXISTS university_schools (
@@ -115,6 +115,18 @@ CREATE TABLE IF NOT EXISTS university_schools (
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS university_posts (
+    id BIGSERIAL PRIMARY KEY,
+    university_id BIGINT NOT NULL,
+    code VARCHAR(60) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    display_order INTEGER,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for high-performance tenant querying
 CREATE INDEX IF NOT EXISTS idx_form_schemas_university_id ON form_schemas(university_id);
 CREATE INDEX IF NOT EXISTS idx_form_schemas_audit_type ON form_schemas(audit_type);
@@ -125,3 +137,5 @@ CREATE INDEX IF NOT EXISTS idx_form_fields_section_id ON form_fields(section_id)
 CREATE INDEX IF NOT EXISTS idx_form_fields_table_id ON form_fields(table_id);
 CREATE INDEX IF NOT EXISTS idx_uni_schools_university_id ON university_schools(university_id);
 CREATE INDEX IF NOT EXISTS idx_uni_schools_code ON university_schools(code);
+CREATE INDEX IF NOT EXISTS idx_uni_posts_university_id ON university_posts(university_id);
+CREATE INDEX IF NOT EXISTS idx_uni_posts_code ON university_posts(code);
