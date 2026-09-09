@@ -710,6 +710,7 @@ public class SubmissionService {
                 .schemaVersionId(schemaVersionId)
                 .universityId(universityId)
                 .universityCode(universityCode)
+                .school(caller != null && caller.getSchool() != null ? SchoolUtils.canonicalizeSchool(caller.getSchool()) : null)
                 .build();
         Submission saved = submissionRepository.save(submission);
         saved.setRootSubmissionId(saved.getId());
@@ -876,7 +877,7 @@ public class SubmissionService {
                 stageAssignments = allAssignments;
             }
             if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-                java.util.Set<String> validAdminPosts = java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare");
+                java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
                 stageAssignments = stageAssignments.stream()
                         .filter(a -> {
                             String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -2922,9 +2923,34 @@ public class SubmissionService {
             case "registrar" -> "registrar";
             case "hr", "human-resources", "human-resource" -> "hr";
             case "dsw", "student-welfare", "dean-student-welfare", "dean-of-student-welfare" -> "dean-student-welfare";
-            case "dean-placement", "placement", "dean-of-placement", "deanplacement" -> "dean-placement";
+            case "dean-placement", "placement", "dean-of-placement", "deanplacement", "dp" -> "dean-placement";
             default -> normalized;
         };
+    }
+
+    private java.util.Set<String> getValidAdministrativePosts(Long universityId) {
+        java.util.Set<String> valid = new java.util.HashSet<>(java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare", "dp"));
+        try {
+            Long uniId = universityId != null ? universityId : 1L;
+            List<Map<String, Object>> dynamicPosts = formDataClient.getUniversityPosts(uniId);
+            if (dynamicPosts != null) {
+                for (Map<String, Object> p : dynamicPosts) {
+                    if (p.get("code") != null) {
+                        String c = canonicalAdministrativePost(p.get("code").toString());
+                        if (c != null) valid.add(c);
+                        valid.add(p.get("code").toString().trim().toLowerCase());
+                    }
+                    if (p.get("name") != null) {
+                        String c = canonicalAdministrativePost(p.get("name").toString());
+                        if (c != null) valid.add(c);
+                        valid.add(p.get("name").toString().trim().toLowerCase());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // fallback to defaults
+        }
+        return valid;
     }
 
     private record AdministrativePayload(String valuesData, String tablesData, boolean administrativePartial,
@@ -3410,10 +3436,35 @@ public class SubmissionService {
         return List.of(cleaned);
     }
 
+    public boolean matchesUniversity(Submission s, UserDto user) {
+        if (s == null || user == null) return false;
+
+        String userCode = user.getUniversityCode();
+        String subCode = s.getUniversityCode();
+        if (userCode != null && !userCode.isBlank() && subCode != null && !subCode.isBlank()) {
+            return userCode.trim().equalsIgnoreCase(subCode.trim());
+        }
+
+        Long userId = user.getUniversityId();
+        Long subId = s.getUniversityId();
+        if (userId != null && subId != null) {
+            return userId.equals(subId);
+        }
+
+        boolean isSubDypiu = (subCode == null || subCode.isBlank() || "dypiu".equalsIgnoreCase(subCode))
+                && (s.getEmail() != null && s.getEmail().toLowerCase().endsWith("@dypiu.ac.in"));
+        if (isSubDypiu) {
+            return "dypiu".equalsIgnoreCase(userCode)
+                    || (user.getEmail() != null && user.getEmail().toLowerCase().endsWith("@dypiu.ac.in"));
+        }
+
+        return false;
+    }
+
     public Submission getDraftForUser(UserDto user, String auditType, String requestedYear, boolean includeHistorical, boolean shared) {
         if (shared && "administrative".equalsIgnoreCase(auditType)) {
             if (requestedYear != null && !requestedYear.isBlank()) {
-                return getOrCreateSharedAdministrativeDraftForCycle(requestedYear);
+                return getOrCreateSharedAdministrativeDraftForCycle(requestedYear, user.getUniversityId(), user.getUniversityCode());
             }
             return getOrCreateSharedAdministrativeDraft(user);
         }
@@ -3424,45 +3475,67 @@ public class SubmissionService {
 
         String role = user.getRole() != null ? user.getRole().toLowerCase() : "";
 
-        if (isHistoricalRequest || includeHistorical || (role.contains("director") && "academic".equalsIgnoreCase(auditType) && isYearRequested)) {
+        if (isHistoricalRequest || includeHistorical) {
+            List<String> yearVariants = getYearVariants(isYearRequested ? requestedYear : activeYear);
+
+            // 1. Try to find user's own submission for this historical cycle in their university
+            List<Submission> userSubmissions = submissionRepository.findSubmissionsByEmailAndAuditTypeAndYearLabels(
+                    user.getEmail(), auditType, yearVariants);
+            Submission userMatch = userSubmissions.stream()
+                    .filter(s -> matchesUniversity(s, user))
+                    .findFirst()
+                    .orElse(null);
+            if (userMatch != null) {
+                return userMatch;
+            }
+
+            // 2. For directors, try to find the school's historical submission within the same university
             if (role.contains("director") && "academic".equalsIgnoreCase(auditType)) {
                 String userSchool = SchoolUtils.canonicalizeSchool(user.getSchool());
-                List<String> yearVariants = getYearVariants(isYearRequested ? requestedYear : activeYear);
-                
                 List<Submission> candidates = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("academic", yearVariants);
-                
-                Submission bestMatch = candidates.stream()
+                Submission schoolMatch = candidates.stream()
+                        .filter(s -> matchesUniversity(s, user))
                         .filter(s -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(s.getSchool())))
                         .findFirst()
                         .orElse(null);
-
-                if (bestMatch != null) {
-                    return bestMatch;
-                }
-            } else {
-                List<String> yearVariants = getYearVariants(isYearRequested ? requestedYear : activeYear);
-                List<Submission> userSubmissions = submissionRepository.findSubmissionsByEmailAndAuditTypeAndYearLabels(
-                        user.getEmail(), auditType, yearVariants);
-                if (!userSubmissions.isEmpty()) {
-                    return userSubmissions.get(0);
+                if (schoolMatch != null) {
+                    return schoolMatch;
                 }
             }
-        }
 
-        // Standard active working draft
-        if (isYearRequested && !isSameAcademicYear(requestedYear, activeYear)) {
+            // 3. If historical and not found, return an empty historical placeholder
             Submission emptyHist = new Submission();
             emptyHist.setEmail(user.getEmail());
             emptyHist.setAuditType(auditType);
             emptyHist.setSchool(SchoolUtils.canonicalizeSchool(user.getSchool()));
-            emptyHist.setAcademicYear(requestedYear);
-            emptyHist.setAuditCycle(requestedYear);
+            emptyHist.setAcademicYear(requestedYear != null ? requestedYear : activeYear);
+            emptyHist.setAuditCycle(requestedYear != null ? requestedYear : activeYear);
             emptyHist.setStatus("DRAFT");
             emptyHist.setVersion(1);
             emptyHist.setValuesData("{}");
             emptyHist.setTablesData("{}");
             emptyHist.setAttachments("[]");
+            emptyHist.setUniversityId(user.getUniversityId());
+            emptyHist.setUniversityCode(user.getUniversityCode());
             return emptyHist;
+        }
+
+        // Active year request:
+        // For directors, check if an existing submission for this school in the SAME university is already submitted/approved by another director
+        if (role.contains("director") && "academic".equalsIgnoreCase(auditType)) {
+            String userSchool = SchoolUtils.canonicalizeSchool(user.getSchool());
+            List<String> yearVariants = getYearVariants(isYearRequested ? requestedYear : activeYear);
+            List<Submission> candidates = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("academic", yearVariants);
+            Submission existingSchoolSubmission = candidates.stream()
+                    .filter(s -> matchesUniversity(s, user))
+                    .filter(s -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(s.getSchool())))
+                    .filter(s -> !s.getEmail().equalsIgnoreCase(user.getEmail()))
+                    .filter(s -> List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", "APPROVED", "FINAL").contains(s.getStatus().toUpperCase()))
+                    .findFirst()
+                    .orElse(null);
+            if (existingSchoolSubmission != null) {
+                return existingSchoolSubmission;
+            }
         }
 
         return getOrCreateDraft(user.getEmail(), auditType);
@@ -3973,7 +4046,7 @@ public class SubmissionService {
         
         java.util.List<SubmissionAuditorAssignment> validAssignments = allAssignments;
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare");
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
             validAssignments = allAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -3993,7 +4066,7 @@ public class SubmissionService {
         }
 
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare");
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
             currentGroupAssignments = currentGroupAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -4068,7 +4141,7 @@ public class SubmissionService {
         
         java.util.List<SubmissionAuditorAssignment> validAssignments = allAssignments;
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare");
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
             validAssignments = allAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -4182,7 +4255,7 @@ public class SubmissionService {
                     .filter(a -> "academic".equalsIgnoreCase(a.getCategory()) && activeType.equalsIgnoreCase(a.getAuditorType()))
                     .collect(java.util.stream.Collectors.toList());
         } else if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare");
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
             currentValidAssignments = currentAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -4470,7 +4543,7 @@ public class SubmissionService {
             
             java.util.List<SubmissionAuditorAssignment> validRemainingAssignments = remainingAssignments;
             if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-                java.util.Set<String> validAdminPosts = java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare");
+                java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
                 validRemainingAssignments = remainingAssignments.stream()
                         .filter(a -> {
                             String postCanonical = canonicalAdministrativePost(a.getPost());
