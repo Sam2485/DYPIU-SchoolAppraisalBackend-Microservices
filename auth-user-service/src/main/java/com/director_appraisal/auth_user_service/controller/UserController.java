@@ -30,9 +30,76 @@ public class UserController {
 
     private static final Map<String, String> ADMINISTRATIVE_POSTS = Map.of(
             "registrar", "Registrar",
-            "hr", "HR",
+            "hr", "HR (Human Resources)",
             "dean-student-welfare", "Dean Student Welfare",
-            "dean-placement", "Dean Placement");
+            "dean-placement", "Dean Placement",
+            "dp", "Dean Placement");
+
+    private record DynamicPostsCache(long timestamp, Map<String, String> posts) {}
+    private final Map<Long, DynamicPostsCache> dynamicPostsCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private Map<String, String> getDynamicUniversityPosts(Long universityId) {
+        Long uId = universityId != null ? universityId : 1L;
+        DynamicPostsCache cached = dynamicPostsCache.get(uId);
+        long now = System.currentTimeMillis();
+        if (cached != null && (now - cached.timestamp()) < 30_000L) {
+            return cached.posts();
+        }
+
+        Map<String, String> postsMap = new LinkedHashMap<>(ADMINISTRATIVE_POSTS);
+        try {
+            String formsUrl = System.getenv("FORMS_SERVICE_URL");
+            if (formsUrl == null || formsUrl.isBlank()) {
+                formsUrl = "http://localhost:9002";
+            }
+            java.net.URI uri = java.net.URI.create(formsUrl + "/api/config/universities/" + uId + "/posts");
+            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(2))
+                    .build();
+            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                    .uri(uri)
+                    .timeout(java.time.Duration.ofSeconds(3))
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 200 && resp.body() != null) {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(resp.body());
+                if (root.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode item : root) {
+                        String code = item.path("code").asText(null);
+                        String name = item.path("name").asText(null);
+                        if (code != null && !code.isBlank()) {
+                            String displayName = (name != null && !name.isBlank()) ? name : code;
+                            postsMap.put(code.trim().toLowerCase(Locale.ROOT), displayName);
+                            if (name != null && !name.isBlank()) {
+                                postsMap.put(name.trim().toLowerCase(Locale.ROOT), displayName);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        dynamicPostsCache.put(uId, new DynamicPostsCache(now, postsMap));
+        return postsMap;
+    }
+
+    private String titleCase(String value) {
+        if (value == null || value.isBlank()) return "";
+        String[] words = value.replace("-", " ").replace("_", " ").split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) {
+            if (!w.isBlank()) {
+                sb.append(Character.toUpperCase(w.charAt(0)));
+                if (w.length() > 1) {
+                    sb.append(w.substring(1).toLowerCase(Locale.ROOT));
+                }
+                sb.append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
 
     private final UserService userService;
     private final UserAdministrativePostRepository userAdministrativePostRepository;
@@ -523,14 +590,19 @@ public class UserController {
             if (isBlank(post)) {
                 throw new IllegalArgumentException("Post is required.");
             }
-            String mappedDesignation = ADMINISTRATIVE_POSTS.get(post);
+
+            Map<String, String> dynamicPosts = getDynamicUniversityPosts(request.getUniversityId());
+            String mappedDesignation = dynamicPosts.get(post.toLowerCase(Locale.ROOT));
             if (mappedDesignation == null) {
-                throw new IllegalArgumentException("Invalid administrative post.");
+                String canonical = canonicalAdministrativePost(post);
+                mappedDesignation = canonical != null ? dynamicPosts.get(canonical.toLowerCase(Locale.ROOT)) : null;
             }
-            if (!isBlank(designation) && !mappedDesignation.equals(designation)) {
-                throw new IllegalArgumentException("Designation must match selected administrative post.");
+            if (mappedDesignation == null) {
+                mappedDesignation = !isBlank(designation) ? designation : titleCase(post);
             }
-            return new ValidatedUser(name, email, cleanPassword(password), "administrative", school, mappedDesignation, "user", "administrative", null, null, post, List.of(), List.of());
+
+            String finalDesignation = !isBlank(designation) ? designation : mappedDesignation;
+            return new ValidatedUser(name, email, cleanPassword(password), "administrative", school, finalDesignation, "user", "administrative", null, null, post, List.of(), List.of());
         }
 
         throw new IllegalArgumentException("Invalid category.");
@@ -614,11 +686,15 @@ public class UserController {
 
 
     private String getPostForDesignation(String designation) {
-        return ADMINISTRATIVE_POSTS.entrySet().stream()
-                .filter(entry -> entry.getValue().equals(designation))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElse(null);
+        if (designation == null || designation.isBlank()) {
+            return null;
+        }
+        for (Map.Entry<String, String> entry : ADMINISTRATIVE_POSTS.entrySet()) {
+            if (entry.getValue().equalsIgnoreCase(designation) || entry.getKey().equalsIgnoreCase(designation.trim())) {
+                return entry.getKey();
+            }
+        }
+        return canonicalAdministrativePost(designation);
     }
 
     private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {
@@ -684,9 +760,6 @@ public class UserController {
             if (isBlank(post)) {
                 continue;
             }
-            if (!ADMINISTRATIVE_POSTS.containsKey(post)) {
-                throw new IllegalArgumentException("Invalid administrative post.");
-            }
             if (!seen.add(post)) {
                 throw new IllegalArgumentException("Duplicate administrative post: " + post);
             }
@@ -711,7 +784,7 @@ public class UserController {
             case "registrar" -> "registrar";
             case "hr", "human-resources", "human-resource" -> "hr";
             case "dsw", "student-welfare", "dean-student-welfare", "dean-of-student-welfare" -> "dean-student-welfare";
-            case "dean-placement", "placement", "dean-of-placement" -> "dean-placement";
+            case "dean-placement", "placement", "dean-of-placement", "deanplacement", "dp" -> "dean-placement";
             default -> normalized;
         };
     }
@@ -974,6 +1047,8 @@ public class UserController {
         private String auditorRole;
         private List<String> administrativePosts;
         private List<String> schools;
+        private Long universityId;
+        private String universityCode;
     }
 
     @Data

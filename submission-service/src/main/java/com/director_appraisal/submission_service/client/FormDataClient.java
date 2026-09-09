@@ -19,5 +19,8 @@ public interface FormDataClient {
 
     @GetMapping("/api/config/version/{versionId}")
     Map<String, Object> getConfigByVersion(@org.springframework.web.bind.annotation.PathVariable("versionId") Long versionId);
+
+    @GetMapping("/api/config/universities/{universityId}/posts")
+    java.util.List<Map<String, Object>> getUniversityPosts(@org.springframework.web.bind.annotation.PathVariable("universityId") Long universityId);
 }
 

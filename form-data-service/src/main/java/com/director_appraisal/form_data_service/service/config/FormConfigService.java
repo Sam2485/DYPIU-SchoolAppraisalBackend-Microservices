@@ -356,10 +356,19 @@ public class FormConfigService {
         Set<String> sectionKeys = new HashSet<>();
         for (FormSection s : sections) {
             if (s.getSectionKey() == null || s.getSectionKey().isBlank()) {
-                throw new IllegalStateException("Section key cannot be blank.");
+                s.setSectionKey(toSnakeCase(s.getTitle()));
+                formSectionRepository.save(s);
             }
             if (!sectionKeys.add(s.getSectionKey().toLowerCase())) {
-                throw new IllegalStateException("Duplicate section key found: " + s.getSectionKey());
+                String baseKey = s.getSectionKey();
+                int suffix = 1;
+                String newKey;
+                do {
+                    newKey = baseKey + "_" + (++suffix);
+                } while (!sectionKeys.add(newKey.toLowerCase()));
+                s.setSectionKey(newKey);
+                formSectionRepository.save(s);
+                log.info("Auto-healed duplicate section key to: {}", newKey);
             }
 
             List<FormTable> tables = formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(s.getId());

@@ -998,7 +998,7 @@ public void downloadAttachments(@PathVariable Long id,
             case "registrar" -> "Registrar";
             case "hr" -> "HR";
             case "dean-student-welfare" -> "Dean_Student_Welfare";
-            case "dean-placement" -> "Dean_Placement";
+            case "dean-placement", "dp" -> "Dean_Placement";
             default -> post;
         };
     }

@@ -225,6 +225,17 @@ public class AdminConfigController {
         }
 
         List<FormSection> existing = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(req.getVersionId());
+        String baseKey = req.getSectionKey();
+        String candidateKey = baseKey;
+        int suffix = 1;
+        Set<String> existingKeys = new HashSet<>();
+        for (FormSection s : existing) {
+            if (s.getSectionKey() != null) existingKeys.add(s.getSectionKey().toLowerCase());
+        }
+        while (existingKeys.contains(candidateKey.toLowerCase())) {
+            candidateKey = baseKey + "_" + (++suffix);
+        }
+        req.setSectionKey(candidateKey);
         req.setDisplayOrder(existing.size() + 1);
         FormSection saved = formSectionRepository.save(req);
         return ResponseEntity.ok(saved);
@@ -236,7 +247,27 @@ public class AdminConfigController {
                 .orElseThrow(() -> new IllegalArgumentException("Section not found: " + id));
 
         if (req.getTitle() != null) existing.setTitle(req.getTitle());
-        if (req.getSectionKey() != null) existing.setSectionKey(req.getSectionKey());
+        if (req.getSectionKey() != null && !req.getSectionKey().isBlank()) {
+            existing.setSectionKey(req.getSectionKey());
+        } else if (req.getTitle() != null && !req.getTitle().isBlank()) {
+            existing.setSectionKey(FormConfigService.toSnakeCase(req.getTitle()));
+        }
+
+        List<FormSection> siblings = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(existing.getVersionId());
+        Set<String> siblingKeys = new HashSet<>();
+        for (FormSection s : siblings) {
+            if (!s.getId().equals(existing.getId()) && s.getSectionKey() != null) {
+                siblingKeys.add(s.getSectionKey().toLowerCase());
+            }
+        }
+        String baseKey = existing.getSectionKey();
+        String candidateKey = baseKey;
+        int suffix = 1;
+        while (siblingKeys.contains(candidateKey.toLowerCase())) {
+            candidateKey = baseKey + "_" + (++suffix);
+        }
+        existing.setSectionKey(candidateKey);
+
         if (req.getSectionNumber() != null) existing.setSectionNumber(req.getSectionNumber());
         if (req.getOwnerRole() != null) existing.setOwnerRole(req.getOwnerRole());
         if (req.getDescription() != null) existing.setDescription(req.getDescription());
