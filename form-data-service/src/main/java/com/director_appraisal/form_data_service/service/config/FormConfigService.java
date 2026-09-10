@@ -354,6 +354,8 @@ public class FormConfigService {
         }
 
         Set<String> sectionKeys = new HashSet<>();
+        Set<String> versionTableKeys = new HashSet<>();
+
         for (FormSection s : sections) {
             if (s.getSectionKey() == null || s.getSectionKey().isBlank()) {
                 s.setSectionKey(toSnakeCase(s.getTitle()));
@@ -372,13 +374,21 @@ public class FormConfigService {
             }
 
             List<FormTable> tables = formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(s.getId());
-            Set<String> tableKeys = new HashSet<>();
             for (FormTable t : tables) {
                 if (t.getTableKey() == null || t.getTableKey().isBlank()) {
-                    throw new IllegalStateException("Table key cannot be blank in section: " + s.getTitle());
+                    t.setTableKey(toSnakeCase(t.getTitle()));
+                    formTableRepository.save(t);
                 }
-                if (!tableKeys.add(t.getTableKey().toLowerCase())) {
-                    throw new IllegalStateException("Duplicate table key in section " + s.getTitle() + ": " + t.getTableKey());
+                if (!versionTableKeys.add(t.getTableKey().toLowerCase())) {
+                    String baseKey = t.getTableKey();
+                    String newKey = s.getSectionKey() + "_" + baseKey;
+                    int suffix = 1;
+                    while (!versionTableKeys.add(newKey.toLowerCase())) {
+                        newKey = baseKey + "_" + (++suffix);
+                    }
+                    t.setTableKey(newKey);
+                    formTableRepository.save(t);
+                    log.info("Auto-healed duplicate table key in version {} section {} to: {}", versionId, s.getTitle(), newKey);
                 }
 
                 List<FormField> columns = formFieldRepository.findByTableIdOrderByDisplayOrderAscIdAsc(t.getId());
@@ -528,6 +538,207 @@ public class FormConfigService {
             }
         }
         return result;
+    }
+
+    @Transactional
+    public List<FormTable> importBatchTables(Long sectionId, BatchTableImportRequestDto req) {
+        FormSection section = formSectionRepository.findById(sectionId)
+                .orElseThrow(() -> new IllegalArgumentException("Section not found: " + sectionId));
+
+        if (req == null || req.getTables() == null || req.getTables().isEmpty()) {
+            throw new IllegalArgumentException("No tables provided for import");
+        }
+
+        // Collect existing table keys across ALL sections of this schema version
+        Set<String> existingKeys = new HashSet<>();
+        if (section.getVersionId() != null) {
+            List<FormSection> siblingSections = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(section.getVersionId());
+            List<Long> sectionIds = siblingSections.stream().map(FormSection::getId).toList();
+            List<FormTable> allTablesInVersion = formTableRepository.findBySectionIdIn(sectionIds);
+            for (FormTable t : allTablesInVersion) {
+                if (t.getTableKey() != null) existingKeys.add(t.getTableKey().toLowerCase());
+            }
+        } else {
+            List<FormTable> existingTables = formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(sectionId);
+            for (FormTable t : existingTables) {
+                if (t.getTableKey() != null) existingKeys.add(t.getTableKey().toLowerCase());
+            }
+        }
+
+        List<FormTable> existingInThisSection = formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(sectionId);
+        int currentOrder = existingInThisSection.size();
+        List<FormTable> createdTables = new ArrayList<>();
+
+        for (BatchTableImportRequestDto.TableImportItem tableItem : req.getTables()) {
+            if (tableItem.getTitle() == null || tableItem.getTitle().isBlank()) {
+                continue;
+            }
+
+            String baseKey = (tableItem.getTableKey() != null && !tableItem.getTableKey().isBlank())
+                    ? toSnakeCase(tableItem.getTableKey())
+                    : toSnakeCase(tableItem.getTitle());
+
+            String candidateKey = baseKey;
+            if (existingKeys.contains(candidateKey.toLowerCase())) {
+                candidateKey = toSnakeCase(section.getSectionKey() != null ? section.getSectionKey() : section.getTitle()) + "_" + baseKey;
+            }
+            int suffix = 1;
+            while (existingKeys.contains(candidateKey.toLowerCase())) {
+                candidateKey = baseKey + "_" + (++suffix);
+            }
+            existingKeys.add(candidateKey.toLowerCase());
+
+            FormTable newTable = FormTable.builder()
+                    .sectionId(sectionId)
+                    .title(tableItem.getTitle().trim())
+                    .tableKey(candidateKey)
+                    .isRepeatable(tableItem.getIsRepeatable() != null ? tableItem.getIsRepeatable() : true)
+                    .showTitle(tableItem.getShowTitle() != null ? tableItem.getShowTitle() : true)
+                    .displayOrder(++currentOrder)
+                    .build();
+
+            FormTable savedTable = formTableRepository.save(newTable);
+            createdTables.add(savedTable);
+
+            if (tableItem.getFields() != null && !tableItem.getFields().isEmpty()) {
+                Set<String> existingColKeys = new HashSet<>();
+                int fieldOrder = 0;
+
+                for (BatchTableImportRequestDto.FieldImportItem fieldItem : tableItem.getFields()) {
+                    if (fieldItem.getLabel() == null || fieldItem.getLabel().isBlank()) {
+                        continue;
+                    }
+
+                    String colBaseKey = (fieldItem.getFieldKey() != null && !fieldItem.getFieldKey().isBlank())
+                            ? toSnakeCase(fieldItem.getFieldKey())
+                            : toSnakeCase(fieldItem.getLabel());
+
+                    String colCandidateKey = colBaseKey;
+                    int colSuffix = 1;
+                    while (existingColKeys.contains(colCandidateKey.toLowerCase())) {
+                        colCandidateKey = colBaseKey + "_" + (++colSuffix);
+                    }
+                    existingColKeys.add(colCandidateKey.toLowerCase());
+
+                    String fieldType = (fieldItem.getFieldType() != null && !fieldItem.getFieldType().isBlank())
+                            ? fieldItem.getFieldType().trim().toUpperCase()
+                            : "TEXT";
+
+                    String optionsJson = null;
+                    if (fieldItem.getOptions() != null && !fieldItem.getOptions().isEmpty()) {
+                        try {
+                            optionsJson = objectMapper.writeValueAsString(fieldItem.getOptions());
+                        } catch (Exception e) {
+                            optionsJson = null;
+                        }
+                    } else if (fieldItem.getOptionsString() != null && !fieldItem.getOptionsString().isBlank()) {
+                        try {
+                            List<String> optList = Arrays.stream(fieldItem.getOptionsString().split(","))
+                                    .map(String::trim)
+                                    .filter(s -> !s.isEmpty())
+                                    .toList();
+                            optionsJson = objectMapper.writeValueAsString(optList);
+                        } catch (Exception e) {
+                            optionsJson = null;
+                        }
+                    }
+
+                    FormField col = FormField.builder()
+                            .sectionId(sectionId)
+                            .tableId(savedTable.getId())
+                            .label(fieldItem.getLabel().trim())
+                            .fieldKey(colCandidateKey)
+                            .fieldType(fieldType)
+                            .isRequired(fieldItem.getIsRequired() != null ? fieldItem.getIsRequired() : false)
+                            .placeholder(fieldItem.getPlaceholder())
+                            .defaultValue(fieldItem.getDefaultValue())
+                            .options(optionsJson)
+                            .displayOrder(++fieldOrder)
+                            .build();
+
+                    formFieldRepository.save(col);
+                }
+            } else {
+                // If no columns provided, auto-create a default Sr No column
+                FormField srNo = FormField.builder()
+                        .sectionId(sectionId)
+                        .tableId(savedTable.getId())
+                        .fieldKey("sr_no")
+                        .label("Sr No")
+                        .fieldType("TEXT")
+                        .displayOrder(1)
+                        .isRequired(false)
+                        .build();
+                formFieldRepository.save(srNo);
+            }
+        }
+
+        log.info("Batch imported {} tables into section ID {}", createdTables.size(), sectionId);
+        return createdTables;
+    }
+
+    @Transactional
+    public List<FormSection> importFullSchema(Long versionId, BatchSchemaImportRequestDto req) {
+        SchemaVersion version = schemaVersionRepository.findById(versionId)
+                .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
+
+        if (req == null || req.getSections() == null || req.getSections().isEmpty()) {
+            throw new IllegalArgumentException("No sections provided for schema import");
+        }
+
+        List<FormSection> existingSections = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(versionId);
+        int currentSectionOrder = existingSections.size();
+        Set<String> existingSectionKeys = new HashSet<>();
+        for (FormSection s : existingSections) {
+            if (s.getSectionKey() != null) existingSectionKeys.add(s.getSectionKey().toLowerCase());
+        }
+
+        List<FormSection> createdSections = new ArrayList<>();
+
+        for (BatchSchemaImportRequestDto.SectionImportItem secItem : req.getSections()) {
+            if (secItem.getTitle() == null || secItem.getTitle().isBlank()) {
+                continue;
+            }
+
+            String baseSecKey = (secItem.getSectionKey() != null && !secItem.getSectionKey().isBlank())
+                    ? toSnakeCase(secItem.getSectionKey())
+                    : toSnakeCase(secItem.getTitle());
+
+            String candidateSecKey = baseSecKey;
+            int secSuffix = 1;
+            while (existingSectionKeys.contains(candidateSecKey.toLowerCase())) {
+                candidateSecKey = baseSecKey + "_" + (++secSuffix);
+            }
+            existingSectionKeys.add(candidateSecKey.toLowerCase());
+
+            String secNumber = secItem.getSectionNumber();
+            if (secNumber == null || secNumber.isBlank()) {
+                secNumber = String.valueOf((char) ('A' + currentSectionOrder));
+            }
+
+            FormSection newSec = FormSection.builder()
+                    .versionId(versionId)
+                    .title(secItem.getTitle().trim())
+                    .sectionNumber(secNumber)
+                    .sectionKey(candidateSecKey)
+                    .ownerRole(secItem.getOwnerRole() != null && !secItem.getOwnerRole().isBlank() ? secItem.getOwnerRole() : "director-schools")
+                    .description(secItem.getDescription())
+                    .displayOrder(++currentSectionOrder)
+                    .build();
+
+            FormSection savedSection = formSectionRepository.save(newSec);
+            createdSections.add(savedSection);
+
+            if (secItem.getTables() != null && !secItem.getTables().isEmpty()) {
+                BatchTableImportRequestDto tblDto = BatchTableImportRequestDto.builder()
+                        .tables(secItem.getTables())
+                        .build();
+                importBatchTables(savedSection.getId(), tblDto);
+            }
+        }
+
+        log.info("Batch imported {} sections into version ID {}", createdSections.size(), versionId);
+        return createdSections;
     }
 
     public static String toSnakeCase(String label) {

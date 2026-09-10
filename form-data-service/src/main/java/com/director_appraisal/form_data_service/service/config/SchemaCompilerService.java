@@ -63,6 +63,7 @@ public class SchemaCompilerService {
 
         List<FormSection> sections = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(versionId);
         List<SectionDto> sectionDtos = new ArrayList<>();
+        Set<String> compiledTableKeys = new HashSet<>();
 
         for (FormSection sec : sections) {
             List<FormField> topFields = formFieldRepository.findBySectionIdAndTableIdIsNullOrderByDisplayOrderAscIdAsc(sec.getId());
@@ -80,10 +81,23 @@ public class SchemaCompilerService {
                     columnHeaders.add(f.getLabel() != null ? f.getLabel() : f.getFieldKey());
                 }
 
+                String rawKey = tbl.getTableKey() != null && !tbl.getTableKey().isBlank()
+                        ? tbl.getTableKey()
+                        : FormConfigService.toSnakeCase(tbl.getTitle());
+                String uniqueTableKey = rawKey;
+                if (compiledTableKeys.contains(uniqueTableKey.toLowerCase())) {
+                    uniqueTableKey = FormConfigService.toSnakeCase(sec.getSectionKey() != null ? sec.getSectionKey() : sec.getTitle()) + "_" + rawKey;
+                }
+                int suffix = 1;
+                while (compiledTableKeys.contains(uniqueTableKey.toLowerCase())) {
+                    uniqueTableKey = rawKey + "_" + (++suffix);
+                }
+                compiledTableKeys.add(uniqueTableKey.toLowerCase());
+
                 TableDto tableDto = TableDto.builder()
                         .id(tbl.getId())
-                        .idString(tbl.getTableKey())
-                        .tableKey(tbl.getTableKey())
+                        .idString(uniqueTableKey)
+                        .tableKey(uniqueTableKey)
                         .title(tbl.getTitle())
                         .showTitle(tbl.getShowTitle())
                         .isRepeatable(tbl.getIsRepeatable())

@@ -27,8 +27,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         }
 
         List<String> locations = new ArrayList<>();
-        locations.add("file:" + uploadPath);
-        locations.add("file:" + uploadPath + "users/");
+        String baseUri = uploadDir.toUri().toString();
+        if (!baseUri.endsWith("/")) {
+            baseUri += "/";
+        }
+        locations.add(baseUri);
+        locations.add(baseUri + "users/");
         locations.add("file:/app/uploads-test/");
         locations.add("file:/app/uploads-test/users/");
         locations.add("file:/app/uploads/");

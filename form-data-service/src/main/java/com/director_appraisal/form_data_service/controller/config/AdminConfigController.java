@@ -316,9 +316,32 @@ public class AdminConfigController {
         }
         if (req.getSectionId() == null) throw new IllegalArgumentException("sectionId is required.");
         if (req.getTitle() == null || req.getTitle().isBlank()) throw new IllegalArgumentException("title is required.");
-        if (req.getTableKey() == null || req.getTableKey().isBlank()) {
-            req.setTableKey(FormConfigService.toSnakeCase(req.getTitle()));
+
+        FormSection section = formSectionRepository.findById(req.getSectionId())
+                .orElseThrow(() -> new IllegalArgumentException("Section not found: " + req.getSectionId()));
+
+        Set<String> siblingKeys = new HashSet<>();
+        if (section.getVersionId() != null) {
+            List<FormSection> siblingSections = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(section.getVersionId());
+            List<Long> sIds = siblingSections.stream().map(FormSection::getId).toList();
+            List<FormTable> allTables = formTableRepository.findBySectionIdIn(sIds);
+            for (FormTable t : allTables) {
+                if (t.getTableKey() != null) siblingKeys.add(t.getTableKey().toLowerCase());
+            }
         }
+
+        String baseKey = req.getTableKey() != null && !req.getTableKey().isBlank()
+                ? FormConfigService.toSnakeCase(req.getTableKey())
+                : FormConfigService.toSnakeCase(req.getTitle());
+        String candidateKey = baseKey;
+        if (siblingKeys.contains(candidateKey.toLowerCase())) {
+            candidateKey = FormConfigService.toSnakeCase(section.getSectionKey() != null ? section.getSectionKey() : section.getTitle()) + "_" + baseKey;
+        }
+        int suffix = 1;
+        while (siblingKeys.contains(candidateKey.toLowerCase())) {
+            candidateKey = baseKey + "_" + (++suffix);
+        }
+        req.setTableKey(candidateKey);
 
         List<FormTable> existing = formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(req.getSectionId());
         req.setDisplayOrder(existing.size() + 1);
@@ -345,7 +368,28 @@ public class AdminConfigController {
                 .orElseThrow(() -> new IllegalArgumentException("Table not found: " + id));
 
         if (req.getTitle() != null) existing.setTitle(req.getTitle());
-        if (req.getTableKey() != null) existing.setTableKey(req.getTableKey());
+        if (req.getTableKey() != null && !req.getTableKey().isBlank()) {
+            FormSection section = formSectionRepository.findById(existing.getSectionId()).orElse(null);
+            Set<String> siblingKeys = new HashSet<>();
+            if (section != null && section.getVersionId() != null) {
+                List<FormSection> siblingSections = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(section.getVersionId());
+                List<Long> sIds = siblingSections.stream().map(FormSection::getId).toList();
+                List<FormTable> allTables = formTableRepository.findBySectionIdIn(sIds);
+                for (FormTable t : allTables) {
+                    if (!t.getId().equals(existing.getId()) && t.getTableKey() != null) {
+                        siblingKeys.add(t.getTableKey().toLowerCase());
+                    }
+                }
+            }
+
+            String baseKey = FormConfigService.toSnakeCase(req.getTableKey());
+            String candidateKey = baseKey;
+            int suffix = 1;
+            while (siblingKeys.contains(candidateKey.toLowerCase())) {
+                candidateKey = baseKey + "_" + (++suffix);
+            }
+            existing.setTableKey(candidateKey);
+        }
         if (req.getShowTitle() != null) existing.setShowTitle(req.getShowTitle());
         if (req.getIsRepeatable() != null) existing.setIsRepeatable(req.getIsRepeatable());
         if (req.getDisplayOrder() != null) existing.setDisplayOrder(req.getDisplayOrder());
@@ -483,6 +527,28 @@ public class AdminConfigController {
 
         List<Map<String, Object>> tables = formConfigService.getAvailableTablesForUniversity(targetUniId);
         return ResponseEntity.ok(tables);
+    }
+
+    // 7. Batch Import Tables from Excel Endpoint (Single Section)
+    @PostMapping({"/sections/{sectionId}/batch-tables", "/sections/{sectionId}/import-tables"})
+    public ResponseEntity<List<FormTable>> importBatchTables(
+            @PathVariable Long sectionId,
+            @RequestBody BatchTableImportRequestDto req,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        validateAdminRole(userRole);
+        List<FormTable> created = formConfigService.importBatchTables(sectionId, req);
+        return ResponseEntity.ok(created);
+    }
+
+    // 8. Full Schema Import Endpoint (Multi-Section / All Parts)
+    @PostMapping({"/versions/{versionId}/import-full-schema", "/versions/{versionId}/import-schema"})
+    public ResponseEntity<List<FormSection>> importFullSchema(
+            @PathVariable Long versionId,
+            @RequestBody BatchSchemaImportRequestDto req,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        validateAdminRole(userRole);
+        List<FormSection> created = formConfigService.importFullSchema(versionId, req);
+        return ResponseEntity.ok(created);
     }
 
     @Data

@@ -70,10 +70,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // 2. Allow public auth endpoints
         if (isPublicEndpoint(path)) {
-            ServerHttpRequest mutatedReq = request.mutate()
-                    .header("X-Correlation-Id", correlationId)
-                    .build();
-            return chain.filter(exchange.mutate().request(mutatedReq).build())
+            String token = extractToken(request);
+            ServerHttpRequest.Builder reqBuilder = request.mutate()
+                    .header("X-Correlation-Id", correlationId);
+            if (token != null && jwtUtil.validateToken(token)) {
+                attachUserHeaders(reqBuilder, token);
+            }
+            return chain.filter(exchange.mutate().request(reqBuilder.build()).build())
                     .doFinally(signalType -> {
                         long duration = System.currentTimeMillis() - startTime;
                         log.info("[GATEWAY_REQUEST_END] correlationId={} method={} path={} status={} durationMs={}",
@@ -81,13 +84,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     });
         }
 
-        // 3. Check for Authorization header
-        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // 3. Check for Authorization header or query parameter
+        String token = extractToken(request);
+        if (token == null || token.isBlank()) {
             return onError(exchange, "Authorization token is missing.", HttpStatus.UNAUTHORIZED, "AUTH_TOKEN_MISSING", correlationId);
         }
-
-        String token = authHeader.substring(7).trim();
 
         // 4. Validate token
         if (!jwtUtil.validateToken(token)) {
@@ -95,31 +96,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         // 5. Extract verified user claims and attach safe downstream headers
-        String userEmail = jwtUtil.extractEmail(token);
-        String userRole = jwtUtil.extractRole(token);
-        String userSchool = jwtUtil.extractSchool(token);
-        String userName = jwtUtil.extractName(token);
-        String universityId = jwtUtil.extractUniversityId(token);
-        String universityCode = jwtUtil.extractUniversityCode(token);
-
         ServerHttpRequest.Builder reqBuilder = request.mutate();
-        // Strip any spoofed headers from client
-        reqBuilder.headers(httpHeaders -> {
-            httpHeaders.remove("X-User-Email");
-            httpHeaders.remove("X-User-Role");
-            httpHeaders.remove("X-User-School");
-            httpHeaders.remove("X-User-Name");
-            httpHeaders.remove("X-University-Id");
-            httpHeaders.remove("X-University-Code");
-        });
-
         reqBuilder.header("X-Correlation-Id", correlationId);
-        if (userEmail != null) reqBuilder.header("X-User-Email", userEmail);
-        if (userRole != null) reqBuilder.header("X-User-Role", userRole);
-        if (userSchool != null) reqBuilder.header("X-User-School", userSchool);
-        if (userName != null) reqBuilder.header("X-User-Name", userName);
-        if (universityId != null) reqBuilder.header("X-University-Id", universityId);
-        if (universityCode != null) reqBuilder.header("X-University-Code", universityCode);
+        attachUserHeaders(reqBuilder, token);
 
         return chain.filter(exchange.mutate().request(reqBuilder.build()).build())
                 .doFinally(signalType -> {
@@ -129,10 +108,49 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 });
     }
 
+    private String extractToken(ServerHttpRequest request) {
+        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
+        }
+        String queryToken = request.getQueryParams().getFirst("token");
+        if (queryToken != null && !queryToken.isBlank()) {
+            return queryToken.trim();
+        }
+        return null;
+    }
+
+    private void attachUserHeaders(ServerHttpRequest.Builder reqBuilder, String token) {
+        String userEmail = jwtUtil.extractEmail(token);
+        String userRole = jwtUtil.extractRole(token);
+        String userSchool = jwtUtil.extractSchool(token);
+        String userName = jwtUtil.extractName(token);
+        String universityId = jwtUtil.extractUniversityId(token);
+        String universityCode = jwtUtil.extractUniversityCode(token);
+
+        reqBuilder.headers(httpHeaders -> {
+            httpHeaders.remove("X-User-Email");
+            httpHeaders.remove("X-User-Role");
+            httpHeaders.remove("X-User-School");
+            httpHeaders.remove("X-User-Name");
+            httpHeaders.remove("X-University-Id");
+            httpHeaders.remove("X-University-Code");
+        });
+
+        if (userEmail != null) reqBuilder.header("X-User-Email", userEmail);
+        if (userRole != null) reqBuilder.header("X-User-Role", userRole);
+        if (userSchool != null) reqBuilder.header("X-User-School", userSchool);
+        if (userName != null) reqBuilder.header("X-User-Name", userName);
+        if (universityId != null) reqBuilder.header("X-University-Id", universityId);
+        if (universityCode != null) reqBuilder.header("X-University-Code", universityCode);
+    }
+
     private boolean isPublicEndpoint(String path) {
         if (path == null) return false;
         if (path.startsWith("/api/auth/") || path.equals("/api/auth")
                 || path.startsWith("/uploads/")
+                || path.startsWith("/api/attachments/download")
+                || path.startsWith("/api/attachments/view")
                 || path.startsWith("/api/attachments/public/")
                 || path.startsWith("/api/users/university/")
                 || path.startsWith("/api/universities")
