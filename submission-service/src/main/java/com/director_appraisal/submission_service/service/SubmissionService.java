@@ -1008,29 +1008,35 @@ public class SubmissionService {
     }
 
     public boolean isAuditorAssigned(UserDto auditor, Submission submission) {
+        if (auditor == null || Boolean.TRUE.equals(auditor.getDeleted()) || "deleted".equalsIgnoreCase(auditor.getStatus()) || auditor.getId() == null) {
+            return false;
+        }
+        if (submission == null || submission.getId() == null) {
+            return false;
+        }
         List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
         if (!assignments.isEmpty()) {
             return assignments.stream().anyMatch(assignment ->
-                    assignment.getAuditorId().equals(auditor.getId())
-                            || (assignment.getAuditorEmail() != null && assignment.getAuditorEmail().equalsIgnoreCase(auditor.getEmail())));
+                    (auditor.getId() != null && java.util.Objects.equals(assignment.getAuditorId(), auditor.getId()))
+                            || (assignment.getAuditorEmail() != null && auditor.getEmail() != null && assignment.getAuditorEmail().equalsIgnoreCase(auditor.getEmail().trim())));
         }
 
-        if (auditor.getId().equals(submission.getForwardedToAuditorId()) || 
-            (submission.getForwardedToAuditorEmail() != null && 
-             submission.getForwardedToAuditorEmail().equalsIgnoreCase(auditor.getEmail()))) {
+        if ((auditor.getId() != null && java.util.Objects.equals(auditor.getId(), submission.getForwardedToAuditorId())) || 
+            (submission.getForwardedToAuditorEmail() != null && auditor.getEmail() != null && 
+             submission.getForwardedToAuditorEmail().equalsIgnoreCase(auditor.getEmail().trim()))) {
             return true;
         }
         
         String idsStr = submission.getForwardedToAuditorIds();
-        if (idsStr != null && !idsStr.isBlank()) {
+        if (idsStr != null && !idsStr.isBlank() && auditor.getId() != null) {
             if (idsStr.contains(String.valueOf(auditor.getId()))) {
                 return true;
             }
         }
         
         String emailsStr = submission.getForwardedToAuditorEmails();
-        if (emailsStr != null && !emailsStr.isBlank()) {
-            if (emailsStr.toLowerCase().contains("\"" + auditor.getEmail().toLowerCase() + "\"")) {
+        if (emailsStr != null && !emailsStr.isBlank() && auditor.getEmail() != null) {
+            if (emailsStr.toLowerCase().contains("\"" + auditor.getEmail().trim().toLowerCase() + "\"")) {
                 return true;
             }
         }
@@ -1039,6 +1045,12 @@ public class SubmissionService {
     }
 
     public boolean isAuditorFallbackMatch(UserDto auditor, Submission submission) {
+        if (auditor == null || Boolean.TRUE.equals(auditor.getDeleted()) || "deleted".equalsIgnoreCase(auditor.getStatus()) || auditor.getId() == null) {
+            return false;
+        }
+        if (submission == null || submission.getId() == null) {
+            return false;
+        }
         List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
         if (!assignments.isEmpty()) {
             return false;
@@ -3759,6 +3771,10 @@ public class SubmissionService {
         java.util.Set<String> auditorPosts = resolveAdministrativePosts(caller);
         List<SubmissionAuditorAssignment> allAssignments = auditorAssignmentRepository.findBySubmissionIdAndAuditorType(submissionId, submission.getForwardedAuditorType());
         
+        if (caller == null || caller.getId() == null) {
+            throw new SecurityException("User account does not exist or has been deactivated.");
+        }
+
         System.out.println("[AUDIT_DEBUG] Caller: id=" + caller.getId() + ", email=" + caller.getEmail() + ", name=" + caller.getName());
         System.out.println("[AUDIT_DEBUG] Resolved auditorPosts: " + auditorPosts);
         System.out.println("[AUDIT_DEBUG] Total assignments in DB for submission " + submissionId + ": " + allAssignments.size());
@@ -3772,7 +3788,7 @@ public class SubmissionService {
         if (!allAssignments.isEmpty()) {
             List<SubmissionAuditorAssignment> callerAssignments = new java.util.ArrayList<>();
             for (SubmissionAuditorAssignment a : allAssignments) {
-                if (a.getAuditorId() != null && caller.getId().equals(a.getAuditorId())) {
+                if (a.getAuditorId() != null && caller.getId() != null && caller.getId().equals(a.getAuditorId())) {
                     callerAssignments.add(a);
                 }
             }
@@ -3816,7 +3832,7 @@ public class SubmissionService {
         } else {
             // Check legacy fields
             boolean emailOrIdMatch = false;
-            if (submission.getForwardedToAuditorId() != null && submission.getForwardedToAuditorId().equals(caller.getId())) {
+            if (submission.getForwardedToAuditorId() != null && caller.getId() != null && submission.getForwardedToAuditorId().equals(caller.getId())) {
                 emailOrIdMatch = true;
             } else if (caller.getEmail() != null && caller.getEmail().equalsIgnoreCase(submission.getForwardedToAuditorEmail())) {
                 emailOrIdMatch = true;
@@ -3828,7 +3844,7 @@ public class SubmissionService {
                         java.util.List<?> list = mapper.readValue(idsStr, java.util.List.class);
                         if (list != null) {
                             for (Object obj : list) {
-                                if (obj != null && obj.toString().equals(caller.getId().toString())) {
+                                if (obj != null && caller.getId() != null && obj.toString().equals(caller.getId().toString())) {
                                     emailOrIdMatch = true;
                                     break;
                                 }
@@ -4002,6 +4018,30 @@ public class SubmissionService {
                     .collect(java.util.stream.Collectors.toList());
         }
 
+        List<UserDto> activeAuditorUsers = safeGetAllUsers();
+        java.util.Set<Long> activeAuditorIds = activeAuditorUsers.stream()
+                .filter(u -> u != null && !Boolean.TRUE.equals(u.getDeleted()) && !"deleted".equalsIgnoreCase(u.getStatus()))
+                .map(UserDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Set<String> activeAuditorEmails = activeAuditorUsers.stream()
+                .filter(u -> u != null && !Boolean.TRUE.equals(u.getDeleted()) && !"deleted".equalsIgnoreCase(u.getStatus()))
+                .map(UserDto::getEmail)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (!activeAuditorIds.isEmpty()) {
+            currentGroupAssignments = currentGroupAssignments.stream()
+                    .filter(a -> {
+                        boolean idActive = a.getAuditorId() != null && activeAuditorIds.contains(a.getAuditorId());
+                        boolean emailActive = a.getAuditorEmail() != null && activeAuditorEmails.contains(a.getAuditorEmail().trim().toLowerCase());
+                        return idActive || emailActive;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
         long totalGroup = currentGroupAssignments.size();
         long completedGroup = currentGroupAssignments.stream()
                 .filter(a -> "SUBMITTED".equalsIgnoreCase(a.getStatus()) && !Boolean.TRUE.equals(a.getRequiresAuditorResubmission()))
@@ -4073,6 +4113,30 @@ public class SubmissionService {
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
                         return postCanonical != null && validAdminPosts.contains(postCanonical);
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        List<UserDto> activeAuditorUsersBuild = safeGetAllUsers();
+        java.util.Set<Long> activeAuditorIdsBuild = activeAuditorUsersBuild.stream()
+                .filter(u -> u != null && !Boolean.TRUE.equals(u.getDeleted()) && !"deleted".equalsIgnoreCase(u.getStatus()))
+                .map(UserDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Set<String> activeAuditorEmailsBuild = activeAuditorUsersBuild.stream()
+                .filter(u -> u != null && !Boolean.TRUE.equals(u.getDeleted()) && !"deleted".equalsIgnoreCase(u.getStatus()))
+                .map(UserDto::getEmail)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (!activeAuditorIdsBuild.isEmpty()) {
+            validAssignments = validAssignments.stream()
+                    .filter(a -> {
+                        boolean idActive = a.getAuditorId() != null && activeAuditorIdsBuild.contains(a.getAuditorId());
+                        boolean emailActive = a.getAuditorEmail() != null && activeAuditorEmailsBuild.contains(a.getAuditorEmail().trim().toLowerCase());
+                        return idActive || emailActive;
                     })
                     .collect(java.util.stream.Collectors.toList());
         }
@@ -4198,6 +4262,37 @@ public class SubmissionService {
                     .collect(java.util.stream.Collectors.toList());
         }
 
+        List<UserDto> activeAuditorUsersPopulate = safeGetAllUsers();
+        java.util.Set<Long> activeAuditorIdsPopulate = activeAuditorUsersPopulate.stream()
+                .filter(u -> u != null && !Boolean.TRUE.equals(u.getDeleted()) && !"deleted".equalsIgnoreCase(u.getStatus()))
+                .map(UserDto::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Set<String> activeAuditorEmailsPopulate = activeAuditorUsersPopulate.stream()
+                .filter(u -> u != null && !Boolean.TRUE.equals(u.getDeleted()) && !"deleted".equalsIgnoreCase(u.getStatus()))
+                .map(UserDto::getEmail)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .collect(java.util.stream.Collectors.toSet());
+
+        if (!activeAuditorIdsPopulate.isEmpty()) {
+            currentValidAssignments = currentValidAssignments.stream()
+                    .filter(a -> {
+                        boolean idActive = a.getAuditorId() != null && activeAuditorIdsPopulate.contains(a.getAuditorId());
+                        boolean emailActive = a.getAuditorEmail() != null && activeAuditorEmailsPopulate.contains(a.getAuditorEmail().trim().toLowerCase());
+                        return idActive || emailActive;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            allValidAssignments = allValidAssignments.stream()
+                    .filter(a -> {
+                        boolean idActive = a.getAuditorId() != null && activeAuditorIdsPopulate.contains(a.getAuditorId());
+                        boolean emailActive = a.getAuditorEmail() != null && activeAuditorEmailsPopulate.contains(a.getAuditorEmail().trim().toLowerCase());
+                        return idActive || emailActive;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
         ObjectMapper mapper = new ObjectMapper();
         java.util.List<java.util.Map<String, Object>> assignmentsList = new java.util.ArrayList<>();
         int total = currentValidAssignments.size();
@@ -4282,13 +4377,25 @@ public class SubmissionService {
             }
         }
 
-        if (submission.getAuditorReviewedOn() == null && List.of("AUDITOR_COMPLETED", "APPROVED", "FINAL").contains(submission.getStatus() != null ? submission.getStatus().toUpperCase() : "")) {
+        if (submission.getAuditorReviewedOn() == null && List.of("AUDITOR_COMPLETED", "APPROVED", "FINAL", "EXTERNAL_AUDITOR_COMPLETED").contains(submission.getStatus() != null ? submission.getStatus().toUpperCase() : "")) {
             LocalDateTime latestAuditorSubmit = currentValidAssignments.stream()
                     .map(SubmissionAuditorAssignment::getSubmittedAt)
                     .filter(java.util.Objects::nonNull)
                     .max(LocalDateTime::compareTo)
                     .orElse(submission.getReviewedAt() != null ? submission.getReviewedAt() : (submission.getApprovedAt() != null ? submission.getApprovedAt() : submission.getSubmittedAt()));
             submission.setAuditorReviewedOn(latestAuditorSubmit);
+        }
+
+        if (allSubmitted && submission.getStatus() != null && List.of("UNDER_REVIEW", "FORWARDED_TO_INTERNAL_AUDITOR", "FORWARDED_TO_EXTERNAL_AUDITOR").contains(submission.getStatus().toUpperCase())) {
+            String activeType = submission.getForwardedAuditorType() != null ? submission.getForwardedAuditorType().trim().toLowerCase() : "internal";
+            if ("external".equalsIgnoreCase(activeType) || "EXTERNAL".equalsIgnoreCase(submission.getReportCategory())) {
+                submission.setStatus("EXTERNAL_AUDITOR_COMPLETED");
+            } else {
+                submission.setStatus("AUDITOR_COMPLETED");
+            }
+            try {
+                submissionRepository.save(submission);
+            } catch (Exception ignored) {}
         }
         
         submission.setAllAuditorsSubmitted(allSubmitted);
