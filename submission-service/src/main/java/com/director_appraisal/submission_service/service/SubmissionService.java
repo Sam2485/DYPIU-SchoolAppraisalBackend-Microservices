@@ -1057,7 +1057,15 @@ public class SubmissionService {
             return false;
         }
 
-        boolean statusMatch = List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", "FORWARDED_TO_INTERNAL_AUDITOR", "FORWARDED_TO_EXTERNAL_AUDITOR").contains(submission.getStatus().toUpperCase());
+        boolean statusMatch = List.of(
+                "SUBMITTED",
+                "UNDER_REVIEW",
+                "AUDITOR_COMPLETED",
+                "FORWARDED_TO_INTERNAL_AUDITOR",
+                "FORWARDED_TO_EXTERNAL_AUDITOR",
+                "INTERNAL_AUDITOR_COMPLETED",
+                "EXTERNAL_AUDITOR_COMPLETED"
+        ).contains(submission.getStatus().toUpperCase());
         if (!statusMatch) {
             return false;
         }
@@ -1297,7 +1305,15 @@ public class SubmissionService {
             List<Submission> allSubmissions = allInDb;
             list = allSubmissions.stream()
                     .filter(sub -> {
-                        boolean matchesStatus = List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED").contains(sub.getStatus().toUpperCase());
+                        boolean matchesStatus = List.of(
+                                "SUBMITTED",
+                                "UNDER_REVIEW",
+                                "AUDITOR_COMPLETED",
+                                "FORWARDED_TO_INTERNAL_AUDITOR",
+                                "FORWARDED_TO_EXTERNAL_AUDITOR",
+                                "INTERNAL_AUDITOR_COMPLETED",
+                                "EXTERNAL_AUDITOR_COMPLETED"
+                        ).contains(sub.getStatus().toUpperCase());
                         if (!matchesStatus) {
                             return false;
                         }
