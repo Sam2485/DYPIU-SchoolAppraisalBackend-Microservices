@@ -29,8 +29,28 @@ public class SubmissionService {
 
     private static final String STATUS_APPROVED_LEGACY = "APPROVED";
     private static final String STATUS_FINAL = "FINAL";
-    private static final List<String> LOCKED_STATUSES = List.of("UNDER_REVIEW", "AUDITOR_COMPLETED", STATUS_APPROVED_LEGACY, STATUS_FINAL);
-    private static final List<String> REVIEWER_VISIBLE_STATUSES = List.of("SUBMITTED", "UNDER_REVIEW", STATUS_APPROVED_LEGACY, STATUS_FINAL);
+    private static final List<String> LOCKED_STATUSES = List.of(
+            "SUBMITTED",
+            "UNDER_REVIEW",
+            "FORWARDED_TO_INTERNAL_AUDITOR",
+            "INTERNAL_AUDITOR_COMPLETED",
+            "FORWARDED_TO_EXTERNAL_AUDITOR",
+            "AUDITOR_COMPLETED",
+            "EXTERNAL_AUDITOR_COMPLETED",
+            STATUS_APPROVED_LEGACY,
+            STATUS_FINAL
+    );
+    private static final List<String> REVIEWER_VISIBLE_STATUSES = List.of(
+            "SUBMITTED",
+            "UNDER_REVIEW",
+            "FORWARDED_TO_INTERNAL_AUDITOR",
+            "INTERNAL_AUDITOR_COMPLETED",
+            "FORWARDED_TO_EXTERNAL_AUDITOR",
+            "AUDITOR_COMPLETED",
+            "EXTERNAL_AUDITOR_COMPLETED",
+            STATUS_APPROVED_LEGACY,
+            STATUS_FINAL
+    );
     private static final List<String> IQAC_VISIBLE_STATUSES = List.of("DRAFT", "SUBMITTED", "UNDER_REVIEW", "FORWARDED_TO_INTERNAL_AUDITOR", "INTERNAL_AUDITOR_COMPLETED", "FORWARDED_TO_EXTERNAL_AUDITOR", "AUDITOR_COMPLETED", "EXTERNAL_AUDITOR_COMPLETED", STATUS_APPROVED_LEGACY, STATUS_FINAL);
     private static final List<String> VC_VISIBLE_STATUSES = List.of("AUDITOR_COMPLETED", "EXTERNAL_AUDITOR_COMPLETED", STATUS_APPROVED_LEGACY, STATUS_FINAL);
     private static final List<String> NORMALIZED_TABLE_STATUSES = List.of(
@@ -38,7 +58,7 @@ public class SubmissionService {
             "FORWARDED_TO_EXTERNAL_AUDITOR", "FORWARDED_TO_INTERNAL_AUDITOR", 
             STATUS_APPROVED_LEGACY, STATUS_FINAL
     );
-    private static final List<String> EDITABLE_CYCLE_STATUSES = List.of("DRAFT", "SUBMITTED", "SENT_BACK");
+    private static final List<String> EDITABLE_CYCLE_STATUSES = List.of("DRAFT", "SENT_BACK", "IN_PROGRESS", "PENDING");
     private static final List<String> ADMIN_POSTS = List.of("registrar", "hr", "dean-student-welfare", "dean-placement");
     private static final String SHARED_ADMINISTRATIVE_EMAIL = "administrative.shared@dypiu.ac.in";
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SubmissionService.class);
@@ -1852,7 +1872,7 @@ public class SubmissionService {
                 .parentSubmissionId(approved.getId())
                 .previousApprovedSubmissionId(previousApprovedSubmissionId != null ? previousApprovedSubmissionId : approved.getId())
                 .createdFromVersion(approved.getVersion())
-                .forwardedAuditorType("external")
+                .forwardedAuditorType(null)
                 .forwardedAuditCategory(approved.getAuditType())
                 .auditorReviewedOn(null)
                 .auditorReviewedBy(null)
@@ -1878,9 +1898,6 @@ public class SubmissionService {
         approved.setNextVersionId(saved.getId());
         submissionRepository.save(approved);
 
-        if (!"administrative".equalsIgnoreCase(saved.getAuditType())) {
-            autoForwardToExternalAuditors(saved);
-        }
         persistDataForStatus(saved);
         return saved;
     }
