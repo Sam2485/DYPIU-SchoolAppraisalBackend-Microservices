@@ -4253,11 +4253,19 @@ public class SubmissionService {
             assMap.put("status", assignment.getStatus().toLowerCase());
             assMap.put("submittedAt", assignment.getSubmittedAt() != null ? assignment.getSubmittedAt().toString() : null);
             
+            assMap.put("valuesData", assignment.getValuesData());
             try {
                 assMap.put("values", assignment.getValuesData() != null ? mapper.readTree(assignment.getValuesData()) : mapper.createObjectNode());
             } catch (Exception e) {
                 assMap.put("values", mapper.createObjectNode());
             }
+            assMap.put("tablesData", assignment.getTablesData());
+            try {
+                assMap.put("tables", assignment.getTablesData() != null ? mapper.readTree(assignment.getTablesData()) : mapper.createObjectNode());
+            } catch (Exception e) {
+                assMap.put("tables", mapper.createObjectNode());
+            }
+            assMap.put("attachmentsData", assignment.getAttachments());
             try {
                 assMap.put("attachments", assignment.getAttachments() != null ? mapper.readTree(assignment.getAttachments()) : mapper.createArrayNode());
             } catch (Exception e) {
@@ -4419,11 +4427,19 @@ public class SubmissionService {
             assMap.put("auditorCorrectionRequestedBy", assignment.getAuditorCorrectionRequestedBy());
             assMap.put("auditorCorrectionRequestedOn", assignment.getAuditorCorrectionRequestedOn() != null ? assignment.getAuditorCorrectionRequestedOn().toString() : null);
 
+            assMap.put("valuesData", assignment.getValuesData());
             try {
                 assMap.put("values", assignment.getValuesData() != null ? mapper.readTree(assignment.getValuesData()) : mapper.createObjectNode());
             } catch (Exception e) {
                 assMap.put("values", mapper.createObjectNode());
             }
+            assMap.put("tablesData", assignment.getTablesData());
+            try {
+                assMap.put("tables", assignment.getTablesData() != null ? mapper.readTree(assignment.getTablesData()) : mapper.createObjectNode());
+            } catch (Exception e) {
+                assMap.put("tables", mapper.createObjectNode());
+            }
+            assMap.put("attachmentsData", assignment.getAttachments());
             try {
                 assMap.put("attachments", assignment.getAttachments() != null ? mapper.readTree(assignment.getAttachments()) : mapper.createArrayNode());
             } catch (Exception e) {
