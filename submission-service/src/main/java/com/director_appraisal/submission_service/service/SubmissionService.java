@@ -373,9 +373,6 @@ public class SubmissionService {
             if (allSubmitted) {
                 lockedSubmission.setStatus("SUBMITTED");
                 lockedSubmission.setSubmittedAt(LocalDateTime.now());
-                if ("EXTERNAL".equalsIgnoreCase(lockedSubmission.getReportCategory()) || "external".equalsIgnoreCase(lockedSubmission.getForwardedAuditorType()) || (lockedSubmission.getVersion() != null && lockedSubmission.getVersion() > 1)) {
-                    autoForwardToExternalAuditors(lockedSubmission);
-                }
             }
 
             Submission saved = submissionRepository.save(lockedSubmission);
@@ -1680,9 +1677,6 @@ public class SubmissionService {
         ensureVersion(submission);
 
         Submission saved = submissionRepository.save(submission);
-        if ("SUBMITTED".equalsIgnoreCase(saved.getStatus()) && ("EXTERNAL".equalsIgnoreCase(saved.getReportCategory()) || "external".equalsIgnoreCase(saved.getForwardedAuditorType()) || (saved.getVersion() != null && saved.getVersion() > 1))) {
-            autoForwardToExternalAuditors(saved);
-        }
         persistDataForStatus(saved);
         return saved;
     }
