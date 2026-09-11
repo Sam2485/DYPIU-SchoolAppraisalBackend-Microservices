@@ -223,7 +223,10 @@ public class SubmissionController {
 
     @GetMapping("/administrative/{cycleId}/status")
     public ResponseEntity<Object> getAdministrativeStatus(@PathVariable String cycleId) {
-        Submission submission = submissionService.getOrCreateSharedAdministrativeDraftForCycle(cycleId);
+        UserDto caller = getCurrentUserDetails();
+        Long uniId = caller != null ? caller.getUniversityId() : null;
+        String uniCode = caller != null ? caller.getUniversityCode() : null;
+        Submission submission = submissionService.getOrCreateSharedAdministrativeDraftForCycle(cycleId, uniId, uniCode);
         return ResponseEntity.ok(submission.getSubmittedByForJson());
     }
 

@@ -124,7 +124,9 @@ public class SubmissionService {
             throw new SecurityException("Only administrative authorities can access the shared administrative form");
         }
         String academicYear = getCurrentAcademicYearLabel();
-        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(academicYear);
+        Long uniId = caller != null ? caller.getUniversityId() : null;
+        String uniCode = caller != null ? caller.getUniversityCode() : null;
+        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(academicYear, uniId, uniCode);
         
         // Concurrency safety: row-level lock
         Submission locked = submissionRepository.findByIdForUpdate(submission.getId()).orElse(submission);
@@ -241,9 +243,7 @@ public class SubmissionService {
         Optional<Submission> existing = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearAndUniversityIdOrderByIdDesc(
                 SHARED_ADMINISTRATIVE_EMAIL, "administrative", academicYear, effectiveUniId)
             .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAuditCycleAndUniversityIdOrderByIdDesc(
-                SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle, effectiveUniId))
-            .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(
-                SHARED_ADMINISTRATIVE_EMAIL, "administrative", academicYear));
+                SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle, effectiveUniId));
 
         if (existing.isPresent()) {
             Submission sub = existing.get();
@@ -298,7 +298,9 @@ public class SubmissionService {
             throw new SecurityException("Administrative post is required");
         }
 
-        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(cycleId);
+        Long uniId = caller != null ? caller.getUniversityId() : null;
+        String uniCode = caller != null ? caller.getUniversityCode() : null;
+        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(cycleId, uniId, uniCode);
         
         // Concurrency safety: row-level lock
         Submission lockedSubmission = submissionRepository.findByIdForUpdate(submission.getId())
