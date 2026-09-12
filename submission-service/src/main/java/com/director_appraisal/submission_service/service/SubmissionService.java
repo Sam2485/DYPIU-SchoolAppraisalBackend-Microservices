@@ -1094,17 +1094,6 @@ public class SubmissionService {
             return false;
         }
 
-        List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
-        if (assignments != null && !assignments.isEmpty()) {
-            boolean hasDirectAssignment = assignments.stream().anyMatch(a ->
-                (a.getAuditorId() != null && auditor.getId() != null && a.getAuditorId().equals(auditor.getId())) ||
-                (a.getAuditorEmail() != null && auditor.getEmail() != null && a.getAuditorEmail().equalsIgnoreCase(auditor.getEmail()))
-            );
-            if (hasDirectAssignment) {
-                return true;
-            }
-        }
-
         if ("academic".equalsIgnoreCase(auditType)) {
             String subSchool = SchoolUtils.canonicalizeSchool(submission.getSchool());
             if (subSchool == null) return false;
