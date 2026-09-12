@@ -290,9 +290,9 @@ public class SubmissionController {
         UserDto user = getCurrentUserDetails();
         String auditType = resolveAuditTypeForCaller(user, request != null ? request.getAuditType() : null);
         validateAuditTypeForRole(user.getRole(), auditType);
-        if (request != null && request.isSharedAdministrativeForm() && "administrative".equals(auditType)) {
-            return ResponseEntity.ok(submissionService.saveSharedAdministrativeContribution(user, request.getContributorPost(),
-                    request.getSections(), request.getValuesData(), request.getTablesData(), request.getAttachments(), false));
+        if ("administrative".equalsIgnoreCase(auditType)) {
+            return ResponseEntity.ok(submissionService.saveSharedAdministrativeContribution(user, request != null ? request.getContributorPost() : null,
+                    request != null ? request.getSections() : null, request != null ? request.getValuesData() : null, request != null ? request.getTablesData() : null, request != null ? request.getAttachments() : null, false));
         }
         Submission saved = submissionService.saveDraft(
                 email,
@@ -312,9 +312,9 @@ public class SubmissionController {
         UserDto user = getCurrentUserDetails();
         String auditType = resolveAuditTypeForCaller(user, request != null ? request.getAuditType() : null);
         validateAuditTypeForRole(user.getRole(), auditType);
-        if (request != null && request.isSharedAdministrativeForm() && "administrative".equals(auditType)) {
-            return ResponseEntity.ok(submissionService.saveSharedAdministrativeContribution(user, request.getContributorPost(),
-                    request.getSections(), request.getValuesData(), request.getTablesData(), request.getAttachments(), true));
+        if ("administrative".equalsIgnoreCase(auditType)) {
+            return ResponseEntity.ok(submissionService.saveSharedAdministrativeContribution(user, request != null ? request.getContributorPost() : null,
+                    request != null ? request.getSections() : null, request != null ? request.getValuesData() : null, request != null ? request.getTablesData() : null, request != null ? request.getAttachments() : null, true));
         }
         Submission submitted = submissionService.submitForm(
                 email,
@@ -345,7 +345,7 @@ public class SubmissionController {
         if (request.getAuditType() != null && !List.of("vice-chancellor", "iqac").contains(user.getRole().toLowerCase())) {
             validateAuditTypeForRole(user.getRole(), request.getAuditType());
         }
-        if (request.isSharedAdministrativeForm() && "administrative".equalsIgnoreCase(request.getAuditType())) {
+        if ("administrative".equalsIgnoreCase(request.getAuditType()) && !List.of("vice-chancellor", "iqac").contains(user.getRole().toLowerCase()) && !user.getRole().toLowerCase().contains("auditor")) {
             Submission updated = submissionService.updateSharedAdministrativeContribution(
                     id,
                     user,

@@ -59,7 +59,7 @@ public class SubmissionService {
             STATUS_APPROVED_LEGACY, STATUS_FINAL
     );
     private static final List<String> EDITABLE_CYCLE_STATUSES = List.of("DRAFT", "SENT_BACK", "IN_PROGRESS", "PENDING");
-    private static final List<String> ADMIN_POSTS = List.of("registrar", "hr", "dean-student-welfare", "dean-placement");
+    private static final List<String> LEGACY_ADMIN_POSTS = List.of("registrar", "hr", "dean-student-welfare", "dean-placement");
     private static final String SHARED_ADMINISTRATIVE_EMAIL = "administrative.shared@dypiu.ac.in";
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SubmissionService.class);
 
@@ -183,14 +183,7 @@ public class SubmissionService {
                     locked.setTablesData(mapper.writeValueAsString(tables));
                     locked.setAttachments(removeAdministrativeOwnedAttachments(mapper, locked.getAttachments(), sections));
                     
-                    boolean allSubmitted = ADMIN_POSTS.stream()
-                            .allMatch(requiredPost -> {
-                                if (!isPostRequiredForAdministrativeWorkflow(requiredPost)) {
-                                    return true;
-                                }
-                                String status = values.path("administrativeProgress").path(requiredPost).asText("DRAFT");
-                                return "SUBMITTED".equalsIgnoreCase(status) || "APPROVED".equalsIgnoreCase(status);
-                            });
+                    boolean allSubmitted = isAllAdministrativePostsSubmitted(locked, values.path("administrativeProgress"));
                     if (!allSubmitted && !"DRAFT".equalsIgnoreCase(locked.getStatus())) {
                         locked.setStatus("DRAFT");
                         locked.setSubmittedAt(null);
@@ -349,7 +342,8 @@ public class SubmissionService {
             roleInfo.put("email", caller.getEmail());
             detailsNode.set(jsonKey, roleInfo);
 
-            for (String p : ADMIN_POSTS) {
+            java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(lockedSubmission);
+            for (String p : activePosts) {
                 String k = toCamelCaseRole(p);
                 if (!detailsNode.has(k)) {
                     com.fasterxml.jackson.databind.node.ObjectNode emptyInfo = mapper.createObjectNode();
@@ -363,14 +357,7 @@ public class SubmissionService {
 
             lockedSubmission.setSubmittedByDetails(mapper.writeValueAsString(detailsNode));
 
-            boolean allSubmitted = ADMIN_POSTS.stream()
-                    .allMatch(requiredPost -> {
-                        if (!isPostRequiredForAdministrativeWorkflow(requiredPost)) {
-                            return true;
-                        }
-                        String st = progress.path(requiredPost).asText("DRAFT");
-                        return "SUBMITTED".equalsIgnoreCase(st) || "APPROVED".equalsIgnoreCase(st);
-                    });
+            boolean allSubmitted = isAllAdministrativePostsSubmitted(lockedSubmission, progress);
 
             if (allSubmitted) {
                 lockedSubmission.setStatus("SUBMITTED");
@@ -386,13 +373,18 @@ public class SubmissionService {
     }
 
     private String toCamelCaseRole(String post) {
-        return switch (post) {
-            case "registrar" -> "registrar";
-            case "hr" -> "hr";
-            case "dean-student-welfare" -> "deanStudentWelfare";
-            case "dean-placement" -> "deanPlacement";
-            default -> post;
-        };
+        if (post == null || post.isBlank()) return "";
+        String[] parts = post.trim().split("[-_\\s]+");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (p.isEmpty()) continue;
+            if (sb.length() == 0) {
+                sb.append(p.toLowerCase());
+            } else {
+                sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1).toLowerCase());
+            }
+        }
+        return sb.toString();
     }
 
     @Transactional
@@ -611,19 +603,19 @@ public class SubmissionService {
         }
 
         java.util.Set<String> declaredSections = normalizeDeclaredSections(sections);
-        java.util.Set<String> ownedSections = ownedAdministrativeSections(callerPost);
+        java.util.Set<String> ownedSections = ownedAdministrativeSections(callerPost, submission);
         if (declaredSections.isEmpty()) {
             declaredSections = ownedSections;
         }
-        if (!ownedSections.containsAll(declaredSections)) {
-            throw new SecurityException("UserDto is not authorized for one or more declared sections");
+        if (ownedSections.isEmpty()) {
+            ownedSections = declaredSections;
         }
 
         boolean approving = "APPROVE_CONTRIBUTION".equalsIgnoreCase(action);
         ObjectMapper mapper = new ObjectMapper();
         try {
             com.fasterxml.jackson.databind.node.ObjectNode existingValues = objectNodeOrEmpty(mapper, submission.getValuesData());
-            com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, existingValues);
+            com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, existingValues, submission);
             String postProgress = progress.path(callerPost).asText();
             if (approving && ("APPROVED".equalsIgnoreCase(postProgress) || "SUBMITTED".equalsIgnoreCase(postProgress))) {
                 throw new ConflictException("Contribution has already been approved");
@@ -649,7 +641,7 @@ public class SubmissionService {
                     "tablesData"
             );
 
-            com.fasterxml.jackson.databind.node.ObjectNode mergedProgress = administrativeProgressNode(mapper, mergedValues);
+            com.fasterxml.jackson.databind.node.ObjectNode mergedProgress = administrativeProgressNode(mapper, mergedValues, submission);
             mergedProgress.put(callerPost, approving ? "APPROVED" : "IN_PROGRESS");
             mergedValues.set("administrativeProgress", mergedProgress);
             if (approving) {
@@ -661,14 +653,7 @@ public class SubmissionService {
             submission.setTablesData(prepareTablesDataUpdate(submission, mapper.writeValueAsString(mergedTables), preparedAttachments));
             submission.setAttachments(preparedAttachments);
 
-            boolean allApproved = ADMIN_POSTS.stream()
-                    .allMatch(post -> {
-                        if (!isPostRequiredForAdministrativeWorkflow(post)) {
-                            return true;
-                        }
-                        String st = mergedProgress.path(post).asText("DRAFT");
-                        return "APPROVED".equalsIgnoreCase(st) || "SUBMITTED".equalsIgnoreCase(st);
-                    });
+            boolean allApproved = isAllAdministrativePostsSubmitted(submission, mergedProgress);
             if (allApproved) {
                 submission.setStatus("SUBMITTED");
                 submission.setSubmittedAt(LocalDateTime.now());
@@ -686,6 +671,10 @@ public class SubmissionService {
 
     @Transactional
     public Submission getOrCreateDraft(String email, String auditType) {
+        if ("administrative".equalsIgnoreCase(auditType)) {
+            UserDto caller = resolveUser(email);
+            return getOrCreateSharedAdministrativeDraft(caller);
+        }
         String academicYear = getCurrentAcademicYearLabel();
         UserDto caller = resolveUser(email);
         Long universityId = caller != null && caller.getUniversityId() != null ? caller.getUniversityId() : 1L;
@@ -873,7 +862,8 @@ public class SubmissionService {
             try {
                 com.fasterxml.jackson.databind.node.ObjectNode valuesNode = objectNodeOrEmpty(mapper, submission.getValuesData());
                 com.fasterxml.jackson.databind.node.ObjectNode progress = mapper.createObjectNode();
-                ADMIN_POSTS.forEach(post -> progress.put(post, "DRAFT"));
+                java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
+                activePosts.forEach(post -> progress.put(post, "DRAFT"));
                 valuesNode.set("administrativeProgress", progress);
                 submission.setValuesData(mapper.writeValueAsString(valuesNode));
             } catch (Exception ignored) {}
@@ -1290,17 +1280,8 @@ public class SubmissionService {
             for (Submission draftAdmin : draftAdminForms) {
                 ObjectMapper mapper = new ObjectMapper();
                 com.fasterxml.jackson.databind.node.ObjectNode values = objectNodeOrEmpty(mapper, draftAdmin.getValuesData());
-                com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, values);
-                System.out.println("[AUDIT_DEBUG]   draftAdmin id=" + draftAdmin.getId() + " progressNode: " + progress.toString());
-                boolean allSubmitted = ADMIN_POSTS.stream()
-                        .allMatch(requiredPost -> {
-                            if (!isPostRequiredForAdministrativeWorkflow(requiredPost)) {
-                                return true;
-                            }
-                            String st = progress.path(requiredPost).asText("DRAFT");
-                            return "SUBMITTED".equalsIgnoreCase(st) || "APPROVED".equalsIgnoreCase(st);
-                        });
-                System.out.println("[AUDIT_DEBUG]   draftAdmin id=" + draftAdmin.getId() + " allSubmitted=" + allSubmitted);
+                com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, values, draftAdmin);
+                boolean allSubmitted = isAllAdministrativePostsSubmitted(draftAdmin, progress);
                 if (allSubmitted) {
                     draftAdmin.setStatus("SUBMITTED");
                     if (draftAdmin.getSubmittedAt() == null) {
@@ -1504,7 +1485,8 @@ public class SubmissionService {
                 try {
                     com.fasterxml.jackson.databind.node.ObjectNode valuesNode = objectNodeOrEmpty(mapper, submission.getValuesData());
                     com.fasterxml.jackson.databind.node.ObjectNode progress = mapper.createObjectNode();
-                    ADMIN_POSTS.forEach(post -> progress.put(post, "DRAFT"));
+                    java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
+                    activePosts.forEach(post -> progress.put(post, "DRAFT"));
                     valuesNode.set("administrativeProgress", progress);
                     submission.setValuesData(mapper.writeValueAsString(valuesNode));
                 } catch (Exception ignored) {}
@@ -1940,17 +1922,7 @@ public class SubmissionService {
             try {
                 com.fasterxml.jackson.databind.node.ObjectNode valuesNode = objectNodeOrEmpty(mapper, submission.getValuesData());
                 com.fasterxml.jackson.databind.JsonNode progress = valuesNode.get("administrativeProgress");
-                boolean allSubmitted = ADMIN_POSTS.stream()
-                        .allMatch(post -> {
-                            if (!isPostRequiredForAdministrativeWorkflow(post)) {
-                                return true;
-                            }
-                            if (progress == null || !progress.isObject()) {
-                                return false;
-                            }
-                            String st = progress.path(post).asText("DRAFT");
-                            return "APPROVED".equalsIgnoreCase(st) || "SUBMITTED".equalsIgnoreCase(st);
-                        });
+                boolean allSubmitted = isAllAdministrativePostsSubmitted(submission, progress);
                 if (!allSubmitted) {
                     throw new IllegalStateException("Cannot forward to auditors until all administrative contributors have submitted their sections");
                 }
@@ -2264,14 +2236,12 @@ public class SubmissionService {
     private String defaultSharedAdministrativeValuesData() {
         ObjectMapper mapper = new ObjectMapper();
         com.fasterxml.jackson.databind.node.ObjectNode root = mapper.createObjectNode();
-        com.fasterxml.jackson.databind.node.ObjectNode progress = mapper.createObjectNode();
-        ADMIN_POSTS.forEach(post -> progress.put(post, "DRAFT"));
-        root.set("administrativeProgress", progress);
+        root.set("administrativeProgress", mapper.createObjectNode());
         root.set("administrativeApprovals", mapper.createObjectNode());
         try {
             return mapper.writeValueAsString(root);
         } catch (Exception e) {
-            return "{\"administrativeProgress\":{\"registrar\":\"DRAFT\",\"hr\":\"DRAFT\",\"dean-student-welfare\":\"DRAFT\",\"dean-placement\":\"DRAFT\"},\"administrativeApprovals\":{}}";
+            return "{\"administrativeProgress\":{},\"administrativeApprovals\":{}}";
         }
     }
 
@@ -2335,18 +2305,17 @@ public class SubmissionService {
                     .replace("PART-", "").replace("PART_", "").replace("PART ", "")
                     .replace("SECTION-", "").replace("SECTION_", "").replace("SECTION ", "");
 
-            // Map numeric sections to standard letter keys
             switch (clean) {
                 case "1" -> clean = "A";
                 case "2" -> clean = "B";
                 case "3" -> clean = "C";
                 case "4" -> clean = "D";
                 case "5" -> clean = "E";
+                case "6" -> clean = "F";
+                case "7" -> clean = "G";
+                case "8" -> clean = "H";
             }
 
-            if (!List.of("A", "B", "C", "D", "E").contains(clean)) {
-                throw new IllegalArgumentException("Invalid administrative section: " + section);
-            }
             normalized.add(clean);
         }
         return normalized;
@@ -2436,7 +2405,7 @@ public class SubmissionService {
             throw new SecurityException("Administrative post is required");
         }
 
-        java.util.Set<String> ownedSections = ownedAdministrativeSections(post);
+        java.util.Set<String> ownedSections = ownedAdministrativeSections(post, submission);
         ObjectMapper mapper = new ObjectMapper();
         try {
             com.fasterxml.jackson.databind.node.ObjectNode existingValues = objectNodeOrEmpty(mapper, submission.getValuesData());
@@ -2465,19 +2434,26 @@ public class SubmissionService {
                     "tablesData"
             );
 
-            com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, mergedValues);
+            com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, mergedValues, submission);
             if (submittingContribution) {
                 progress.put(post, "SUBMITTED");
+                com.fasterxml.jackson.databind.JsonNode existingStatusNode = mergedValues.get("__administrativeSubmissionStatus");
+                com.fasterxml.jackson.databind.node.ObjectNode statusNode = (existingStatusNode != null && existingStatusNode.isObject())
+                        ? (com.fasterxml.jackson.databind.node.ObjectNode) existingStatusNode
+                        : mapper.createObjectNode();
+                com.fasterxml.jackson.databind.node.ObjectNode postStatus = mapper.createObjectNode();
+                postStatus.put("submitted", true);
+                postStatus.put("submittedAt", LocalDateTime.now().toString());
+                postStatus.put("name", caller.getName());
+                postStatus.put("email", caller.getEmail());
+                if (caller.getId() != null) {
+                    postStatus.put("userId", caller.getId());
+                }
+                statusNode.set(post, postStatus);
+                mergedValues.set("__administrativeSubmissionStatus", statusNode);
             }
             mergedValues.set("administrativeProgress", progress);
-            boolean allSubmitted = ADMIN_POSTS.stream()
-                    .allMatch(requiredPost -> {
-                        if (!isPostRequiredForAdministrativeWorkflow(requiredPost)) {
-                            return true;
-                        }
-                        String status = progress.path(requiredPost).asText("DRAFT");
-                        return "SUBMITTED".equalsIgnoreCase(status) || "APPROVED".equalsIgnoreCase(status);
-                    });
+            boolean allSubmitted = isAllAdministrativePostsSubmitted(submission, progress);
 
             String mergedValuesJson = mapper.writeValueAsString(mergedValues);
             String mergedTablesJson = mapper.writeValueAsString(mergedTables);
@@ -2607,27 +2583,13 @@ public class SubmissionService {
             }
             String section = sectionClassifier.apply(entry.getKey());
             boolean isLegacyKey = isKnownLegacyAdministrativeKey(entry.getKey());
-            if (ownedSections.contains(section) || !isLegacyKey) {
+            if (ownedSections == null || ownedSections.isEmpty() || ownedSections.contains(section) || !isLegacyKey) {
                 if ("partESchools".equals(entry.getKey())) {
                     mergePartESchools(mapper, merged, entry.getValue());
                 } else {
                     merged.set(entry.getKey(), entry.getValue());
                 }
                 return;
-            }
-            if ("partESchools".equals(entry.getKey()) || "coursesOffered".equals(entry.getKey()) || "studentStatistics".equals(entry.getKey())
-                    || "facultyInformation".equals(entry.getKey()) || "facultyTenure".equals(entry.getKey())
-                    || "facultyExperience".equals(entry.getKey()) || "supportingStaff".equals(entry.getKey())
-                    || "staffTraining".equals(entry.getKey()) || "bogMomSanctionedPostsAttachment".equals(entry.getKey())) {
-                com.fasterxml.jackson.databind.JsonNode existingValue = merged.get(entry.getKey());
-                if (existingValue != null && existingValue.equals(entry.getValue())) {
-                    return;
-                }
-                if (isEffectivelyEmpty(existingValue) && isEffectivelyEmpty(entry.getValue())) {
-                    return;
-                }
-                throw new SecurityException("Unauthorized " + payloadName + " modification for section " + section
-                        + " (key: '" + entry.getKey() + "', existing: " + existingValue + ", incoming: " + entry.getValue() + ")");
             }
             com.fasterxml.jackson.databind.JsonNode existingValue = merged.get(entry.getKey());
             if (existingValue != null && existingValue.equals(entry.getValue())) {
@@ -2636,8 +2598,7 @@ public class SubmissionService {
             if (isEffectivelyEmpty(existingValue) && isEffectivelyEmpty(entry.getValue())) {
                 return;
             }
-            throw new SecurityException("Unauthorized " + payloadName + " modification for section " + section
-                    + " (key: '" + entry.getKey() + "', existing: " + existingValue + ", incoming: " + entry.getValue() + ")");
+            log.debug("Skipping unowned section key {} for section {}", entry.getKey(), section);
         });
         return merged;
     }
@@ -2721,17 +2682,28 @@ public class SubmissionService {
 
     private com.fasterxml.jackson.databind.node.ObjectNode administrativeProgressNode(ObjectMapper mapper,
                                                                                       com.fasterxml.jackson.databind.node.ObjectNode values) {
+        return administrativeProgressNode(mapper, values, null);
+    }
+
+    private com.fasterxml.jackson.databind.node.ObjectNode administrativeProgressNode(ObjectMapper mapper,
+                                                                                      com.fasterxml.jackson.databind.node.ObjectNode values,
+                                                                                      Submission submission) {
         com.fasterxml.jackson.databind.JsonNode existing = values.get("administrativeProgress");
         com.fasterxml.jackson.databind.node.ObjectNode progress = existing != null && existing.isObject()
                 ? (com.fasterxml.jackson.databind.node.ObjectNode) existing.deepCopy()
                 : mapper.createObjectNode();
-        ADMIN_POSTS.forEach(post -> {
-            if (!hasActiveAdministrativeUserForPost(post)) {
+        
+        java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
+        Long uniId = submission != null ? submission.getUniversityId() : null;
+        activePosts.forEach(post -> {
+            if (!hasActiveAdministrativeUserForPost(post, uniId)) {
                 progress.put(post, "APPROVED");
             } else {
                 boolean submittedByActive = isSubmittedByActiveUser(values, post);
                 if (!submittedByActive) {
-                    progress.put(post, "DRAFT");
+                    if (!progress.has(post) || "SUBMITTED".equalsIgnoreCase(progress.path(post).asText())) {
+                        progress.put(post, "DRAFT");
+                    }
                     removeAdministrativeSubmissionStatus(values, java.util.Set.of(post));
                     removeAdministrativeApprovals(values, java.util.Set.of(post));
                 } else {
@@ -2747,17 +2719,145 @@ public class SubmissionService {
         return progress != null && "SUBMITTED".equalsIgnoreCase(progress.path(post).asText());
     }
 
-    private java.util.Set<String> ownedAdministrativeSections(String post) {
-        if (post == null) {
+    public java.util.Set<String> ownedAdministrativeSections(String post) {
+        return ownedAdministrativeSections(post, null);
+    }
+
+    public java.util.Set<String> ownedAdministrativeSections(String post, Submission submission) {
+        if (post == null || post.isBlank()) {
             return java.util.Collections.emptySet();
         }
-        return switch (post) {
-            case "registrar" -> java.util.Set.of("A", "C");
-            case "hr" -> java.util.Set.of("B");
-            case "dean-student-welfare" -> java.util.Set.of("D");
-            case "dean-placement" -> java.util.Set.of("E");
-            default -> java.util.Collections.emptySet();
-        };
+        String canonicalPost = canonicalAdministrativePost(post);
+        java.util.Set<String> sections = new java.util.LinkedHashSet<>();
+
+        try {
+            String uniCode = submission != null && submission.getUniversityCode() != null ? submission.getUniversityCode() : "dypiu";
+            Map<String, Object> schema = formDataClient.getActiveConfig("administrative", uniCode);
+            if (schema != null && schema.get("sections") instanceof List<?> secList) {
+                for (Object secObj : secList) {
+                    if (secObj instanceof Map<?, ?> secMap) {
+                        Object ownerRoleObj = secMap.get("ownerRole");
+                        if (ownerRoleObj != null) {
+                            String ownerRole = canonicalAdministrativePost(ownerRoleObj.toString());
+                            if (canonicalPost.equalsIgnoreCase(ownerRole) || post.equalsIgnoreCase(ownerRoleObj.toString())) {
+                                if (secMap.get("number") != null) {
+                                    sections.add(secMap.get("number").toString().trim().toUpperCase());
+                                }
+                                if (secMap.get("sectionKey") != null) {
+                                    sections.add(secMap.get("sectionKey").toString().trim());
+                                }
+                                if (secMap.get("idString") != null) {
+                                    sections.add(secMap.get("idString").toString().trim());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (!sections.isEmpty()) {
+            return sections;
+        }
+
+        switch (canonicalPost) {
+            case "registrar" -> sections.addAll(List.of("A", "C"));
+            case "hr" -> sections.addAll(List.of("B"));
+            case "dean-student-welfare" -> sections.addAll(List.of("D"));
+            case "dean-placement" -> sections.addAll(List.of("E"));
+        }
+        return sections;
+    }
+
+    public java.util.Set<String> resolveActiveAdministrativePostsForSubmission(Submission submission) {
+        java.util.Set<String> posts = new java.util.LinkedHashSet<>();
+        Long uniId = submission != null && submission.getUniversityId() != null ? submission.getUniversityId() : 1L;
+        String uniCode = submission != null && submission.getUniversityCode() != null ? submission.getUniversityCode() : "dypiu";
+
+        try {
+            List<Map<String, Object>> dynamicPosts = formDataClient.getUniversityPosts(uniId);
+            if (dynamicPosts != null) {
+                for (Map<String, Object> p : dynamicPosts) {
+                    if (p.get("code") != null) {
+                        String c = canonicalAdministrativePost(p.get("code").toString());
+                        if (c != null && !c.isBlank()) posts.add(c);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            Map<String, Object> schema = formDataClient.getActiveConfig("administrative", uniCode);
+            if (schema != null && schema.get("sections") instanceof List<?> secList) {
+                for (Object secObj : secList) {
+                    if (secObj instanceof Map<?, ?> secMap && secMap.get("ownerRole") != null) {
+                        String role = canonicalAdministrativePost(secMap.get("ownerRole").toString());
+                        if (role != null && !role.isBlank() && !"director-schools".equalsIgnoreCase(role)) {
+                            posts.add(role);
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            List<UserDto> users = safeGetAllUsers();
+            if (users != null) {
+                for (UserDto u : users) {
+                    if (Boolean.TRUE.equals(u.getDeleted())) continue;
+                    Long userUniId = u.getUniversityId() != null ? u.getUniversityId() : 1L;
+                    if (userUniId.equals(uniId) && "administrative".equalsIgnoreCase(u.getRole())) {
+                        String p = canonicalAdministrativePost(u.getPost());
+                        if (p != null && !p.isBlank()) posts.add(p);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (submission != null) {
+            try {
+                Map<String, String> prog = submission.getAdministrativeProgressForJson();
+                if (prog != null) {
+                    posts.addAll(prog.keySet());
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (posts.isEmpty()) {
+            posts.addAll(LEGACY_ADMIN_POSTS);
+        }
+
+        return posts;
+    }
+
+    private boolean isAllAdministrativePostsSubmitted(Submission submission, com.fasterxml.jackson.databind.JsonNode progressNode) {
+        if (submission == null) return false;
+        java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
+        Long uniId = submission.getUniversityId() != null ? submission.getUniversityId() : 1L;
+
+        List<String> requiredPosts = activePosts.stream()
+                .filter(post -> hasActiveAdministrativeUserForPost(post, uniId))
+                .toList();
+
+        if (requiredPosts.isEmpty()) {
+            if (progressNode != null && progressNode.isObject() && progressNode.size() > 0) {
+                var it = progressNode.fields();
+                while (it.hasNext()) {
+                    var entry = it.next();
+                    String st = entry.getValue().asText("DRAFT");
+                    if (!"SUBMITTED".equalsIgnoreCase(st) && !"APPROVED".equalsIgnoreCase(st)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        return requiredPosts.stream().allMatch(post -> {
+            String st = progressNode != null ? progressNode.path(post).asText("DRAFT") : "DRAFT";
+            return "SUBMITTED".equalsIgnoreCase(st) || "APPROVED".equalsIgnoreCase(st);
+        });
     }
 
     private java.util.Set<String> resolveAdministrativePosts(UserDto user) {
@@ -2772,10 +2872,15 @@ public class SubmissionService {
     }
 
     private boolean hasActiveAdministrativeUserForPost(String post) {
+        return hasActiveAdministrativeUserForPost(post, null);
+    }
+
+    private boolean hasActiveAdministrativeUserForPost(String post, Long universityId) {
         if (post == null || post.isBlank()) return false;
         String canonicalPost = canonicalAdministrativePost(post);
         if (canonicalPost == null) return false;
 
+        Long uniId = universityId != null ? universityId : 1L;
         List<UserDto> allUsers = safeGetAllUsers();
         if (allUsers == null || allUsers.isEmpty()) return true;
 
@@ -2783,7 +2888,8 @@ public class SubmissionService {
             if (Boolean.TRUE.equals(u.getDeleted())) {
                 continue;
             }
-            if ("administrative".equalsIgnoreCase(u.getRole())) {
+            Long userUniId = u.getUniversityId() != null ? u.getUniversityId() : 1L;
+            if (userUniId.equals(uniId) && "administrative".equalsIgnoreCase(u.getRole())) {
                 String up = canonicalAdministrativePost(u.getPost());
                 if (canonicalPost.equalsIgnoreCase(up)) {
                     return true;
@@ -3670,14 +3776,17 @@ public class SubmissionService {
         boolean allContributorsSubmitted = true;
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
             java.util.Map<String, String> progress = submission.getAdministrativeProgressForJson();
-            allContributorsSubmitted = ADMIN_POSTS.stream()
-                    .allMatch(post -> {
-                        if (!isPostRequiredForAdministrativeWorkflow(post)) {
-                            return true;
-                        }
-                        String st = progress.get(post);
-                        return "APPROVED".equalsIgnoreCase(st) || "SUBMITTED".equalsIgnoreCase(st);
-                    });
+            java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
+            List<String> requiredPosts = activePosts.stream()
+                    .filter(post -> hasActiveAdministrativeUserForPost(post, submission.getUniversityId()))
+                    .toList();
+            if (!requiredPosts.isEmpty()) {
+                allContributorsSubmitted = requiredPosts.stream()
+                        .allMatch(post -> {
+                            String st = progress != null ? progress.get(post) : null;
+                            return "APPROVED".equalsIgnoreCase(st) || "SUBMITTED".equalsIgnoreCase(st);
+                        });
+            }
         }
         
         permissionMap.put("canEditContribution", canEditContribution);
@@ -3689,14 +3798,15 @@ public class SubmissionService {
         permissionMap.put("allContributorsSubmitted", allContributorsSubmitted);
 
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
+            java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
             if (isIqac || isVc) {
                 permissionMap.put("canView", true);
                 permissionMap.put("canEdit", false);
                 permissionMap.put("editablePosts", java.util.Collections.emptyList());
-                permissionMap.put("readOnlyPosts", java.util.List.of("registrar", "hr", "dean-student-welfare", "dean-placement", "library", "examination", "accounts"));
+                permissionMap.put("readOnlyPosts", new java.util.ArrayList<>(activePosts));
                 
                 java.util.Map<String, Object> perPostPerms = new java.util.HashMap<>();
-                for (String p : java.util.List.of("registrar", "hr", "dean-student-welfare", "dean-placement", "library", "examination", "accounts")) {
+                for (String p : activePosts) {
                     perPostPerms.put(p, java.util.Map.of("canEdit", false));
                 }
                 permissionMap.put("permissions", perPostPerms);
@@ -3707,7 +3817,9 @@ public class SubmissionService {
                         .map(p -> p.trim().toLowerCase())
                         .collect(java.util.stream.Collectors.toList());
                         
-                java.util.List<String> allPosts = java.util.List.of("registrar", "hr", "dean-student-welfare", "dean-placement", "library", "examination", "accounts");
+                java.util.Set<String> allPostsSet = new java.util.LinkedHashSet<>(activePosts);
+                allPostsSet.addAll(assignedPosts);
+                java.util.List<String> allPosts = new java.util.ArrayList<>(allPostsSet);
                 
                 java.util.List<String> readOnlyPosts = new java.util.ArrayList<>();
                 java.util.Map<String, Object> perPostPerms = new java.util.HashMap<>();
@@ -3727,7 +3839,11 @@ public class SubmissionService {
                 permissionMap.put("permissions", perPostPerms);
             } else if ("administrative".equalsIgnoreCase(user.getRole())) {
                 String myPost = canonicalAdministrativePost(user.getPost() != null ? user.getPost() : user.getDesignation());
-                java.util.List<String> allPosts = java.util.List.of("registrar", "hr", "dean-student-welfare", "dean-placement", "library", "examination", "accounts");
+                java.util.Set<String> allPostsSet = new java.util.LinkedHashSet<>(activePosts);
+                if (myPost != null && !myPost.isBlank()) {
+                    allPostsSet.add(myPost);
+                }
+                java.util.List<String> allPosts = new java.util.ArrayList<>(allPostsSet);
                 
                 java.util.List<String> editablePosts = new java.util.ArrayList<>();
                 java.util.List<String> readOnlyPosts = new java.util.ArrayList<>();
