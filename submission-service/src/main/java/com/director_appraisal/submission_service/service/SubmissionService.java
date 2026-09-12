@@ -2331,7 +2331,19 @@ public class SubmissionService {
             if (section == null || section.isBlank()) {
                 continue;
             }
-            String clean = section.trim().toUpperCase().replace("PART-", "").replace("PART_", "").replace("PART ", "");
+            String clean = section.trim().toUpperCase()
+                    .replace("PART-", "").replace("PART_", "").replace("PART ", "")
+                    .replace("SECTION-", "").replace("SECTION_", "").replace("SECTION ", "");
+
+            // Map numeric sections to standard letter keys
+            switch (clean) {
+                case "1" -> clean = "A";
+                case "2" -> clean = "B";
+                case "3" -> clean = "C";
+                case "4" -> clean = "D";
+                case "5" -> clean = "E";
+            }
+
             if (!List.of("A", "B", "C", "D", "E").contains(clean)) {
                 throw new IllegalArgumentException("Invalid administrative section: " + section);
             }
@@ -2594,7 +2606,8 @@ public class SubmissionService {
                 return;
             }
             String section = sectionClassifier.apply(entry.getKey());
-            if (ownedSections.contains(section)) {
+            boolean isLegacyKey = isKnownLegacyAdministrativeKey(entry.getKey());
+            if (ownedSections.contains(section) || !isLegacyKey) {
                 if ("partESchools".equals(entry.getKey())) {
                     mergePartESchools(mapper, merged, entry.getValue());
                 } else {
@@ -2629,6 +2642,20 @@ public class SubmissionService {
         return merged;
     }
 
+    private boolean isKnownLegacyAdministrativeKey(String key) {
+        if (key == null) return false;
+        return List.of(
+                "coursesOffered", "studentStatistics", "statutoryBodies", "auditRecords",
+                "scholarshipSummary", "scholarshipStudents", "facultyInformation", "facultyTenure",
+                "facultyExperience", "supportingStaff", "staffTraining", "buildingInfrastructure",
+                "libraryInfrastructure", "eResources", "itInfrastructure", "sportsFacilities",
+                "divyangajanFacilities", "researchResources", "hackathons", "culturalActivities",
+                "sportsActivities", "communityActivities", "adminStudentAwards", "trainingActivities",
+                "industryCollaborations", "partESchools", "phdQualification", "pgQualification",
+                "otherQualification", "studentFacultyRatio", "bogMomSanctionedPostsAttachment"
+        ).contains(key);
+    }
+
     private boolean hasOwnedAdministrativeChanges(com.fasterxml.jackson.databind.node.ObjectNode existing, String incomingJson,
                                                   java.util.function.Function<String, String> sectionClassifier,
                                                   java.util.Set<String> ownedSections) throws java.io.IOException {
@@ -2640,10 +2667,12 @@ public class SubmissionService {
         java.util.Iterator<Map.Entry<String, com.fasterxml.jackson.databind.JsonNode>> fields = incoming.fields();
         while (fields.hasNext()) {
             Map.Entry<String, com.fasterxml.jackson.databind.JsonNode> entry = fields.next();
-            if ("administrativeProgress".equals(entry.getKey()) || "administrativeApprovals".equals(entry.getKey())) {
+            if ("administrativeProgress".equals(entry.getKey()) || "administrativeApprovals".equals(entry.getKey()) || "__administrativeSubmissionStatus".equals(entry.getKey())) {
                 continue;
             }
-            if (!ownedSections.contains(sectionClassifier.apply(entry.getKey()))) {
+            String section = sectionClassifier.apply(entry.getKey());
+            boolean isLegacyKey = isKnownLegacyAdministrativeKey(entry.getKey());
+            if (!ownedSections.contains(section) && isLegacyKey) {
                 continue;
             }
             com.fasterxml.jackson.databind.JsonNode existingValue = existing.get(entry.getKey());
