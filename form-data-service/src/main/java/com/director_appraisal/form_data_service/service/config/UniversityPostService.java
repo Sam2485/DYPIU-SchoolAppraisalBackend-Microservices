@@ -27,13 +27,6 @@ public class UniversityPostService {
                 ? universityPostRepository.findByUniversityIdAndStatusOrderByDisplayOrderAscNameAsc(universityId, "ACTIVE")
                 : universityPostRepository.findByUniversityIdOrderByDisplayOrderAscNameAsc(universityId);
 
-        if (existing.isEmpty()) {
-            seedDefaultPosts(universityId);
-            existing = activeOnly
-                    ? universityPostRepository.findByUniversityIdAndStatusOrderByDisplayOrderAscNameAsc(universityId, "ACTIVE")
-                    : universityPostRepository.findByUniversityIdOrderByDisplayOrderAscNameAsc(universityId);
-        }
-
         return existing;
     }
 

@@ -46,7 +46,7 @@ public class UserController {
             return cached.posts();
         }
 
-        Map<String, String> postsMap = new LinkedHashMap<>(ADMINISTRATIVE_POSTS);
+        Map<String, String> postsMap = new LinkedHashMap<>();
         try {
             String formsUrl = System.getenv("FORMS_SERVICE_URL");
             if (formsUrl == null || formsUrl.isBlank()) {
@@ -688,11 +688,6 @@ public class UserController {
     private String getPostForDesignation(String designation) {
         if (designation == null || designation.isBlank()) {
             return null;
-        }
-        for (Map.Entry<String, String> entry : ADMINISTRATIVE_POSTS.entrySet()) {
-            if (entry.getValue().equalsIgnoreCase(designation) || entry.getKey().equalsIgnoreCase(designation.trim())) {
-                return entry.getKey();
-            }
         }
         return canonicalAdministrativePost(designation);
     }
