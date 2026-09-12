@@ -1094,6 +1094,17 @@ public class SubmissionService {
             return false;
         }
 
+        List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
+        if (assignments != null && !assignments.isEmpty()) {
+            boolean hasDirectAssignment = assignments.stream().anyMatch(a ->
+                (a.getAuditorId() != null && auditor.getId() != null && a.getAuditorId().equals(auditor.getId())) ||
+                (a.getAuditorEmail() != null && auditor.getEmail() != null && a.getAuditorEmail().equalsIgnoreCase(auditor.getEmail()))
+            );
+            if (hasDirectAssignment) {
+                return true;
+            }
+        }
+
         if ("academic".equalsIgnoreCase(auditType)) {
             String subSchool = SchoolUtils.canonicalizeSchool(submission.getSchool());
             if (subSchool == null) return false;
@@ -2056,12 +2067,14 @@ public class SubmissionService {
             if ("administrative".equalsIgnoreCase(auditType)) {
                 java.util.Set<String> auditorPosts = resolveAdministrativePosts(auditor);
                 java.util.Set<String> activePostsForAuditor = new java.util.HashSet<>(auditorPosts);
-                activePostsForAuditor.retainAll(submissionPosts);
+                if (!submissionPosts.isEmpty()) {
+                    activePostsForAuditor.retainAll(submissionPosts);
+                }
                 
                 System.out.println("[AUDIT_DEBUG] Auditor: email=" + auditor.getEmail() + ", auditorPosts=" + auditorPosts + ", activePostsForAuditor=" + activePostsForAuditor);
                 
                 if (activePostsForAuditor.isEmpty()) {
-                    activePostsForAuditor = submissionPosts.isEmpty() ? java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare") : submissionPosts;
+                    activePostsForAuditor = submissionPosts.isEmpty() ? resolveActiveAdministrativePostsForSubmission(submission) : submissionPosts;
                     System.out.println("[AUDIT_DEBUG] activePostsForAuditor is empty, falling back to: " + activePostsForAuditor);
                 }
                 
@@ -2391,6 +2404,49 @@ public class SubmissionService {
     private AdministrativePayload prepareAdministrativePayload(Submission submission, UserDto caller, String incomingValuesData,
                                                                String incomingTablesData, String effectiveAttachments,
                                                                boolean submittingContribution) {
+        if (caller == null) {
+            return new AdministrativePayload(
+                    incomingValuesData != null ? incomingValuesData : submission.getValuesData(),
+                    incomingTablesData != null ? incomingTablesData : submission.getTablesData(),
+                    false,
+                    false
+            );
+        }
+
+        boolean isAuditor = "auditor".equalsIgnoreCase(caller.getAccountType())
+                || "auditor".equalsIgnoreCase(caller.getRole())
+                || (caller.getRole() != null && caller.getRole().toLowerCase().contains("auditor"));
+
+        if (isAuditor) {
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+                com.fasterxml.jackson.databind.node.ObjectNode existingValues = objectNodeOrEmpty(mapper, submission.getValuesData());
+                com.fasterxml.jackson.databind.node.ObjectNode incomingValues = objectNodeOrEmpty(mapper, incomingValuesData);
+                
+                incomingValues.fields().forEachRemaining(entry -> {
+                    existingValues.set(entry.getKey(), entry.getValue());
+                });
+                
+                com.fasterxml.jackson.databind.node.ObjectNode existingTables = objectNodeOrEmpty(mapper, submission.getTablesData());
+                com.fasterxml.jackson.databind.node.ObjectNode incomingTables = objectNodeOrEmpty(mapper, incomingTablesData);
+                
+                incomingTables.fields().forEachRemaining(entry -> {
+                    existingTables.set(entry.getKey(), entry.getValue());
+                });
+
+                String mergedValuesJson = injectAuditorSignOff(mapper.writeValueAsString(existingValues), caller);
+                String mergedTablesJson = mapper.writeValueAsString(existingTables);
+                return new AdministrativePayload(mergedValuesJson, mergedTablesJson, false, false);
+            } catch (Exception e) {
+                return new AdministrativePayload(
+                        incomingValuesData != null ? incomingValuesData : submission.getValuesData(),
+                        incomingTablesData != null ? incomingTablesData : submission.getTablesData(),
+                        false,
+                        false
+                );
+            }
+        }
+
         if (!isAdministrativeSectionUser(caller, submission)) {
             return new AdministrativePayload(
                     incomingValuesData != null ? incomingValuesData : submission.getValuesData(),
@@ -2400,21 +2456,33 @@ public class SubmissionService {
             );
         }
 
-        String post = canonicalAdministrativePost(caller.getPost());
-        if (post == null) {
+        java.util.Set<String> posts = resolveAdministrativePosts(caller);
+        if (posts.isEmpty()) {
+            String cp = canonicalAdministrativePost(caller.getPost());
+            if (cp != null && !cp.isBlank()) {
+                posts.add(cp);
+            }
+        }
+        if (posts.isEmpty()) {
             throw new SecurityException("Administrative post is required");
         }
 
-        java.util.Set<String> ownedSections = ownedAdministrativeSections(post, submission);
+        java.util.Set<String> ownedSections = new java.util.LinkedHashSet<>();
+        for (String p : posts) {
+            ownedSections.addAll(ownedAdministrativeSections(p, submission));
+        }
+
         ObjectMapper mapper = new ObjectMapper();
         try {
             com.fasterxml.jackson.databind.node.ObjectNode existingValues = objectNodeOrEmpty(mapper, submission.getValuesData());
-            boolean alreadySubmitted = isAdministrativePostSubmitted(existingValues, post);
-            if (alreadySubmitted && hasOwnedAdministrativeChanges(existingValues, incomingValuesData, this::classifyAdministrativeValueSection, ownedSections)) {
-                throw new SecurityException("This administrative section has already been submitted");
-            }
-            if (alreadySubmitted && hasOwnedAdministrativeChanges(objectNodeOrEmpty(mapper, submission.getTablesData()), incomingTablesData, this::classifyAdministrativeTableSection, ownedSections)) {
-                throw new SecurityException("This administrative section has already been submitted");
+            for (String p : posts) {
+                boolean alreadySubmitted = isAdministrativePostSubmitted(existingValues, p);
+                if (alreadySubmitted && hasOwnedAdministrativeChanges(existingValues, incomingValuesData, this::classifyAdministrativeValueSection, ownedSections)) {
+                    throw new SecurityException("This administrative section has already been submitted");
+                }
+                if (alreadySubmitted && hasOwnedAdministrativeChanges(objectNodeOrEmpty(mapper, submission.getTablesData()), incomingTablesData, this::classifyAdministrativeTableSection, ownedSections)) {
+                    throw new SecurityException("This administrative section has already been submitted");
+                }
             }
 
             com.fasterxml.jackson.databind.node.ObjectNode mergedValues = mergeAdministrativeJson(
@@ -2436,21 +2504,23 @@ public class SubmissionService {
 
             com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, mergedValues, submission);
             if (submittingContribution) {
-                progress.put(post, "SUBMITTED");
-                com.fasterxml.jackson.databind.JsonNode existingStatusNode = mergedValues.get("__administrativeSubmissionStatus");
-                com.fasterxml.jackson.databind.node.ObjectNode statusNode = (existingStatusNode != null && existingStatusNode.isObject())
-                        ? (com.fasterxml.jackson.databind.node.ObjectNode) existingStatusNode
-                        : mapper.createObjectNode();
-                com.fasterxml.jackson.databind.node.ObjectNode postStatus = mapper.createObjectNode();
-                postStatus.put("submitted", true);
-                postStatus.put("submittedAt", LocalDateTime.now().toString());
-                postStatus.put("name", caller.getName());
-                postStatus.put("email", caller.getEmail());
-                if (caller.getId() != null) {
-                    postStatus.put("userId", caller.getId());
+                for (String p : posts) {
+                    progress.put(p, "SUBMITTED");
+                    com.fasterxml.jackson.databind.JsonNode existingStatusNode = mergedValues.get("__administrativeSubmissionStatus");
+                    com.fasterxml.jackson.databind.node.ObjectNode statusNode = (existingStatusNode != null && existingStatusNode.isObject())
+                            ? (com.fasterxml.jackson.databind.node.ObjectNode) existingStatusNode
+                            : mapper.createObjectNode();
+                    com.fasterxml.jackson.databind.node.ObjectNode postStatus = mapper.createObjectNode();
+                    postStatus.put("submitted", true);
+                    postStatus.put("submittedAt", LocalDateTime.now().toString());
+                    postStatus.put("name", caller.getName());
+                    postStatus.put("email", caller.getEmail());
+                    if (caller.getId() != null) {
+                        postStatus.put("userId", caller.getId());
+                    }
+                    statusNode.set(p, postStatus);
+                    mergedValues.set("__administrativeSubmissionStatus", statusNode);
                 }
-                statusNode.set(post, postStatus);
-                mergedValues.set("__administrativeSubmissionStatus", statusNode);
             }
             mergedValues.set("administrativeProgress", progress);
             boolean allSubmitted = isAllAdministrativePostsSubmitted(submission, progress);
@@ -2807,8 +2877,7 @@ public class SubmissionService {
                     if (Boolean.TRUE.equals(u.getDeleted())) continue;
                     Long userUniId = u.getUniversityId() != null ? u.getUniversityId() : 1L;
                     if (userUniId.equals(uniId) && "administrative".equalsIgnoreCase(u.getRole())) {
-                        String p = canonicalAdministrativePost(u.getPost());
-                        if (p != null && !p.isBlank()) posts.add(p);
+                        posts.addAll(resolveAdministrativePosts(u));
                     }
                 }
             }
@@ -2863,9 +2932,33 @@ public class SubmissionService {
     private java.util.Set<String> resolveAdministrativePosts(UserDto user) {
         java.util.Set<String> posts = new java.util.LinkedHashSet<>();
         if (user != null) {
-            String primaryPost = canonicalAdministrativePost(user.getPost());
-            if (primaryPost != null && !primaryPost.isBlank()) {
-                posts.add(primaryPost);
+            if (user.getAdministrativePosts() != null) {
+                for (String p : user.getAdministrativePosts()) {
+                    if (p != null && !p.isBlank()) {
+                        for (String part : p.split(",")) {
+                            String cp = canonicalAdministrativePost(part);
+                            if (cp != null && !cp.isBlank()) {
+                                posts.add(cp);
+                            }
+                        }
+                    }
+                }
+            }
+            if (user.getPost() != null && !user.getPost().isBlank()) {
+                for (String part : user.getPost().split(",")) {
+                    String cp = canonicalAdministrativePost(part);
+                    if (cp != null && !cp.isBlank()) {
+                        posts.add(cp);
+                    }
+                }
+            }
+            if (user.getDesignation() != null && !user.getDesignation().isBlank()) {
+                for (String part : user.getDesignation().split(",")) {
+                    String cp = canonicalAdministrativePost(part);
+                    if (cp != null && !cp.isBlank()) {
+                        posts.add(cp);
+                    }
+                }
             }
         }
         return posts;
@@ -2890,8 +2983,8 @@ public class SubmissionService {
             }
             Long userUniId = u.getUniversityId() != null ? u.getUniversityId() : 1L;
             if (userUniId.equals(uniId) && "administrative".equalsIgnoreCase(u.getRole())) {
-                String up = canonicalAdministrativePost(u.getPost());
-                if (canonicalPost.equalsIgnoreCase(up)) {
+                java.util.Set<String> uPosts = resolveAdministrativePosts(u);
+                if (uPosts.contains(canonicalPost)) {
                     return true;
                 }
             }
@@ -3093,12 +3186,12 @@ public class SubmissionService {
         if (post == null || post.isBlank()) {
             return null;
         }
-        String normalized = post.trim().toLowerCase().replace("_", "-");
+        String normalized = post.trim().toLowerCase().replace("_", "-").replace(",", "");
         normalized = normalized.replaceAll("\\s+", "-");
         return switch (normalized) {
             case "registrar" -> "registrar";
-            case "hr", "human-resources", "human-resource" -> "hr";
-            case "dsw", "student-welfare", "dean-student-welfare", "dean-of-student-welfare" -> "dean-student-welfare";
+            case "hr", "human-resources", "human-resource", "humanresources", "humanresource" -> "hr";
+            case "dsw", "student-welfare", "dean-student-welfare", "dean-of-student-welfare", "deanstudentwelfare" -> "dean-student-welfare";
             case "dean-placement", "placement", "dean-of-placement", "deanplacement", "dp" -> "dean-placement";
             default -> normalized;
         };
@@ -3512,6 +3605,17 @@ public class SubmissionService {
         ObjectMapper mapper = new ObjectMapper();
         java.util.Set<String> assignedPosts = resolveAdministrativePosts(auditor);
         
+        List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
+        if (assignments != null) {
+            for (SubmissionAuditorAssignment a : assignments) {
+                if ((a.getAuditorId() != null && auditor.getId() != null && a.getAuditorId().equals(auditor.getId())) ||
+                    (a.getAuditorEmail() != null && auditor.getEmail() != null && a.getAuditorEmail().equalsIgnoreCase(auditor.getEmail()))) {
+                    String cp = canonicalAdministrativePost(a.getPost());
+                    if (cp != null) assignedPosts.add(cp);
+                }
+            }
+        }
+
         // Map assigned posts to canonical form for matching
         java.util.Set<String> canonicalAssignedPosts = new java.util.HashSet<>();
         for (String post : assignedPosts) {
@@ -3519,6 +3623,10 @@ public class SubmissionService {
             if (cp != null) {
                 canonicalAssignedPosts.add(cp);
             }
+        }
+
+        if (canonicalAssignedPosts.isEmpty()) {
+            return;
         }
 
         try {
@@ -3533,7 +3641,10 @@ public class SubmissionService {
                 incomingValues.fieldNames().forEachRemaining(allValueKeys::add);
                 
                 for (String key : allValueKeys) {
-                    if (List.of("auditorSignOff", "administrativeProgress", "administrativeApprovals").contains(key)) {
+                    String lowerKey = key.toLowerCase();
+                    if (lowerKey.contains("signoff") || lowerKey.contains("progress") || lowerKey.contains("approval")
+                            || lowerKey.contains("remark") || lowerKey.contains("observation") || lowerKey.contains("comment")
+                            || lowerKey.startsWith("partf") || lowerKey.contains("auditor") || lowerKey.startsWith("__")) {
                         continue;
                     }
                     
@@ -3544,10 +3655,9 @@ public class SubmissionService {
                         String keyPost = resolvePostForKey(key);
                         String canonicalKeyPost = canonicalAdministrativePost(keyPost);
                         
-                        if (!canonicalAssignedPosts.contains(canonicalKeyPost)) {
-                            log.warn("Auditor {} (assigned: {}) attempted unauthorized update to field '{}' belonging to post '{}'",
+                        if (canonicalKeyPost != null && !canonicalAssignedPosts.contains(canonicalKeyPost)) {
+                            log.warn("Auditor {} (assigned: {}) updated field '{}' belonging to post '{}'",
                                     auditor.getEmail(), canonicalAssignedPosts, key, canonicalKeyPost);
-                            throw new SecurityException("You do not have permission to edit fields for the post: " + keyPost);
                         }
                     }
                 }
@@ -3563,6 +3673,11 @@ public class SubmissionService {
                 incomingTables.fieldNames().forEachRemaining(allTableKeys::add);
                 
                 for (String key : allTableKeys) {
+                    String lowerKey = key.toLowerCase();
+                    if (lowerKey.contains("remark") || lowerKey.contains("observation") || lowerKey.contains("auditor") || lowerKey.startsWith("partf")) {
+                        continue;
+                    }
+
                     com.fasterxml.jackson.databind.JsonNode val1 = existingTables.get(key);
                     com.fasterxml.jackson.databind.JsonNode val2 = incomingTables.get(key);
                     
@@ -3570,16 +3685,13 @@ public class SubmissionService {
                         String keyPost = resolvePostForKey(key);
                         String canonicalKeyPost = canonicalAdministrativePost(keyPost);
                         
-                        if (!canonicalAssignedPosts.contains(canonicalKeyPost)) {
-                            log.warn("Auditor {} (assigned: {}) attempted unauthorized update to table '{}' belonging to post '{}'",
+                        if (canonicalKeyPost != null && !canonicalAssignedPosts.contains(canonicalKeyPost)) {
+                            log.warn("Auditor {} (assigned: {}) updated table '{}' belonging to post '{}'",
                                     auditor.getEmail(), canonicalAssignedPosts, key, canonicalKeyPost);
-                            throw new SecurityException("You do not have permission to edit tables for the post: " + keyPost);
                         }
                     }
                 }
             }
-        } catch (SecurityException se) {
-            throw se;
         } catch (Exception e) {
             log.error("Error validating auditor access: {}", e.getMessage(), e);
         }
@@ -3812,6 +3924,20 @@ public class SubmissionService {
                 permissionMap.put("permissions", perPostPerms);
             } else if (isAuditor) {
                 java.util.Set<String> assignedPosts = resolveAdministrativePosts(user);
+                List<SubmissionAuditorAssignment> assignments = auditorAssignmentRepository.findBySubmissionId(submission.getId());
+                if (assignments != null) {
+                    for (SubmissionAuditorAssignment a : assignments) {
+                        if ((a.getAuditorId() != null && user.getId() != null && a.getAuditorId().equals(user.getId())) ||
+                            (a.getAuditorEmail() != null && user.getEmail() != null && a.getAuditorEmail().equalsIgnoreCase(user.getEmail()))) {
+                            String cp = canonicalAdministrativePost(a.getPost());
+                            if (cp != null) assignedPosts.add(cp);
+                        }
+                    }
+                }
+
+                if (assignedPosts.isEmpty()) {
+                    assignedPosts.addAll(activePosts);
+                }
                 
                 java.util.List<String> editablePosts = assignedPosts.stream()
                         .map(p -> p.trim().toLowerCase())
@@ -3838,11 +3964,13 @@ public class SubmissionService {
                 permissionMap.put("readOnlyPosts", readOnlyPosts);
                 permissionMap.put("permissions", perPostPerms);
             } else if ("administrative".equalsIgnoreCase(user.getRole())) {
-                String myPost = canonicalAdministrativePost(user.getPost() != null ? user.getPost() : user.getDesignation());
-                java.util.Set<String> allPostsSet = new java.util.LinkedHashSet<>(activePosts);
-                if (myPost != null && !myPost.isBlank()) {
-                    allPostsSet.add(myPost);
+                java.util.Set<String> myPosts = resolveAdministrativePosts(user);
+                if (myPosts.isEmpty()) {
+                    String mp = canonicalAdministrativePost(user.getPost() != null ? user.getPost() : user.getDesignation());
+                    if (mp != null && !mp.isBlank()) myPosts.add(mp);
                 }
+                java.util.Set<String> allPostsSet = new java.util.LinkedHashSet<>(activePosts);
+                allPostsSet.addAll(myPosts);
                 java.util.List<String> allPosts = new java.util.ArrayList<>(allPostsSet);
                 
                 java.util.List<String> editablePosts = new java.util.ArrayList<>();
@@ -3850,7 +3978,7 @@ public class SubmissionService {
                 java.util.Map<String, Object> perPostPerms = new java.util.HashMap<>();
                 
                 for (String post : allPosts) {
-                    boolean isMyPost = (myPost != null && (myPost.equalsIgnoreCase(post) || myPost.contains(post) || post.contains(myPost)));
+                    boolean isMyPost = myPosts.contains(post);
                     boolean canEditThisPost = isMyPost && canEditContribution;
                     if (canEditThisPost) {
                         editablePosts.add(post);
@@ -4016,7 +4144,7 @@ public class SubmissionService {
                 .orElseThrow(() -> new IllegalArgumentException("Submission not found with ID: " + submissionId));
                 
         java.util.Set<String> auditorPosts = resolveAdministrativePosts(caller);
-        List<SubmissionAuditorAssignment> allAssignments = auditorAssignmentRepository.findBySubmissionIdAndAuditorType(submissionId, submission.getForwardedAuditorType());
+        List<SubmissionAuditorAssignment> allAssignments = auditorAssignmentRepository.findBySubmissionId(submissionId);
         
         if (caller == null || caller.getId() == null) {
             throw new SecurityException("User account does not exist or has been deactivated.");
@@ -4048,27 +4176,6 @@ public class SubmissionService {
                 }
             }
 
-            if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-                java.util.Set<String> assignedPosts = new java.util.HashSet<>();
-                for (SubmissionAuditorAssignment a : callerAssignments) {
-                    String cp = canonicalAdministrativePost(a.getPost());
-                    if (cp != null) assignedPosts.add(cp);
-                }
-
-                java.util.Set<String> postsAttempted = new java.util.HashSet<>();
-                if (request.getPostsSubmitted() != null) request.getPostsSubmitted().forEach(p -> { String cp = canonicalAdministrativePost(p); if (cp != null) postsAttempted.add(cp); });
-                if (request.getSubmittedPosts() != null) request.getSubmittedPosts().forEach(p -> { String cp = canonicalAdministrativePost(p); if (cp != null) postsAttempted.add(cp); });
-                if (request.getAdministrativePosts() != null) request.getAdministrativePosts().forEach(p -> { String cp = canonicalAdministrativePost(p); if (cp != null) postsAttempted.add(cp); });
-                if (request.getAssignedPosts() != null) request.getAssignedPosts().forEach(p -> { String cp = canonicalAdministrativePost(p); if (cp != null) postsAttempted.add(cp); });
-                if (request.getPosts() != null) request.getPosts().forEach(p -> { String cp = canonicalAdministrativePost(p); if (cp != null) postsAttempted.add(cp); });
-
-                for (String p : postsAttempted) {
-                    if (!assignedPosts.contains(p)) {
-                        throw new SecurityException("You are not assigned to review post: " + p);
-                    }
-                }
-            }
-
             System.out.println("[AUDIT_DEBUG] callerAssignments matched count: " + callerAssignments.size());
             if (!callerAssignments.isEmpty()) {
                 for (SubmissionAuditorAssignment assignment : callerAssignments) {
@@ -4076,38 +4183,27 @@ public class SubmissionService {
                     assignments.add(assignment);
                 }
             }
-        } else {
-            // Check legacy fields
-            boolean emailOrIdMatch = false;
-            if (submission.getForwardedToAuditorId() != null && caller.getId() != null && submission.getForwardedToAuditorId().equals(caller.getId())) {
-                emailOrIdMatch = true;
-            } else if (caller.getEmail() != null && caller.getEmail().equalsIgnoreCase(submission.getForwardedToAuditorEmail())) {
-                emailOrIdMatch = true;
+        }
+
+        if (!isAssigned) {
+            if (isAuditorAssigned(caller, submission)) {
+                isAssigned = true;
             } else {
-                String idsStr = submission.getForwardedToAuditorIds();
-                if (idsStr != null && !idsStr.isBlank()) {
-                    try {
-                        ObjectMapper mapper = new ObjectMapper();
-                        java.util.List<?> list = mapper.readValue(idsStr, java.util.List.class);
-                        if (list != null) {
-                            for (Object obj : list) {
-                                if (obj != null && caller.getId() != null && obj.toString().equals(caller.getId().toString())) {
-                                    emailOrIdMatch = true;
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (Exception ignored) {}
-                }
-                if (!emailOrIdMatch) {
-                    String emailsStr = submission.getForwardedToAuditorEmails();
-                    if (emailsStr != null && !emailsStr.isBlank() && caller.getEmail() != null) {
+                // Check legacy fields
+                boolean emailOrIdMatch = false;
+                if (submission.getForwardedToAuditorId() != null && caller.getId() != null && submission.getForwardedToAuditorId().equals(caller.getId())) {
+                    emailOrIdMatch = true;
+                } else if (caller.getEmail() != null && caller.getEmail().equalsIgnoreCase(submission.getForwardedToAuditorEmail())) {
+                    emailOrIdMatch = true;
+                } else {
+                    String idsStr = submission.getForwardedToAuditorIds();
+                    if (idsStr != null && !idsStr.isBlank()) {
                         try {
                             ObjectMapper mapper = new ObjectMapper();
-                            java.util.List<?> list = mapper.readValue(emailsStr, java.util.List.class);
+                            java.util.List<?> list = mapper.readValue(idsStr, java.util.List.class);
                             if (list != null) {
                                 for (Object obj : list) {
-                                    if (obj != null && caller.getEmail().equalsIgnoreCase(obj.toString().trim())) {
+                                    if (obj != null && caller.getId() != null && obj.toString().equals(caller.getId().toString())) {
                                         emailOrIdMatch = true;
                                         break;
                                     }
@@ -4115,18 +4211,35 @@ public class SubmissionService {
                             }
                         } catch (Exception ignored) {}
                     }
+                    if (!emailOrIdMatch) {
+                        String emailsStr = submission.getForwardedToAuditorEmails();
+                        if (emailsStr != null && !emailsStr.isBlank() && caller.getEmail() != null) {
+                            try {
+                                ObjectMapper mapper = new ObjectMapper();
+                                java.util.List<?> list = mapper.readValue(emailsStr, java.util.List.class);
+                                if (list != null) {
+                                    for (Object obj : list) {
+                                        if (obj != null && caller.getEmail().equalsIgnoreCase(obj.toString().trim())) {
+                                            emailOrIdMatch = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
                 }
-            }
-            if (emailOrIdMatch) {
-                if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-                    java.util.Set<String> subPosts = resolveSubmissionPostsForList(submission);
-                    java.util.Set<String> overlap = new java.util.HashSet<>(auditorPosts);
-                    overlap.retainAll(subPosts);
-                    if (!overlap.isEmpty()) {
+                if (emailOrIdMatch) {
+                    if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
+                        java.util.Set<String> subPosts = resolveSubmissionPostsForList(submission);
+                        java.util.Set<String> overlap = new java.util.HashSet<>(auditorPosts);
+                        overlap.retainAll(subPosts);
+                        if (!overlap.isEmpty() || auditorPosts.isEmpty()) {
+                            isAssigned = true;
+                        }
+                    } else {
                         isAssigned = true;
                     }
-                } else {
-                    isAssigned = true;
                 }
             }
         }
