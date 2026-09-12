@@ -249,6 +249,43 @@ public class SubmissionService {
                         submissionRepository.save(sub);
                     }
                 }
+                if ("DRAFT".equalsIgnoreCase(sub.getStatus())) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    try {
+                        com.fasterxml.jackson.databind.node.ObjectNode valuesNode = objectNodeOrEmpty(mapper, sub.getValuesData());
+                        boolean needsReset = false;
+                        if (sub.getSubmittedByDetails() != null && !sub.getSubmittedByDetails().isBlank()) {
+                            com.fasterxml.jackson.databind.JsonNode detailsNode = mapper.readTree(sub.getSubmittedByDetails());
+                            if (detailsNode.isObject()) {
+                                java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(sub);
+                                boolean allMarkedSubmitted = !activePosts.isEmpty() && activePosts.stream().allMatch(p -> {
+                                    String k = toCamelCaseRole(p);
+                                    return detailsNode.path(k).path("submitted").asBoolean(false) || detailsNode.path(p).path("submitted").asBoolean(false);
+                                });
+                                if (allMarkedSubmitted) {
+                                    needsReset = true;
+                                }
+                            }
+                        }
+
+                        if (needsReset) {
+                            sub.setSubmittedByDetails(null);
+                            com.fasterxml.jackson.databind.node.ObjectNode progressNode = mapper.createObjectNode();
+                            java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(sub);
+                            for (String p : activePosts) {
+                                progressNode.put(p, "DRAFT");
+                                progressNode.put(toCamelCaseRole(p), "DRAFT");
+                            }
+                            valuesNode.set("administrativeProgress", progressNode);
+                            valuesNode.remove("__administrativeSubmissionStatus");
+                            valuesNode.remove("administrativeApprovals");
+                            valuesNode.remove("__auditSignOff");
+                            valuesNode.remove("auditorSignOff");
+                            sub.setValuesData(mapper.writeValueAsString(valuesNode));
+                            submissionRepository.save(sub);
+                        }
+                    } catch (Exception ignored) {}
+                }
             }
             return sub;
         }
@@ -322,7 +359,9 @@ public class SubmissionService {
             postStatus.put("name", caller.getName());
             postStatus.put("email", caller.getEmail());
             postStatus.put("userId", caller.getId());
+            postStatus.put("version", lockedSubmission.getVersion() != null ? lockedSubmission.getVersion() : 1);
             statusNode.set(post, postStatus);
+            statusNode.set(toCamelCaseRole(post), postStatus);
             valuesNode.set("__administrativeSubmissionStatus", statusNode);
 
             lockedSubmission.setValuesData(mapper.writeValueAsString(valuesNode));
@@ -340,18 +379,22 @@ public class SubmissionService {
             roleInfo.put("submittedAt", LocalDateTime.now().toString());
             roleInfo.put("name", caller.getName());
             roleInfo.put("email", caller.getEmail());
+            roleInfo.put("version", lockedSubmission.getVersion() != null ? lockedSubmission.getVersion() : 1);
             detailsNode.set(jsonKey, roleInfo);
+            detailsNode.set(post, roleInfo);
 
             java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(lockedSubmission);
             for (String p : activePosts) {
                 String k = toCamelCaseRole(p);
-                if (!detailsNode.has(k)) {
+                if (!detailsNode.has(k) && !detailsNode.has(p)) {
                     com.fasterxml.jackson.databind.node.ObjectNode emptyInfo = mapper.createObjectNode();
                     emptyInfo.put("submitted", false);
                     emptyInfo.putNull("submittedAt");
                     emptyInfo.putNull("name");
                     emptyInfo.putNull("email");
+                    emptyInfo.put("version", lockedSubmission.getVersion() != null ? lockedSubmission.getVersion() : 1);
                     detailsNode.set(k, emptyInfo);
+                    detailsNode.set(p, emptyInfo);
                 }
             }
 
@@ -1815,14 +1858,18 @@ public class SubmissionService {
         if ("administrative".equalsIgnoreCase(approved.getAuditType())) {
             ObjectMapper mapper = new ObjectMapper();
             try {
-                com.fasterxml.jackson.databind.node.ObjectNode valuesNode = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(nextValues);
+                com.fasterxml.jackson.databind.node.ObjectNode valuesNode = objectNodeOrEmpty(mapper, nextValues);
                 com.fasterxml.jackson.databind.node.ObjectNode progressNode = mapper.createObjectNode();
-                progressNode.put("registrar", "DRAFT");
-                progressNode.put("hr", "DRAFT");
-                progressNode.put("dean-student-welfare", "DRAFT");
-                progressNode.put("dean-placement", "DRAFT");
+                java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(approved);
+                for (String p : activePosts) {
+                    progressNode.put(p, "DRAFT");
+                    progressNode.put(toCamelCaseRole(p), "DRAFT");
+                }
                 valuesNode.set("administrativeProgress", progressNode);
                 valuesNode.remove("__administrativeSubmissionStatus");
+                valuesNode.remove("administrativeApprovals");
+                valuesNode.remove("__auditSignOff");
+                valuesNode.remove("auditorSignOff");
                 nextValues = mapper.writeValueAsString(valuesNode);
             } catch (Exception ignored) {}
         }
@@ -1834,8 +1881,8 @@ public class SubmissionService {
                 .universityId(approved.getUniversityId() != null ? approved.getUniversityId() : 1L)
                 .universityCode(approved.getUniversityCode() != null && !approved.getUniversityCode().isBlank() ? approved.getUniversityCode() : "dypiu")
                 .school(approved.getSchool())
-                .submittedBy(approved.getSubmittedBy())
-                .submittedByDetails(approved.getSubmittedByDetails())
+                .submittedBy("administrative".equalsIgnoreCase(approved.getAuditType()) ? "Administrative Authorities" : approved.getSubmittedBy())
+                .submittedByDetails(null)
                 .status("DRAFT")
                 .valuesData(nextValues)
                 .tablesData(nextTables)

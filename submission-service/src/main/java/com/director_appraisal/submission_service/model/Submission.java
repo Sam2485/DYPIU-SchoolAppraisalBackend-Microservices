@@ -248,7 +248,9 @@ public class Submission {
                     .readTree(valuesData)
                     .get("administrativeProgress");
             if (node != null && node.isObject()) {
-                progress.replaceAll((post, value) -> node.path(post).asText(value));
+                node.fields().forEachRemaining(entry -> {
+                    progress.put(entry.getKey(), entry.getValue().asText("DRAFT"));
+                });
             }
         } catch (Exception ignored) {
             return progress;
@@ -262,6 +264,15 @@ public class Submission {
             if (submittedByDetails != null && !submittedByDetails.isBlank()) {
                 try {
                     return new com.fasterxml.jackson.databind.ObjectMapper().readTree(submittedByDetails);
+                } catch (Exception ignored) {}
+            }
+            if (valuesData != null && !valuesData.isBlank()) {
+                try {
+                    com.fasterxml.jackson.databind.JsonNode valNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(valuesData);
+                    com.fasterxml.jackson.databind.JsonNode statusNode = valNode.get("__administrativeSubmissionStatus");
+                    if (statusNode != null && statusNode.isObject() && statusNode.size() > 0) {
+                        return statusNode;
+                    }
                 } catch (Exception ignored) {}
             }
             return defaultSubmittedByDetails();
