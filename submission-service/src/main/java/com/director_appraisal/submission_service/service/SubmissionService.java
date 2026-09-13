@@ -1874,8 +1874,15 @@ public class SubmissionService {
                 com.fasterxml.jackson.databind.node.ObjectNode progressNode = mapper.createObjectNode();
                 java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(approved);
                 for (String p : activePosts) {
+                    if ("auditor".equalsIgnoreCase(p) || "auditor".equalsIgnoreCase(canonicalAdministrativePost(p))) {
+                        continue;
+                    }
+                    String cp = canonicalAdministrativePost(p);
                     progressNode.put(p, "DRAFT");
-                    progressNode.put(toCamelCaseRole(p), "DRAFT");
+                    if (cp != null) {
+                        progressNode.put(cp, "DRAFT");
+                        progressNode.put(toCamelCaseRole(cp), "DRAFT");
+                    }
                 }
                 valuesNode.set("administrativeProgress", progressNode);
                 valuesNode.remove("__administrativeSubmissionStatus");
@@ -2466,33 +2473,12 @@ public class SubmissionService {
                 || (caller.getRole() != null && caller.getRole().toLowerCase().contains("auditor"));
 
         if (isAuditor) {
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                com.fasterxml.jackson.databind.node.ObjectNode existingValues = objectNodeOrEmpty(mapper, submission.getValuesData());
-                com.fasterxml.jackson.databind.node.ObjectNode incomingValues = objectNodeOrEmpty(mapper, incomingValuesData);
-                
-                incomingValues.fields().forEachRemaining(entry -> {
-                    existingValues.set(entry.getKey(), entry.getValue());
-                });
-                
-                com.fasterxml.jackson.databind.node.ObjectNode existingTables = objectNodeOrEmpty(mapper, submission.getTablesData());
-                com.fasterxml.jackson.databind.node.ObjectNode incomingTables = objectNodeOrEmpty(mapper, incomingTablesData);
-                
-                incomingTables.fields().forEachRemaining(entry -> {
-                    existingTables.set(entry.getKey(), entry.getValue());
-                });
-
-                String mergedValuesJson = injectAuditorSignOff(mapper.writeValueAsString(existingValues), caller);
-                String mergedTablesJson = mapper.writeValueAsString(existingTables);
-                return new AdministrativePayload(mergedValuesJson, mergedTablesJson, false, false);
-            } catch (Exception e) {
-                return new AdministrativePayload(
-                        incomingValuesData != null ? incomingValuesData : submission.getValuesData(),
-                        incomingTablesData != null ? incomingTablesData : submission.getTablesData(),
-                        false,
-                        false
-                );
-            }
+            return new AdministrativePayload(
+                    submission.getValuesData(),
+                    submission.getTablesData(),
+                    false,
+                    false
+            );
         }
 
         if (!isAdministrativeSectionUser(caller, submission)) {
@@ -2553,7 +2539,12 @@ public class SubmissionService {
             com.fasterxml.jackson.databind.node.ObjectNode progress = administrativeProgressNode(mapper, mergedValues, submission);
             if (submittingContribution) {
                 for (String p : posts) {
+                    String cp = canonicalAdministrativePost(p);
                     progress.put(p, "SUBMITTED");
+                    if (cp != null) {
+                        progress.put(cp, "SUBMITTED");
+                        progress.put(toCamelCaseRole(cp), "SUBMITTED");
+                    }
                     com.fasterxml.jackson.databind.JsonNode existingStatusNode = mergedValues.get("__administrativeSubmissionStatus");
                     com.fasterxml.jackson.databind.node.ObjectNode statusNode = (existingStatusNode != null && existingStatusNode.isObject())
                             ? (com.fasterxml.jackson.databind.node.ObjectNode) existingStatusNode
@@ -2567,6 +2558,10 @@ public class SubmissionService {
                         postStatus.put("userId", caller.getId());
                     }
                     statusNode.set(p, postStatus);
+                    if (cp != null) {
+                        statusNode.set(cp, postStatus);
+                        statusNode.set(toCamelCaseRole(cp), postStatus);
+                    }
                     mergedValues.set("__administrativeSubmissionStatus", statusNode);
                 }
             }
@@ -2940,7 +2935,12 @@ public class SubmissionService {
             try {
                 Map<String, String> prog = submission.getAdministrativeProgressForJson();
                 if (prog != null) {
-                    posts.addAll(prog.keySet());
+                    for (String k : prog.keySet()) {
+                        String cp = canonicalAdministrativePost(k);
+                        if (cp != null && !cp.isBlank() && !"auditor".equalsIgnoreCase(cp)) {
+                            posts.add(cp);
+                        }
+                    }
                 }
             } catch (Exception ignored) {}
         }
@@ -2958,6 +2958,10 @@ public class SubmissionService {
         Long uniId = submission.getUniversityId() != null ? submission.getUniversityId() : 1L;
 
         List<String> requiredPosts = activePosts.stream()
+                .map(this::canonicalAdministrativePost)
+                .filter(java.util.Objects::nonNull)
+                .filter(post -> !"auditor".equalsIgnoreCase(post))
+                .distinct()
                 .filter(post -> hasActiveAdministrativeUserForPost(post, uniId))
                 .toList();
 
@@ -2966,6 +2970,10 @@ public class SubmissionService {
                 var it = progressNode.fields();
                 while (it.hasNext()) {
                     var entry = it.next();
+                    String key = entry.getKey();
+                    if ("auditor".equalsIgnoreCase(key) || "auditor".equalsIgnoreCase(canonicalAdministrativePost(key))) {
+                        continue;
+                    }
                     String st = entry.getValue().asText("DRAFT");
                     if (!"SUBMITTED".equalsIgnoreCase(st) && !"APPROVED".equalsIgnoreCase(st)) {
                         return false;
@@ -2976,10 +2984,26 @@ public class SubmissionService {
             return false;
         }
 
-        return requiredPosts.stream().allMatch(post -> {
-            String st = progressNode != null ? progressNode.path(post).asText("DRAFT") : "DRAFT";
-            return "SUBMITTED".equalsIgnoreCase(st) || "APPROVED".equalsIgnoreCase(st);
-        });
+        return requiredPosts.stream().allMatch(post -> isPostProgressSubmitted(progressNode, post));
+    }
+
+    private boolean isPostProgressSubmitted(com.fasterxml.jackson.databind.JsonNode progressNode, String canonicalPost) {
+        if (progressNode == null || !progressNode.isObject() || canonicalPost == null) return false;
+        String st1 = progressNode.path(canonicalPost).asText("");
+        if ("SUBMITTED".equalsIgnoreCase(st1) || "APPROVED".equalsIgnoreCase(st1)) return true;
+        String camel = toCamelCaseRole(canonicalPost);
+        String st2 = progressNode.path(camel).asText("");
+        if ("SUBMITTED".equalsIgnoreCase(st2) || "APPROVED".equalsIgnoreCase(st2)) return true;
+        var it = progressNode.fields();
+        while (it.hasNext()) {
+            var entry = it.next();
+            String cp = canonicalAdministrativePost(entry.getKey());
+            if (canonicalPost.equalsIgnoreCase(cp)) {
+                String st = entry.getValue().asText("");
+                if ("SUBMITTED".equalsIgnoreCase(st) || "APPROVED".equalsIgnoreCase(st)) return true;
+            }
+        }
+        return false;
     }
 
     private java.util.Set<String> resolveAdministrativePosts(UserDto user) {
@@ -3610,7 +3634,10 @@ public class SubmissionService {
 
     private boolean shouldRemoveForNextCycle(String normalizedKey, String auditType) {
         if (normalizedKey.contains("auditsignoff") || normalizedKey.contains("approved")
-                || normalizedKey.contains("approval") || normalizedKey.contains("remark")) {
+                || normalizedKey.contains("approval") || normalizedKey.contains("remark")
+                || normalizedKey.contains("auditor") || normalizedKey.contains("auditobservation")
+                || normalizedKey.contains("auditrecommendation") || normalizedKey.contains("auditdocumentation")
+                || normalizedKey.contains("auditrecord")) {
             return true;
         }
         if ("academic".equalsIgnoreCase(auditType)) {
@@ -4374,15 +4401,8 @@ public class SubmissionService {
         }
         
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            String preparedAttachments = request.getAttachments() != null ? deduplicateAttachmentMetadataJson(request.getAttachments()) : submission.getAttachments();
-            AdministrativePayload administrativePayload = prepareAdministrativePayload(submission, caller, request.getValuesData(), request.getTablesData(), preparedAttachments, false);
-            if (request.getValuesData() != null) {
-                submission.setValuesData(administrativePayload.valuesData());
-            }
-            if (request.getTablesData() != null) {
-                submission.setTablesData(prepareTablesDataUpdate(submission, administrativePayload.tablesData(), preparedAttachments));
-            }
             if (request.getAttachments() != null) {
+                String preparedAttachments = deduplicateAttachmentMetadataJson(request.getAttachments());
                 submission.setAttachments(preparedAttachments);
             }
         } else {
