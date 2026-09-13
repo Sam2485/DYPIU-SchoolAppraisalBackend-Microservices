@@ -38,7 +38,7 @@ public class SchemaCompilerService {
             university = universityRepository.findById(schema.getUniversityId()).orElse(null);
         }
         if (university == null) {
-            university = universityRepository.findByCodeIgnoreCase("dypiu").orElse(null);
+            university = universityRepository.findAll().stream().findFirst().orElse(null);
         }
 
         Map<String, Object> header = new LinkedHashMap<>();
@@ -49,9 +49,9 @@ public class SchemaCompilerService {
             header.put("logoUrl", university.getLogoUrl());
             header.put("iqacLogoUrl", university.getIqacLogoUrl());
         } else {
-            header.put("university", "D Y Patil International University Akurdi Pune");
-            header.put("address", "Sector 29, Pradhikaran, Akurdi, Pune - Maharashtra, INDIA 411044");
-            header.put("act", "Establishment by Maharashtra Act No. LXIII of 2017");
+            header.put("university", "");
+            header.put("address", "");
+            header.put("act", "");
         }
 
         Map<String, Object> universityInfo = new LinkedHashMap<>(header);
@@ -131,8 +131,9 @@ public class SchemaCompilerService {
             sectionDtos.add(secDto);
         }
 
+        String defaultYear = resolveDefaultAcademicYear();
         String formId = (schema.getAuditType() != null ? schema.getAuditType().toLowerCase() : "academic")
-                + "-audit-" + (version.getAcademicYear() != null ? version.getAcademicYear().replace("/", "-") : "2025-26");
+                + "-audit-" + (version.getAcademicYear() != null ? version.getAcademicYear().replace("/", "-") : defaultYear);
 
         return CompiledSchemaDto.builder()
                 .id(formId)
@@ -141,7 +142,7 @@ public class SchemaCompilerService {
                 .versionNumber(version.getVersionNumber())
                 .auditType(schema.getAuditType() != null ? schema.getAuditType().toLowerCase() : "academic")
                 .title(version.getTitle() != null ? version.getTitle() : schema.getName())
-                .academicYear(version.getAcademicYear() != null ? version.getAcademicYear() : "July, 2025 - June, 2026")
+                .academicYear(version.getAcademicYear() != null ? version.getAcademicYear() : defaultYear)
                 .ownerRole(version.getOwnerRole() != null ? version.getOwnerRole() : "director-schools")
                 .status(version.getStatus())
                 .header(header)
@@ -211,5 +212,14 @@ public class SchemaCompilerService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String resolveDefaultAcademicYear() {
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        int startYear = month >= 6 ? year : year - 1;
+        int endYear = (startYear + 1) % 100;
+        return String.format("%d-%02d", startYear, endYear);
     }
 }

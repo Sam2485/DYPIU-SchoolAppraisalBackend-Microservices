@@ -28,18 +28,14 @@ public class UserController {
 
     private static final String ADMINISTRATIVE_OFFICE = "Administrative Office";
 
-    private static final Map<String, String> ADMINISTRATIVE_POSTS = Map.of(
-            "registrar", "Registrar",
-            "hr", "HR (Human Resources)",
-            "dean-student-welfare", "Dean Student Welfare",
-            "dean-placement", "Dean Placement",
-            "dp", "Dean Placement");
-
     private record DynamicPostsCache(long timestamp, Map<String, String> posts) {}
     private final Map<Long, DynamicPostsCache> dynamicPostsCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     private Map<String, String> getDynamicUniversityPosts(Long universityId) {
-        Long uId = universityId != null ? universityId : 1L;
+        if (universityId == null) {
+            return Map.of();
+        }
+        Long uId = universityId;
         DynamicPostsCache cached = dynamicPostsCache.get(uId);
         long now = System.currentTimeMillis();
         if (cached != null && (now - cached.timestamp()) < 30_000L) {
@@ -184,7 +180,7 @@ public class UserController {
                 .school("Root")
                 .designation(designation)
                 .universityId(universityId)
-                .universityCode(universityCode != null && !universityCode.isBlank() ? universityCode : "dypiu")
+                .universityCode(universityCode != null && !universityCode.isBlank() ? universityCode : null)
                 .accountType("reviewer")
                 .category("all")
                 .status("active")
@@ -257,8 +253,8 @@ public class UserController {
             }
 
             User currentUser = getCurrentUser(authentication);
-            Long uniId = currentUser != null && currentUser.getUniversityId() != null ? currentUser.getUniversityId() : 1L;
-            String uniCode = currentUser != null && currentUser.getUniversityCode() != null && !currentUser.getUniversityCode().isBlank() ? currentUser.getUniversityCode() : "dypiu";
+            Long uniId = currentUser != null ? currentUser.getUniversityId() : null;
+            String uniCode = currentUser != null && currentUser.getUniversityCode() != null && !currentUser.getUniversityCode().isBlank() ? currentUser.getUniversityCode() : null;
 
             User userToSave = User.builder()
                     .name(validatedUser.name)
@@ -679,8 +675,8 @@ public class UserController {
         response.put("auditorRole", user.getAuditorRole());
         response.put("status", Boolean.TRUE.equals(user.getDeleted()) ? "deleted" : (user.getStatus() != null ? user.getStatus() : "active"));
         response.put("deleted", Boolean.TRUE.equals(user.getDeleted()));
-        response.put("universityId", user.getUniversityId() != null ? user.getUniversityId() : 1L);
-        response.put("universityCode", user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : "dypiu");
+        response.put("universityId", user.getUniversityId());
+        response.put("universityCode", user.getUniversityCode());
         return response;
     }
 

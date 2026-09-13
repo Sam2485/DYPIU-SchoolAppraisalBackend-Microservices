@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,6 +94,10 @@ class AdminConfigControllerTest {
                 .isRepeatable(true)
                 .build();
 
+        FormSection section = FormSection.builder().id(10L).versionId(1L).title("Section 1").build();
+        when(formSectionRepository.findById(10L)).thenReturn(Optional.of(section));
+        when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(1L)).thenReturn(List.of(section));
+        when(formTableRepository.findBySectionIdIn(any())).thenReturn(List.of());
         when(formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(10L)).thenReturn(List.of());
         when(formTableRepository.save(any())).thenAnswer(inv -> {
             FormTable t = inv.getArgument(0);

@@ -123,19 +123,34 @@ public class AuditCycleController {
             return response;
         } catch (Exception e) {
             log.error("Error building academic year info: {}", e.getMessage(), e);
+            String defLong = defaultLongYear();
+            String defShort = defaultShortYear();
             Map<String, Object> fallback = new LinkedHashMap<>();
-            fallback.put("activeYear", "2025-2026");
-            fallback.put("currentAcademicYear", "2025-2026");
-            fallback.put("currentYear", "2025-2026");
-            fallback.put("compactActiveYear", "2025-26");
-            fallback.put("auditCycle", "2025-26");
-            fallback.put("years", List.of("2025-26", "2025-2026"));
-            fallback.put("availableYears", List.of("2025-26", "2025-2026"));
-            fallback.put("academicYears", List.of("2025-26", "2025-2026"));
+            fallback.put("activeYear", defLong);
+            fallback.put("currentAcademicYear", defLong);
+            fallback.put("currentYear", defLong);
+            fallback.put("compactActiveYear", defShort);
+            fallback.put("auditCycle", defShort);
+            fallback.put("years", List.of(defShort, defLong));
+            fallback.put("availableYears", List.of(defShort, defLong));
+            fallback.put("academicYears", List.of(defShort, defLong));
             return fallback;
         }
     }
 
+    private String defaultLongYear() {
+        int year = java.time.LocalDate.now().getYear();
+        int month = java.time.LocalDate.now().getMonthValue();
+        int start = month >= 6 ? year : year - 1;
+        return start + "-" + (start + 1);
+    }
+
+    private String defaultShortYear() {
+        int year = java.time.LocalDate.now().getYear();
+        int month = java.time.LocalDate.now().getMonthValue();
+        int start = month >= 6 ? year : year - 1;
+        return start + "-" + String.valueOf(start + 1).substring(2);
+    }
 
     private Set<String> collectAllYears(String currentActive) {
         Set<String> years = new LinkedHashSet<>();
@@ -182,19 +197,21 @@ public class AuditCycleController {
 
     private String computeNextYear(String current) {
         if (current == null || current.isBlank()) {
-            return "2026-2027";
+            int year = java.time.LocalDate.now().getYear();
+            return (year + 1) + "-" + (year + 2);
         }
         String[] parts = current.trim().split("-");
         try {
             int start = Integer.parseInt(parts[0]);
             return (start + 1) + "-" + (start + 2);
         } catch (Exception e) {
-            return "2026-2027";
+            int year = java.time.LocalDate.now().getYear();
+            return (year + 1) + "-" + (year + 2);
         }
     }
 
     private String toLongYearFormat(String value) {
-        if (value == null || value.isBlank()) return "2025-2026";
+        if (value == null || value.isBlank()) return defaultLongYear();
         String trimmed = value.trim();
         if (trimmed.matches("\\d{4}-\\d{2}")) {
             return trimmed.substring(0, 5) + trimmed.substring(0, 2) + trimmed.substring(5);
@@ -206,7 +223,7 @@ public class AuditCycleController {
     }
 
     private String toShortYearFormat(String value) {
-        if (value == null || value.isBlank()) return "2025-26";
+        if (value == null || value.isBlank()) return defaultShortYear();
         String trimmed = value.trim();
         if (trimmed.matches("\\d{4}-\\d{4}")) {
             return trimmed.substring(0, 4) + "-" + trimmed.substring(7);

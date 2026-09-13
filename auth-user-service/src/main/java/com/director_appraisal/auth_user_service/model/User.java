@@ -43,11 +43,9 @@ public class User implements UserDetails {
     private String schools;
     private String avatarUrl;
 
-    @Builder.Default
-    private Long universityId = 1L;
+    private Long universityId;
 
-    @Builder.Default
-    private String universityCode = "dypiu";
+    private String universityCode;
 
 
     public List<String> getSchoolsList() {

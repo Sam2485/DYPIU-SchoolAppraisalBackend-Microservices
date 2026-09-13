@@ -77,7 +77,7 @@ class JwtUtilTest {
     }
 
     @Test
-    @DisplayName("Should safely handle missing university claims with default fallback")
+    @DisplayName("Should safely handle missing university claims with null")
     void testLegacyTokenFallback() {
         String token = Jwts.builder()
                 .subject("legacy@dypiu.ac.in")
@@ -87,7 +87,7 @@ class JwtUtilTest {
                 .compact();
 
         assertTrue(jwtUtil.validateToken(token));
-        assertEquals("1", jwtUtil.extractUniversityId(token));
-        assertEquals("dypiu", jwtUtil.extractUniversityCode(token));
+        assertNull(jwtUtil.extractUniversityId(token));
+        assertNull(jwtUtil.extractUniversityCode(token));
     }
 }

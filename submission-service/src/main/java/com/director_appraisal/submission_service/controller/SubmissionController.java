@@ -165,8 +165,8 @@ public class SubmissionController {
                 .school(schoolFromContext)
                 .post(postFromContext)
                 .category(categoryFromContext)
-                .universityId(universityIdFromContext != null ? universityIdFromContext : 1L)
-                .universityCode(universityCodeFromContext != null && !universityCodeFromContext.isBlank() ? universityCodeFromContext : "dypiu")
+                .universityId(universityIdFromContext)
+                .universityCode(universityCodeFromContext != null && !universityCodeFromContext.isBlank() ? universityCodeFromContext : null)
                 .build();
     }
 
@@ -987,7 +987,7 @@ public void downloadAttachments(@PathVariable Long id,
         entityName = entityName.replaceAll("[^A-Za-z0-9._-]", "_");
         String cycle = submission.getAuditCycle() != null ? submission.getAuditCycle() : submission.getAcademicYear();
         if (cycle == null || cycle.isBlank()) {
-            cycle = "2025-2026";
+            cycle = submissionService.getCurrentAcademicYearLabel();
         }
         cycle = cycle.replaceAll("[^A-Za-z0-9._-]", "_");
         return type + "_" + entityName + "_" + cycle + ".zip";
@@ -997,49 +997,28 @@ public void downloadAttachments(@PathVariable Long id,
         if (post == null || post.isBlank()) {
             return "Unknown";
         }
-        return switch (post.trim().toLowerCase()) {
-            case "registrar" -> "Registrar";
-            case "hr" -> "HR";
-            case "dean-student-welfare" -> "Dean_Student_Welfare";
-            case "dean-placement", "dp" -> "Dean_Placement";
-            default -> post;
-        };
+        String clean = post.trim().replace('-', '_').replace(' ', '_');
+        String[] parts = clean.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (!p.isEmpty()) {
+                if (!sb.isEmpty()) sb.append("_");
+                sb.append(Character.toUpperCase(p.charAt(0)));
+                if (p.length() > 1) {
+                    sb.append(p.substring(1));
+                }
+            }
+        }
+        return !sb.isEmpty() ? sb.toString() : clean;
     }
 
     private String getZipFolderPath(ExtractedAttachment att, String auditType) {
-        String sec = att.sectionId != null ? att.sectionId.trim().toLowerCase() : "";
-        if ("academic".equalsIgnoreCase(auditType)) {
-            if (sec.contains("part-a") || sec.contains("parta")) {
-                return "Part-A/";
-            } else if (sec.contains("part-b") || sec.contains("partb")) {
-                return "Part-B/";
-            } else if (sec.contains("part-c") || sec.contains("partc")) {
-                return "Part-C/";
-            } else if (sec.contains("part-d") || sec.contains("partd")) {
-                return "Part-D/";
-            }
-            return "Other-Attachments/";
-        } else {
-            if (sec.contains("registrar-part-a")) {
-                return "Registrar/Part-A/";
-            } else if (sec.contains("registrar-part-c")) {
-                return "Registrar/Part-C/";
-            } else if (sec.contains("hr-part-b")) {
-                return "HR/Part-B/";
-            } else if (sec.contains("dean-student-welfare-part-d")) {
-                return "Dean-Student-Welfare/Part-D/";
-            } else if (sec.contains("dean-placement-part-e")) {
-                return "Dean-Placement/Part-E/";
-            }
-            if (sec.contains("section-a") || sec.contains("sectiona") || sec.contains("part-a") || sec.contains("parta")) {
-                return "Section-A/";
-            } else if (sec.contains("section-b") || sec.contains("sectionb") || sec.contains("part-b") || sec.contains("partb")) {
-                return "Section-B/";
-            } else if (sec.contains("section-c") || sec.contains("sectionc") || sec.contains("part-c") || sec.contains("partc")) {
-                return "Section-C/";
-            }
+        if (att.sectionId == null || att.sectionId.isBlank()) {
             return "Other-Attachments/";
         }
+        String sec = att.sectionId.trim();
+        String cleanSec = sec.replaceAll("[^A-Za-z0-9._-]", "_");
+        return cleanSec + "/";
     }
 
     private String sanitizeFilename(String filename) {

@@ -77,9 +77,9 @@ public class JwtUtil {
         try {
             Claims claims = getClaims(token);
             Object uid = claims.get("universityId");
-            return uid != null ? String.valueOf(uid) : "1";
+            return uid != null ? String.valueOf(uid) : null;
         } catch (Exception e) {
-            return "1";
+            return null;
         }
     }
 
@@ -87,9 +87,9 @@ public class JwtUtil {
         try {
             Claims claims = getClaims(token);
             String code = (String) claims.get("universityCode");
-            return (code != null && !code.isBlank()) ? code : "dypiu";
+            return (code != null && !code.isBlank()) ? code : null;
         } catch (Exception e) {
-            return "dypiu";
+            return null;
         }
     }
 }
