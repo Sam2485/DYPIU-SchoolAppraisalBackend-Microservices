@@ -33,14 +33,19 @@ public class FormConfigService {
 
     @Transactional(readOnly = true)
     public CompiledSchemaDto getActiveCompiledSchema(String universityCode, String auditType, String school) {
-        String code = (universityCode != null && !universityCode.isBlank()) ? universityCode.trim().toLowerCase() : "dypiu";
+        String code = (universityCode != null && !universityCode.isBlank()) ? universityCode.trim().toLowerCase() : null;
         String type = (auditType != null && !auditType.isBlank()) ? auditType.trim().toLowerCase() : "academic";
 
-        University university = universityRepository.findByCodeIgnoreCase(code)
-                .orElseGet(() -> universityRepository.findByCodeIgnoreCase("dypiu").orElse(null));
+        University university = null;
+        if (code != null) {
+            university = universityRepository.findByCodeIgnoreCase(code).orElse(null);
+        }
+        if (university == null) {
+            university = universityRepository.findAll().stream().findFirst().orElse(null);
+        }
 
         if (university == null) {
-            throw new IllegalArgumentException("University not found for code: " + code);
+            throw new IllegalArgumentException("University not found for code: " + (code != null ? code : "any"));
         }
 
         List<FormSchema> allSchemas = formSchemaRepository.findByUniversityId(university.getId());
@@ -133,9 +138,9 @@ public class FormConfigService {
                 .schemaId(schema.getId())
                 .versionNumber(nextVersionNumber)
                 .status("DRAFT")
-                .academicYear(sourceVersion != null ? sourceVersion.getAcademicYear() : "2025-26")
+                .academicYear(sourceVersion != null ? sourceVersion.getAcademicYear() : resolveDefaultAcademicYear())
                 .title(sourceVersion != null ? sourceVersion.getTitle() : schema.getName())
-                .ownerRole(sourceVersion != null ? sourceVersion.getOwnerRole() : ("administrative".equalsIgnoreCase(schema.getAuditType()) ? "registrar" : "director-schools"))
+                .ownerRole(sourceVersion != null ? sourceVersion.getOwnerRole() : ("administrative".equalsIgnoreCase(schema.getAuditType()) ? "administrative" : "director-schools"))
                 .publishedBy(createdBy)
                 .build();
 
@@ -431,9 +436,9 @@ public class FormConfigService {
                 .schemaId(savedSchema.getId())
                 .versionNumber(1)
                 .status("DRAFT")
-                .academicYear(sourceVersions.isEmpty() ? "2025-26" : sourceVersions.get(0).getAcademicYear())
+                .academicYear(sourceVersions.isEmpty() ? resolveDefaultAcademicYear() : sourceVersions.get(0).getAcademicYear())
                 .title(targetName)
-                .ownerRole("administrative".equalsIgnoreCase(targetType) ? "registrar" : "director-schools")
+                .ownerRole("administrative".equalsIgnoreCase(targetType) ? "administrative" : "director-schools")
                 .publishedBy(createdBy != null ? createdBy : "admin")
                 .build();
 
@@ -745,5 +750,12 @@ public class FormConfigService {
         if (label == null) return "field";
         String s = label.replaceAll("[^a-zA-Z0-9\\s]", "").trim().replaceAll("\\s+", "_").toLowerCase();
         return s.isBlank() ? "field_" + System.currentTimeMillis() : s;
+    }
+
+    private String resolveDefaultAcademicYear() {
+        int year = java.time.LocalDate.now().getYear();
+        int month = java.time.LocalDate.now().getMonthValue();
+        int startYear = month >= 6 ? year : year - 1;
+        return startYear + "-" + String.valueOf(startYear + 1).substring(2);
     }
 }

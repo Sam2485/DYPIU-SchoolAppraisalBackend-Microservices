@@ -163,13 +163,13 @@ public class AuthController {
     }
 
     private LoginResponse buildLoginResponseBody(User user) {
-        String currentAcademicYear = "2025-26";
+        String currentAcademicYear = resolveCurrentAcademicYear();
         java.util.List<String> administrativePosts = getAdministrativePosts(user);
         String canonicalPost = canonicalAdministrativePost(user.getPost());
         String role = user.getRole();
         String school = isReviewerRole(role) ? null : user.getSchool();
-        Long universityId = user.getUniversityId() != null ? user.getUniversityId() : 1L;
-        String universityCode = user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : "dypiu";
+        Long universityId = user.getUniversityId();
+        String universityCode = user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : null;
 
         Map<String, Object> claims = new java.util.LinkedHashMap<>();
         putClaim(claims, "name", user.getName());
@@ -231,10 +231,10 @@ public class AuthController {
                         String canonicalPost = canonicalAdministrativePost(user.getPost());
                         String role = user.getRole();
                         String school = isReviewerRole(role) ? null : user.getSchool();
-                        String currentAcademicYear = "2025-26";
+                        String currentAcademicYear = resolveCurrentAcademicYear();
                         java.util.List<String> administrativePosts = getAdministrativePosts(user);
-                        Long universityId = user.getUniversityId() != null ? user.getUniversityId() : 1L;
-                        String universityCode = user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : "dypiu";
+                        Long universityId = user.getUniversityId();
+                        String universityCode = user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : null;
 
                         Map<String, Object> claims = new java.util.LinkedHashMap<>();
                         putClaim(claims, "name", user.getName());
@@ -451,5 +451,14 @@ public class AuthController {
 
     private String safeMessage(Exception e, String fallback) {
         return e.getMessage() != null ? e.getMessage() : fallback;
+    }
+
+    private String resolveCurrentAcademicYear() {
+        java.time.LocalDate now = java.time.LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        int startYear = month >= 6 ? year : year - 1;
+        int endYear = (startYear + 1) % 100;
+        return String.format("%d-%02d", startYear, endYear);
     }
 }

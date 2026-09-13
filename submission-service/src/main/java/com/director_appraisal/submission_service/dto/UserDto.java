@@ -44,11 +44,9 @@ public class UserDto {
     @Builder.Default
     private List<String> administrativePosts = new ArrayList<>();
 
-    @Builder.Default
-    private Long universityId = 1L;
+    private Long universityId;
 
-    @Builder.Default
-    private String universityCode = "dypiu";
+    private String universityCode;
 
 
     @JsonProperty("schools")

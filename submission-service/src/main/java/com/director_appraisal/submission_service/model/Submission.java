@@ -28,11 +28,9 @@ public class Submission {
 
     private Long schemaVersionId;
 
-    @Builder.Default
-    private Long universityId = 1L;
+    private Long universityId;
 
-    @Builder.Default
-    private String universityCode = "dypiu";
+    private String universityCode;
 
     private String school;
 
@@ -236,21 +234,24 @@ public class Submission {
     @com.fasterxml.jackson.annotation.JsonGetter("administrativeProgress")
     public java.util.Map<String, String> getAdministrativeProgressForJson() {
         java.util.Map<String, String> progress = new java.util.LinkedHashMap<>();
-        progress.put("registrar", "DRAFT");
-        progress.put("hr", "DRAFT");
-        progress.put("dean-student-welfare", "DRAFT");
-        progress.put("dean-placement", "DRAFT");
         if (valuesData == null || valuesData.isBlank()) {
             return progress;
         }
         try {
-            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .readTree(valuesData)
-                    .get("administrativeProgress");
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(valuesData);
+            com.fasterxml.jackson.databind.JsonNode node = root.get("administrativeProgress");
             if (node != null && node.isObject()) {
                 node.fields().forEachRemaining(entry -> {
                     progress.put(entry.getKey(), entry.getValue().asText("DRAFT"));
                 });
+            } else {
+                com.fasterxml.jackson.databind.JsonNode statusNode = root.get("__administrativeSubmissionStatus");
+                if (statusNode != null && statusNode.isObject()) {
+                    statusNode.fields().forEachRemaining(entry -> {
+                        boolean submitted = entry.getValue().has("submitted") && entry.getValue().get("submitted").asBoolean(false);
+                        progress.put(entry.getKey(), submitted ? "SUBMITTED" : "DRAFT");
+                    });
+                }
             }
         } catch (Exception ignored) {
             return progress;
@@ -282,18 +283,7 @@ public class Submission {
 
     private Object defaultSubmittedByDetails() {
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        com.fasterxml.jackson.databind.node.ObjectNode node = mapper.createObjectNode();
-        
-        String[] keys = {"registrar", "hr", "deanStudentWelfare", "deanPlacement"};
-        for (String key : keys) {
-            com.fasterxml.jackson.databind.node.ObjectNode roleNode = mapper.createObjectNode();
-            roleNode.put("submitted", false);
-            roleNode.putNull("submittedAt");
-            roleNode.putNull("name");
-            roleNode.putNull("email");
-            node.set(key, roleNode);
-        }
-        return node;
+        return mapper.createObjectNode();
     }
 
     @com.fasterxml.jackson.annotation.JsonGetter("sectionProgress")

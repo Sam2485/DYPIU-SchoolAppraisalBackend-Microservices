@@ -241,7 +241,7 @@ class FormConfigServiceTest {
         when(schemaVersionRepository.findById(5L)).thenReturn(Optional.of(draftV1));
         when(formSchemaRepository.findById(5L)).thenReturn(Optional.of(schema));
         when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(5L)).thenReturn(List.of());
-        when(universityRepository.findByCodeIgnoreCase("dypiu")).thenReturn(Optional.empty());
+        when(universityRepository.findAll()).thenReturn(List.of());
 
         CompiledSchemaDto dto = compiler.compile(5L);
         assertNotNull(dto);

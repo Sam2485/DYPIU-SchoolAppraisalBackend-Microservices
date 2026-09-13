@@ -13,15 +13,20 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AcademicYearService {
 
-    private static final String DEFAULT_ACADEMIC_YEAR = "2025-2026";
-
     private final AcademicYearRepository academicYearRepository;
+
+    private String resolveDefaultAcademicYear() {
+        int year = java.time.LocalDate.now().getYear();
+        int month = java.time.LocalDate.now().getMonthValue();
+        int startYear = month >= 6 ? year : year - 1;
+        return startYear + "-" + (startYear + 1);
+    }
 
     public String getCurrentAcademicYearLabel() {
         return academicYearRepository.findByActiveTrue().stream()
                 .findFirst()
                 .map(AcademicYear::getYearLabel)
-                .orElse(DEFAULT_ACADEMIC_YEAR);
+                .orElseGet(this::resolveDefaultAcademicYear);
     }
 
     public Map<String, Object> getAcademicYearInfo() {
@@ -29,7 +34,7 @@ public class AcademicYearService {
         String activeYearLabel = activeYears.stream()
                 .findFirst()
                 .map(AcademicYear::getYearLabel)
-                .orElse(DEFAULT_ACADEMIC_YEAR);
+                .orElseGet(this::resolveDefaultAcademicYear);
 
         List<String> dbYears = academicYearRepository.findAll().stream()
                 .map(AcademicYear::getYearLabel)
@@ -40,7 +45,7 @@ public class AcademicYearService {
         allYearsSet.add(activeYearLabel);
         allYearsSet.addAll(dbYears);
         if (allYearsSet.isEmpty()) {
-            allYearsSet.add(DEFAULT_ACADEMIC_YEAR);
+            allYearsSet.add(resolveDefaultAcademicYear());
         }
 
         List<String> sortedYears = allYearsSet.stream()

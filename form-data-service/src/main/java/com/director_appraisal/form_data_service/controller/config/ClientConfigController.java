@@ -34,10 +34,10 @@ public class ClientConfigController {
         String code = universityCode != null && !universityCode.isBlank() ? universityCode : headerUniversityCode;
         Long uId = universityId != null ? universityId : headerUniversityId;
         if ((code == null || code.isBlank()) && uId != null) {
-            code = universityService.getById(uId).map(University::getCode).orElse("dypiu");
+            code = universityService.getById(uId).map(University::getCode).orElse(null);
         }
         if (code == null || code.isBlank()) {
-            code = "dypiu";
+            code = universityService.getAllUniversities().stream().findFirst().map(University::getCode).orElse(null);
         }
 
         String schoolToUse = (school != null && !school.isBlank()) ? school : headerSchool;
@@ -68,15 +68,15 @@ public class ClientConfigController {
             u = universityService.getById(uId).orElse(null);
         }
         if (u == null) {
-            u = universityService.getByCode("dypiu").orElse(null);
+            u = universityService.getAllUniversities().stream().findFirst().orElse(null);
         }
 
         if (u == null) {
             return ResponseEntity.ok(Map.of(
-                    "universityName", "D Y Patil International University Akurdi Pune",
-                    "code", "dypiu",
-                    "address", "Sector 29, Pradhikaran, Akurdi, Pune - Maharashtra, INDIA 411044",
-                    "act", "Establishment by Maharashtra Act No. LXIII of 2017"
+                    "universityName", "",
+                    "code", "",
+                    "address", "",
+                    "act", ""
             ));
         }
 
