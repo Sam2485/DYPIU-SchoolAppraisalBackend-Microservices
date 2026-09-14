@@ -59,3 +59,13 @@ uploads/
 .serena/
 .serena
 serena/
+
+# Markdown documentation & reports
+*.md
+!README.md
+!Docs/README.md
+
+# Database dump files in root & backups
+/*.sql
+database-backups/
+!**/src/main/resources/**/*.sql

@@ -1,0 +1,47 @@
+# Ignore Git and Environment
+**/.git
+**/.gitignore
+**/.env
+**/.env.*
+
+# Ignore Markdown Documentation & Reports
+*.md
+Docs/
+
+# Ignore Database Dumps and Backups
+/*.sql
+database-backups/
+backups/
+**/backups/
+
+# Keep Migration SQL files in resources
+!**/src/main/resources/**/*.sql
+
+# Ignore Uploads and Temporary Storage
+uploads/
+**/uploads/
+
+# Ignore Build Artifacts
+target/
+**/target/
+build/
+**/build/
+.gradle/
+
+# Ignore IDE and OS Files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+
+# Ignore Logs
+logs/
+*.log
+*.log.gz
+
+# Ignore Serena MCP
+.serena/
+serena/
