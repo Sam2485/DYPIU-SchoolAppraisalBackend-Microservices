@@ -24,5 +24,6 @@ public class SectionDto {
 
     private List<FieldDto> fields; // Top-level fields
     private List<TableDto> tables; // Child tables
+    private List<Map<String, Object>> tableButtons; // Dynamic button-triggered table groups
     private List<Map<String, Object>> blocks; // For composite layout blocks if needed
 }

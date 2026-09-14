@@ -271,6 +271,7 @@ public class AdminConfigController {
         if (req.getSectionNumber() != null) existing.setSectionNumber(req.getSectionNumber());
         if (req.getOwnerRole() != null) existing.setOwnerRole(req.getOwnerRole());
         if (req.getDescription() != null) existing.setDescription(req.getDescription());
+        if (req.getTableButtons() != null) existing.setTableButtons(req.getTableButtons());
         if (req.getDisplayOrder() != null) existing.setDisplayOrder(req.getDisplayOrder());
 
         return ResponseEntity.ok(formSectionRepository.save(existing));

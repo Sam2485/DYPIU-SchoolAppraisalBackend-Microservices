@@ -36,6 +36,9 @@ public class FormSection {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(columnDefinition = "TEXT")
+    private String tableButtons;
+
     @Builder.Default
     private Integer displayOrder = 0;
 

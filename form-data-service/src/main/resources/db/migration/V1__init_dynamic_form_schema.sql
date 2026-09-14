@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS form_sections (
     section_number VARCHAR(50),
     owner_role VARCHAR(100),
     description TEXT,
+    table_buttons TEXT,
     display_order INTEGER DEFAULT 0,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP

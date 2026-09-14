@@ -165,6 +165,7 @@ public class FormConfigService {
                     .ownerRole(srcSec.getOwnerRole())
                     .description(srcSec.getDescription())
                     .displayOrder(srcSec.getDisplayOrder())
+                    .tableButtons(srcSec.getTableButtons())
                     .build();
             FormSection savedSec = formSectionRepository.save(newSec);
 

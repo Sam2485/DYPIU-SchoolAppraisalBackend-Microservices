@@ -126,6 +126,7 @@ public class SchemaCompilerService {
                     .displayOrder(sec.getDisplayOrder())
                     .fields(topFieldDtos)
                     .tables(tableDtos)
+                    .tableButtons(parseJsonList(sec.getTableButtons()))
                     .build();
 
             sectionDtos.add(secDto);
