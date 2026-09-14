@@ -210,6 +210,17 @@ public class UserController {
                 .orElseGet(() -> deleteError(HttpStatus.NOT_FOUND, "User not found"));
     }
 
+    @DeleteMapping("/university/{universityId}")
+    public ResponseEntity<?> deleteUsersByUniversity(
+            @PathVariable Long universityId,
+            @RequestParam(required = false, defaultValue = "false") boolean hard) {
+        userService.deleteAllUsersForUniversity(universityId, hard);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", hard ? "All users for university permanently deleted" : "All users for university archived/deactivated"
+        ));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(Authentication authentication, @PathVariable String id) {
         ResponseEntity<?> authorizationError = authorizeIqac(authentication);

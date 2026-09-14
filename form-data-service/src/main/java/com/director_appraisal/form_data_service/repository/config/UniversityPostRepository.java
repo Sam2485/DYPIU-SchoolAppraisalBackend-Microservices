@@ -17,4 +17,6 @@ public interface UniversityPostRepository extends JpaRepository<UniversityPost, 
     Optional<UniversityPost> findByUniversityIdAndCodeIgnoreCase(Long universityId, String code);
 
     boolean existsByUniversityIdAndCodeIgnoreCase(Long universityId, String code);
+
+    void deleteByUniversityId(Long universityId);
 }

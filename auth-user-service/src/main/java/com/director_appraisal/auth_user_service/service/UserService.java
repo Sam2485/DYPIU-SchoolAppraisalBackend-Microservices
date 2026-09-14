@@ -266,4 +266,21 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("Error hashing token", e);
         }
     }
+
+    @Transactional
+    public void deleteAllUsersForUniversity(Long universityId, boolean hardDelete) {
+        if (universityId == null) return;
+        List<User> users = userRepository.findByUniversityId(universityId);
+        for (User u : users) {
+            if (hardDelete) {
+                if (u.getEmail() != null) {
+                    resetTokenRepository.deleteByEmail(u.getEmail().trim().toLowerCase());
+                }
+                userAdministrativePostRepository.deleteByUserId(u.getId());
+                userRepository.delete(u);
+            } else {
+                deleteUser(u);
+            }
+        }
+    }
 }

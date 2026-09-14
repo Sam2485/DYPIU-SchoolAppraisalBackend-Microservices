@@ -5125,4 +5125,9 @@ public class SubmissionService {
             }
         }
     }
+
+    public long getSubmissionsCountByUniversity(Long universityId) {
+        if (universityId == null) return 0;
+        return submissionRepository.findAllByUniversityId(universityId).size();
+    }
 }

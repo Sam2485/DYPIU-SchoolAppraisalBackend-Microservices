@@ -1047,6 +1047,12 @@ public void downloadAttachments(@PathVariable Long id,
         private String size;
     }
 
+    @GetMapping("/university/{universityId}/count")
+    public ResponseEntity<Map<String, Object>> getSubmissionsCountByUniversity(@PathVariable Long universityId) {
+        long count = submissionService.getSubmissionsCountByUniversity(universityId);
+        return ResponseEntity.ok(Map.of("universityId", universityId, "count", count));
+    }
+
     @Data
     public static class AuditorSubmitRequest {
         private Long auditorId;

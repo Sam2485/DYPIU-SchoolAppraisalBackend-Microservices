@@ -11,4 +11,7 @@ public interface UniversityRepository extends JpaRepository<University, Long> {
     Optional<University> findByCodeIgnoreCase(String code);
     Optional<University> findByDomainIgnoreCase(String domain);
     boolean existsByCodeIgnoreCase(String code);
+
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM University u WHERE u.status IS NULL OR upper(u.status) != 'ARCHIVED' ORDER BY u.id ASC")
+    java.util.List<University> findAllActive();
 }

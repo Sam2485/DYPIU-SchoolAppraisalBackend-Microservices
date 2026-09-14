@@ -24,6 +24,15 @@ public class GlobalExceptionHandler {
 
     private static final String SERVICE_NAME = "form-data-service";
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(org.springframework.web.server.ResponseStatusException e, HttpServletRequest req) {
+        HttpStatus status = HttpStatus.resolve(e.getStatusCode().value());
+        if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
+        String reason = e.getReason() != null ? e.getReason() : e.getMessage();
+        log.warn("[RESPONSE_STATUS_EXCEPTION] path={} status={} reason={}", req.getRequestURI(), status, reason);
+        return build(status, status.name(), reason, req, null);
+    }
+
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<ApiErrorResponse> handleSecurity(SecurityException e, HttpServletRequest req) {
         log.warn("[SECURITY_VIOLATION] path={} message={}", req.getRequestURI(), e.getMessage());
