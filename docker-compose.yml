@@ -109,7 +109,7 @@ services:
     ports:
       - "${STORAGE_SERVICE_PORT:-9004}:9004"
     volumes:
-      - uploads_data:${UPLOAD_DIR:-/app/uploads}
+      - ./uploads:${UPLOAD_DIR:-/app/uploads}
 
   # ---------------------------------------------------------------------------
   # 6. System Backup & Admin Service (Port 9005)
@@ -132,8 +132,8 @@ services:
     ports:
       - "${ADMIN_SERVICE_PORT:-9005}:9005"
     volumes:
-      - uploads_data:${UPLOAD_DIR:-/app/uploads}
-      - backups_data:${BACKUP_DIR:-/app/backups}
+      - ./uploads:${UPLOAD_DIR:-/app/uploads}
+      - ./backups:${BACKUP_DIR:-/app/backups}
     depends_on:
       postgres:
         condition: service_healthy
@@ -166,6 +166,4 @@ services:
 
 volumes:
   pgdata:
-  uploads_data:
-  backups_data:
 
