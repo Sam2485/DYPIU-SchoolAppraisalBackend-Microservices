@@ -36,8 +36,10 @@ public class University {
 
     private String establishmentAct;
 
+    @Column(columnDefinition = "TEXT")
     private String logoUrl;
 
+    @Column(columnDefinition = "TEXT")
     private String iqacLogoUrl;
 
     private String primaryColor;

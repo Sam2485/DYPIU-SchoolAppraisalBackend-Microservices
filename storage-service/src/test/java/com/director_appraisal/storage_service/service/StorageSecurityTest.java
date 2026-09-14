@@ -73,5 +73,20 @@ class StorageSecurityTest {
         assertNotNull(response.getUrl());
         assertFalse(response.getUrl().contains(".."), "URL must not contain path traversal characters");
     }
+
+    @Test
+    @DisplayName("Upload: Allow SVG vector image uploads (.svg)")
+    void testAllowSvgImageUpload() throws IOException {
+        MockMultipartFile svgFile = new MockMultipartFile(
+                "file", "university_logo.svg", "image/svg+xml", "<svg xmlns=\"http://www.w3.org/2000/svg\"><text>Logo</text></svg>".getBytes()
+        );
+
+        when(storageService.storeFile(any(), any())).thenAnswer(inv -> "/uploads/" + inv.getArgument(0));
+
+        AttachmentService.AttachmentResponse response = attachmentService.uploadFile(svgFile, "admin@dypiu.ac.in");
+        assertNotNull(response);
+        assertNotNull(response.getUrl());
+        assertTrue(response.getUrl().endsWith("university_logo.svg"));
+    }
 }
 

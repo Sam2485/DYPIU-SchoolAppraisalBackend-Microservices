@@ -72,4 +72,89 @@ class ClientConfigControllerTest {
         assertEquals("D Y Patil International University Akurdi Pune", response.getBody().get("universityName"));
         assertEquals("#1e3a8a", response.getBody().get("primaryColor"));
     }
+
+    @Test
+    @DisplayName("Branding Update: Reject unauthorized role with 403 Forbidden")
+    void testUpdateBrandingForbiddenRole() {
+        com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto req =
+                new com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto();
+        req.setUniversityName("DYPIU");
+
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "director", "dypiu", 1L, null);
+        assertEquals(403, response.getStatusCode().value());
+    }
+
+    @Test
+    @DisplayName("Branding Update: Reject empty universityName with 400 Bad Request")
+    void testUpdateBrandingEmptyName() {
+        com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto req =
+                new com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto();
+        req.setUniversityName("   ");
+
+        University u = University.builder().id(1L).code("dypiu").name("Existing").build();
+        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(u));
+
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", "dypiu", 1L, null);
+        assertEquals(400, response.getStatusCode().value());
+    }
+
+    @Test
+    @DisplayName("Branding Update: Reject invalid / garbage logoUrl with 400 Bad Request")
+    void testUpdateBrandingInvalidLogoUrl() {
+        com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto req =
+                new com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto();
+        req.setUniversityName("Valid University");
+        req.setLogoUrl("<script>alert('hack')</script>");
+
+        University u = University.builder().id(1L).code("dypiu").name("Existing").build();
+        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(u));
+
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", "dypiu", 1L, null);
+        assertEquals(400, response.getStatusCode().value());
+    }
+
+    @Test
+    @DisplayName("Branding Update: Successfully update university branding and return full object")
+    void testUpdateBrandingSuccess() {
+        com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto req =
+                new com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto();
+        req.setUniversityName("D Y Patil International University");
+        req.setDomain("dypiu.ac.in");
+        req.setAddress("Sector 29, Akurdi, Pune");
+        req.setAct("Maharashtra Act No. VI of 2019");
+        req.setLogoUrl("/uploads/users/123/attachments/logo.png");
+        req.setIqacLogoUrl("/uploads/users/123/attachments/iqac_logo.png");
+
+        University existing = University.builder()
+                .id(1L)
+                .code("dypiu")
+                .name("Old Name")
+                .primaryColor("#1e3a8a")
+                .build();
+
+        University updated = University.builder()
+                .id(1L)
+                .code("dypiu")
+                .name(req.getUniversityName())
+                .domain(req.getDomain())
+                .address(req.getAddress())
+                .establishmentAct(req.getAct())
+                .logoUrl(req.getLogoUrl())
+                .iqacLogoUrl(req.getIqacLogoUrl())
+                .primaryColor("#1e3a8a")
+                .build();
+
+        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(existing));
+        when(universityService.updateUniversity(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any())).thenReturn(updated);
+
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", "dypiu", 1L, null);
+        assertEquals(200, response.getStatusCode().value());
+        assertTrue(response.getBody() instanceof Map);
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("D Y Patil International University", body.get("universityName"));
+        assertEquals("/uploads/users/123/attachments/logo.png", body.get("logoUrl"));
+        assertEquals("/uploads/users/123/attachments/iqac_logo.png", body.get("iqacLogoUrl"));
+        assertEquals("dypiu.ac.in", body.get("domain"));
+        assertEquals("#1e3a8a", body.get("primaryColor"));
+    }
 }

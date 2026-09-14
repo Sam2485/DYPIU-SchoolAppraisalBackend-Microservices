@@ -129,6 +129,8 @@ public class AttachmentController {
             return MediaType.IMAGE_GIF;
         } else if (lower.endsWith(".webp")) {
             return MediaType.parseMediaType("image/webp");
+        } else if (lower.endsWith(".svg")) {
+            return MediaType.parseMediaType("image/svg+xml");
         } else if (lower.endsWith(".txt") || lower.endsWith(".csv")) {
             return MediaType.TEXT_PLAIN;
         } else if (lower.endsWith(".html") || lower.endsWith(".htm")) {

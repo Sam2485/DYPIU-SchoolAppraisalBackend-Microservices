@@ -63,11 +63,11 @@ public class AttachmentService {
     }
 
     private static final java.util.Set<String> ALLOWED_EXTENSIONS = java.util.Set.of(
-            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "png", "jpg", "jpeg", "webp"
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "png", "jpg", "jpeg", "webp", "svg"
     );
 
     private static final java.util.Set<String> BLOCKED_EXTENSIONS = java.util.Set.of(
-            "exe", "bat", "cmd", "sh", "jsp", "jspx", "php", "phtml", "asp", "aspx", "dll", "so", "cgi", "pl", "py", "jar", "war", "vbs", "js", "mjs", "xhtml", "svg", "html", "htm"
+            "exe", "bat", "cmd", "sh", "jsp", "jspx", "php", "phtml", "asp", "aspx", "dll", "so", "cgi", "pl", "py", "jar", "war", "vbs", "js", "mjs", "xhtml", "html", "htm"
     );
 
     private void validateFile(MultipartFile file) {
@@ -96,7 +96,7 @@ public class AttachmentService {
         }
 
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new IllegalArgumentException("File type (." + extension + ") is not supported. Allowed formats: PDF, DOCX, XLSX, PPTX, CSV, TXT, PNG, JPG, WEBP.");
+            throw new IllegalArgumentException("File type (." + extension + ") is not supported. Allowed formats: PDF, DOCX, XLSX, PPTX, CSV, TXT, PNG, JPG, WEBP, SVG.");
         }
     }
 
