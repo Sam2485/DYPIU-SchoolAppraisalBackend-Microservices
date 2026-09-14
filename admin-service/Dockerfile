@@ -18,8 +18,7 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache postgresql-client
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
-
-RUN mkdir -p /app/uploads /app/backups && chown -R spring:spring /app/uploads /app/backups
+RUN mkdir -p /app/logs /app/uploads /app/backups && chown -R spring:spring /app
 
 COPY --from=build /app/admin-service/target/*.jar app.jar
 USER spring:spring

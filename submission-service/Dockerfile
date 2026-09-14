@@ -17,6 +17,7 @@ RUN mvn package -DskipTests -pl submission-service -am -B
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
+RUN mkdir -p /app/logs && chown -R spring:spring /app
 
 COPY --from=build /app/submission-service/target/*.jar app.jar
 USER spring:spring

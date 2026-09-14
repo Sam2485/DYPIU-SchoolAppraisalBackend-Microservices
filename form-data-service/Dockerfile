@@ -17,6 +17,7 @@ RUN mvn package -DskipTests -pl form-data-service -am -B
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
+RUN mkdir -p /app/logs && chown -R spring:spring /app
 
 COPY --from=build /app/form-data-service/target/*.jar app.jar
 USER spring:spring

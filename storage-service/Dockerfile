@@ -17,8 +17,7 @@ RUN mvn package -DskipTests -pl storage-service -am -B
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S spring && adduser -S spring -G spring
 WORKDIR /app
-
-RUN mkdir -p /app/uploads && chown -R spring:spring /app/uploads
+RUN mkdir -p /app/logs /app/uploads && chown -R spring:spring /app
 
 COPY --from=build /app/storage-service/target/*.jar app.jar
 USER spring:spring
