@@ -4436,8 +4436,21 @@ public class SubmissionService {
                 } catch (Exception ignored) {}
             }
         } else {
-            if (request.getValuesData() != null) {
-                submission.setValuesData(injectAuditorSignOff(request.getValuesData(), caller));
+            if (request.getValuesData() != null && !request.getValuesData().isBlank()) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode existingValues = (submission.getValuesData() != null && !submission.getValuesData().isBlank())
+                            ? mapper.readTree(submission.getValuesData())
+                            : mapper.createObjectNode();
+                    JsonNode newValues = mapper.readTree(request.getValuesData());
+                    ObjectNode mergedValues = existingValues.isObject() ? (ObjectNode) existingValues : mapper.createObjectNode();
+                    if (newValues.isObject()) {
+                        mergedValues.setAll((ObjectNode) newValues);
+                    }
+                    submission.setValuesData(injectAuditorSignOff(mapper.writeValueAsString(mergedValues), caller));
+                } catch (Exception e) {
+                    submission.setValuesData(injectAuditorSignOff(request.getValuesData(), caller));
+                }
             }
             if (request.getTablesData() != null && !request.getTablesData().isBlank()) {
                 try {
