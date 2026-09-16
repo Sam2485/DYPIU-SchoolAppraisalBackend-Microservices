@@ -13,6 +13,8 @@ import com.director_appraisal.submission_service.repository.SubmissionAuditorAss
 import com.director_appraisal.submission_service.repository.SubmissionRepository;
 import com.director_appraisal.submission_service.util.SchoolUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -4405,12 +4407,53 @@ public class SubmissionService {
                 String preparedAttachments = deduplicateAttachmentMetadataJson(request.getAttachments());
                 submission.setAttachments(preparedAttachments);
             }
+            if (request.getTablesData() != null && !request.getTablesData().isBlank()) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode existingTables = (submission.getTablesData() != null && !submission.getTablesData().isBlank())
+                            ? mapper.readTree(submission.getTablesData())
+                            : mapper.createObjectNode();
+                    JsonNode newTables = mapper.readTree(request.getTablesData());
+                    ObjectNode mergedTables = existingTables.isObject() ? (ObjectNode) existingTables : mapper.createObjectNode();
+                    if (newTables.isObject()) {
+                        mergedTables.setAll((ObjectNode) newTables);
+                    }
+                    submission.setTablesData(mapper.writeValueAsString(mergedTables));
+                } catch (Exception ignored) {}
+            }
+            if (request.getValuesData() != null && !request.getValuesData().isBlank()) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode existingValues = (submission.getValuesData() != null && !submission.getValuesData().isBlank())
+                            ? mapper.readTree(submission.getValuesData())
+                            : mapper.createObjectNode();
+                    JsonNode newValues = mapper.readTree(request.getValuesData());
+                    ObjectNode mergedValues = existingValues.isObject() ? (ObjectNode) existingValues : mapper.createObjectNode();
+                    if (newValues.isObject()) {
+                        mergedValues.setAll((ObjectNode) newValues);
+                    }
+                    submission.setValuesData(mapper.writeValueAsString(mergedValues));
+                } catch (Exception ignored) {}
+            }
         } else {
             if (request.getValuesData() != null) {
                 submission.setValuesData(injectAuditorSignOff(request.getValuesData(), caller));
             }
-            if (request.getTablesData() != null) {
-                submission.setTablesData(request.getTablesData());
+            if (request.getTablesData() != null && !request.getTablesData().isBlank()) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode existingTables = (submission.getTablesData() != null && !submission.getTablesData().isBlank())
+                            ? mapper.readTree(submission.getTablesData())
+                            : mapper.createObjectNode();
+                    JsonNode newTables = mapper.readTree(request.getTablesData());
+                    ObjectNode mergedTables = existingTables.isObject() ? (ObjectNode) existingTables : mapper.createObjectNode();
+                    if (newTables.isObject()) {
+                        mergedTables.setAll((ObjectNode) newTables);
+                    }
+                    submission.setTablesData(mapper.writeValueAsString(mergedTables));
+                } catch (Exception e) {
+                    submission.setTablesData(request.getTablesData());
+                }
             }
             if (request.getAttachments() != null) {
                 submission.setAttachments(request.getAttachments());
