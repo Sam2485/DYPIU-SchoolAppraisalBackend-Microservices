@@ -738,7 +738,7 @@ public ResponseEntity<Submission> createNextCycle(
             log.warn("Error collecting attachments for submission {}: {}", id, e.getMessage());
         }
 
-        attachments = deduplicateAttachments(attachments);
+        attachments = deduplicateAttachments(attachments, submission.getAuditType());
 
         String zipFileName = getZipFileName(submission);
 
@@ -766,7 +766,8 @@ public ResponseEntity<Submission> createNextCycle(
         }
 
         java.util.Set<String> usedPaths = new java.util.HashSet<>();
-        List<String> missingFiles = new java.util.ArrayList<>();
+        java.util.Set<String> successfullyWrittenFiles = new java.util.HashSet<>();
+        List<String> missingCandidates = new java.util.ArrayList<>();
 
         try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
             for (ExtractedAttachment att : attachments) {
@@ -778,22 +779,14 @@ public ResponseEntity<Submission> createNextCycle(
                 String sanitizedName = sanitizeFilename(att.fileName);
                 String zipEntryPath = folderPath + sanitizedName;
 
+                // Skip if an identical file was already placed at this path
                 if (usedPaths.contains(zipEntryPath)) {
-                    int dotIndex = sanitizedName.lastIndexOf('.');
-                    String namePart = dotIndex >= 0 ? sanitizedName.substring(0, dotIndex) : sanitizedName;
-                    String extPart = dotIndex >= 0 ? sanitizedName.substring(dotIndex) : "";
-                    int counter = 1;
-                    String newEntryPath;
-                    do {
-                        newEntryPath = folderPath + namePart + "_" + counter + extPart;
-                        counter++;
-                    } while (usedPaths.contains(newEntryPath));
-                    zipEntryPath = newEntryPath;
+                    continue;
                 }
-                usedPaths.add(zipEntryPath);
 
                 try (InputStream is = openAttachmentInputStream(att.url, att.fileName)) {
                     if (is != null) {
+                        usedPaths.add(zipEntryPath);
                         java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(zipEntryPath);
                         zos.putNextEntry(entry);
                         byte[] buffer = new byte[8192];
@@ -802,20 +795,37 @@ public ResponseEntity<Submission> createNextCycle(
                             zos.write(buffer, 0, bytesRead);
                         }
                         zos.closeEntry();
+                        successfullyWrittenFiles.add(sanitizedName.toLowerCase());
+                        successfullyWrittenFiles.add(normalizeFilenameForSearch(sanitizedName));
                     } else {
                         log.warn("Could not locate file for attachment: {} ({})", att.fileName, att.url);
-                        missingFiles.add("File: " + att.fileName + ", URL: " + att.url + " - File not found on disk or storage service");
+                        missingCandidates.add("File: " + att.fileName + ", URL: " + att.url + " - File not found on disk or storage service");
                     }
                 } catch (Exception e) {
                     log.warn("Skipping inaccessible attachment: {} - {}", att.url, e.getMessage());
-                    missingFiles.add("File: " + att.fileName + ", URL: " + att.url + ", Error: " + e.getMessage());
+                    missingCandidates.add("File: " + att.fileName + ", URL: " + att.url + ", Error: " + e.getMessage());
                 }
             }
 
-            if (!missingFiles.isEmpty()) {
+            // Only report files as missing if they were NEVER successfully written anywhere in the zip
+            List<String> trueMissingFiles = new java.util.ArrayList<>();
+            for (String line : missingCandidates) {
+                boolean found = false;
+                for (String written : successfullyWrittenFiles) {
+                    if (!written.isBlank() && line.toLowerCase().contains(written)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    trueMissingFiles.add(line);
+                }
+            }
+
+            if (!trueMissingFiles.isEmpty()) {
                 java.util.zip.ZipEntry missingEntry = new java.util.zip.ZipEntry("missing-files.txt");
                 zos.putNextEntry(missingEntry);
-                String content = String.join("\n", missingFiles);
+                String content = String.join("\n", trueMissingFiles);
                 zos.write(content.getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
             }
@@ -1069,6 +1079,7 @@ public ResponseEntity<Submission> createNextCycle(
                     att.size = node.get("fileSize").asText();
                 }
                 list.add(att);
+                return;
             }
 
             node.fields().forEachRemaining(entry ->
@@ -1082,15 +1093,19 @@ public ResponseEntity<Submission> createNextCycle(
 
     private boolean isAttachmentUrlOrPath(String str) {
         if (str == null || str.isBlank()) return false;
-        String lower = str.toLowerCase();
+        String clean = str.trim();
+        String lower = clean.toLowerCase();
         if (lower.contains("/uploads/") || lower.contains("/attachments/") || lower.contains("users/")
-                || lower.contains("storage.googleapis.com")) {
+                || lower.contains("storage.googleapis.com") || lower.startsWith("http://") || lower.startsWith("https://")) {
             return true;
         }
-        return lower.endsWith(".pdf") || lower.endsWith(".docx") || lower.endsWith(".doc")
-                || lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".csv")
-                || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
-                || lower.endsWith(".webp") || lower.endsWith(".zip") || lower.endsWith(".txt");
+        if (clean.contains("/") || clean.contains("\\")) {
+            return lower.endsWith(".pdf") || lower.endsWith(".docx") || lower.endsWith(".doc")
+                    || lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".csv")
+                    || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                    || lower.endsWith(".webp") || lower.endsWith(".zip") || lower.endsWith(".txt");
+        }
+        return false;
     }
 
     private String extractUrlFromObject(com.fasterxml.jackson.databind.JsonNode node) {
@@ -1223,39 +1238,58 @@ public ResponseEntity<Submission> createNextCycle(
         return currentSection;
     }
 
-    private List<ExtractedAttachment> deduplicateAttachments(List<ExtractedAttachment> attachments) {
+    private List<ExtractedAttachment> deduplicateAttachments(List<ExtractedAttachment> attachments, String auditType) {
         java.util.Set<String> seenKeys = new java.util.HashSet<>();
         List<ExtractedAttachment> deduped = new java.util.ArrayList<>();
-        List<ExtractedAttachment> noKey = new java.util.ArrayList<>();
         for (ExtractedAttachment attachment : attachments) {
-            List<String> keys = attachmentIdentityKeys(attachment);
+            List<String> keys = attachmentIdentityKeys(attachment, auditType);
             if (keys.isEmpty()) {
-                noKey.add(attachment);
                 continue;
             }
-            String matchedKey = keys.stream().filter(seenKeys::contains).findFirst().orElse(null);
-            if (matchedKey != null) {
+            boolean matched = keys.stream().anyMatch(seenKeys::contains);
+            if (matched) {
                 continue;
             }
             seenKeys.addAll(keys);
             deduped.add(attachment);
         }
-        deduped.addAll(noKey);
         return deduped;
     }
 
-    private List<String> attachmentIdentityKeys(ExtractedAttachment attachment) {
+    private List<String> attachmentIdentityKeys(ExtractedAttachment attachment, String auditType) {
         List<String> keys = new java.util.ArrayList<>();
         if (notBlank(attachment.objectKey)) {
             keys.add("key:" + normalizeAttachmentUrl(attachment.objectKey));
         }
         if (notBlank(attachment.url)) {
             keys.add("url:" + normalizeAttachmentUrl(attachment.url));
+            String stripped = stripDomain(attachment.url);
+            if (!stripped.equalsIgnoreCase(attachment.url)) {
+                keys.add("url:" + normalizeAttachmentUrl(stripped));
+            }
+        }
+        if (notBlank(attachment.fileName)) {
+            String folder = getZipFolderPath(attachment, auditType);
+            String cleanName = sanitizeFilename(attachment.fileName).toLowerCase();
+            keys.add("entry:" + folder.toLowerCase() + cleanName);
         }
         if (notBlank(attachment.checksum) && attachment.checksum.length() >= 16) {
             keys.add("checksum:" + attachment.checksum.trim().toLowerCase());
         }
         return keys;
+    }
+
+    private String stripDomain(String url) {
+        if (url == null) return "";
+        String clean = url.trim();
+        int idx = clean.indexOf("://");
+        if (idx >= 0) {
+            int slash = clean.indexOf('/', idx + 3);
+            if (slash >= 0) {
+                return clean.substring(slash);
+            }
+        }
+        return clean;
     }
 
     private String extractObjectKey(String url) {
