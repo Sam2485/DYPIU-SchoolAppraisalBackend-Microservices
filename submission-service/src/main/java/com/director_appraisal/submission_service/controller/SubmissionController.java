@@ -7,6 +7,7 @@ import com.director_appraisal.submission_service.service.SubmissionService;
 
 import com.director_appraisal.submission_service.model.SubmissionAuditorAssignment;
 import com.director_appraisal.submission_service.repository.SubmissionAuditorAssignmentRepository;
+import com.director_appraisal.submission_service.service.ReportExportService;
 import com.director_appraisal.submission_service.util.SchoolUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class SubmissionController {
     private final SubmissionService submissionService;
     private final AuthUserClient authUserClient;
     private final SubmissionAuditorAssignmentRepository submissionAuditorAssignmentRepository;
+    private final ReportExportService reportExportService;
     private final jakarta.servlet.http.HttpServletRequest httpRequest;
 
     @Value("${app.upload.local-path:./uploads}")
@@ -830,6 +832,105 @@ public ResponseEntity<Submission> createNextCycle(
                 zos.closeEntry();
             }
         }
+    }
+
+    @GetMapping("/{id}/report/pdf")
+    public void downloadPdfReport(@PathVariable Long id, jakarta.servlet.http.HttpServletResponse response) throws Exception {
+        UserDto user = getCurrentUserDetails();
+        Submission submission = submissionService.getSubmissionById(id)
+                .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
+
+        // Tenant isolation check:
+        if (user.getUniversityId() != null && submission.getUniversityId() != null
+                && !user.getUniversityId().equals(submission.getUniversityId())) {
+            throw new SecurityException("Access denied: Submission belongs to another university");
+        }
+
+        // Check role permissions: IQAC, VC, Submitter/Owner, Assigned Auditor, or Administrative Contributor
+        boolean isOwner = submission.getEmail() != null && submission.getEmail().equalsIgnoreCase(user.getEmail());
+        boolean isIqac = "iqac".equalsIgnoreCase(user.getRole());
+        boolean isVc = "vice-chancellor".equalsIgnoreCase(user.getRole());
+        boolean isAuditor = user.getRole() != null && (user.getRole().toLowerCase().contains("auditor") || "auditor".equalsIgnoreCase(user.getAccountType()));
+        boolean isAdministrativeContributor = "administrative".equalsIgnoreCase(user.getRole())
+                && "administrative".equalsIgnoreCase(submission.getAuditType());
+        boolean isAssignedAuditor = isAuditor && (submissionService.isAuditorAssigned(user, submission) || submissionService.isAuditorFallbackMatch(user, submission));
+
+        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor) {
+            throw new SecurityException("Access denied: You do not have permission to download this report");
+        }
+
+        String pdfFileName = getReportFileName(submission, "pdf");
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + pdfFileName + "\"");
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+        reportExportService.generatePdfReport(submission, response);
+    }
+
+    @GetMapping("/{id}/report/excel")
+    public void downloadExcelReport(@PathVariable Long id, jakarta.servlet.http.HttpServletResponse response) throws Exception {
+        UserDto user = getCurrentUserDetails();
+        Submission submission = submissionService.getSubmissionById(id)
+                .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
+
+        // Tenant isolation check:
+        if (user.getUniversityId() != null && submission.getUniversityId() != null
+                && !user.getUniversityId().equals(submission.getUniversityId())) {
+            throw new SecurityException("Access denied: Submission belongs to another university");
+        }
+
+        // Check role permissions: IQAC, VC, Submitter/Owner, Assigned Auditor, or Administrative Contributor
+        boolean isOwner = submission.getEmail() != null && submission.getEmail().equalsIgnoreCase(user.getEmail());
+        boolean isIqac = "iqac".equalsIgnoreCase(user.getRole());
+        boolean isVc = "vice-chancellor".equalsIgnoreCase(user.getRole());
+        boolean isAuditor = user.getRole() != null && (user.getRole().toLowerCase().contains("auditor") || "auditor".equalsIgnoreCase(user.getAccountType()));
+        boolean isAdministrativeContributor = "administrative".equalsIgnoreCase(user.getRole())
+                && "administrative".equalsIgnoreCase(submission.getAuditType());
+        boolean isAssignedAuditor = isAuditor && (submissionService.isAuditorAssigned(user, submission) || submissionService.isAuditorFallbackMatch(user, submission));
+
+        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor) {
+            throw new SecurityException("Access denied: You do not have permission to download this report");
+        }
+
+        String excelFileName = getReportFileName(submission, "xlsx");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + excelFileName + "\"");
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+        reportExportService.generateExcelReport(submission, response);
+    }
+
+    private String getReportFileName(Submission submission, String extension) {
+        String uniCode = submission.getUniversityCode();
+        String uniPrefix = (uniCode != null && !uniCode.isBlank())
+                ? uniCode.trim().toUpperCase() + "_"
+                : "";
+
+        String type = "academic".equalsIgnoreCase(submission.getAuditType()) ? "Academic" : "Administrative";
+        String entityName;
+        if ("academic".equalsIgnoreCase(submission.getAuditType())) {
+            entityName = SchoolUtils.canonicalizeSchool(submission.getSchool());
+            if (entityName == null || entityName.isBlank()) {
+                entityName = "School";
+            }
+        } else {
+            if (submission.getAdministrativePost() != null && !submission.getAdministrativePost().isBlank()) {
+                entityName = formatAdministrativePost(submission.getAdministrativePost());
+            } else {
+                entityName = "Administrative_Office";
+            }
+        }
+        entityName = entityName.replaceAll("[^A-Za-z0-9._-]", "_");
+
+        String cycle = submission.getAuditCycle() != null && !submission.getAuditCycle().isBlank()
+                ? submission.getAuditCycle()
+                : (submission.getAcademicYear() != null ? submission.getAcademicYear() : submissionService.getCurrentAcademicYearLabel());
+        cycle = cycle.replaceAll("[^A-Za-z0-9._-]", "_");
+
+        String suffix = "pdf".equalsIgnoreCase(extension) ? "_Official_Report.pdf" : "_Report.xlsx";
+        return uniPrefix + type + "_" + entityName + "_" + cycle + suffix;
     }
 
     private InputStream openAttachmentInputStream(String fileUrl, String originalFileName) {
