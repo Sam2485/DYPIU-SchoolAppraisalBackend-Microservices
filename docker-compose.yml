@@ -84,6 +84,10 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       AUTH_SERVICE_URL: http://auth-user-service:9001
       FORMS_SERVICE_URL: http://form-data-service:9002
+      STORAGE_SERVICE_URL: ${STORAGE_SERVICE_URL:-http://storage-service:9004}
+      UPLOAD_LOCAL_PATH: ${UPLOAD_DIR:-/app/uploads}
+    volumes:
+      - ./uploads:${UPLOAD_DIR:-/app/uploads}
     ports:
       - "${SUBMISSION_SERVICE_PORT:-9003}:9003"
     depends_on:
@@ -92,6 +96,8 @@ services:
       auth-user-service:
         condition: service_started
       form-data-service:
+        condition: service_started
+      storage-service:
         condition: service_started
 
   # ---------------------------------------------------------------------------

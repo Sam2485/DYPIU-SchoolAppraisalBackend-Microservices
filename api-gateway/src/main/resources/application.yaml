@@ -23,6 +23,7 @@ spring:
             exposedHeaders:
               - Authorization
               - Content-Type
+              - Content-Disposition
               - X-Correlation-Id
               - X-Request-Id
             allowCredentials: true

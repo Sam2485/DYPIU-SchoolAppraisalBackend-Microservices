@@ -5,19 +5,28 @@ import com.director_appraisal.submission_service.dto.UserDto;
 import com.director_appraisal.submission_service.client.AuthUserClient;
 import com.director_appraisal.submission_service.service.SubmissionService;
 
+import com.director_appraisal.submission_service.model.SubmissionAuditorAssignment;
+import com.director_appraisal.submission_service.repository.SubmissionAuditorAssignmentRepository;
 import com.director_appraisal.submission_service.util.SchoolUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-
-
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.InputStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Slf4j
 @RestController
@@ -29,7 +38,14 @@ public class SubmissionController {
 
     private final SubmissionService submissionService;
     private final AuthUserClient authUserClient;
+    private final SubmissionAuditorAssignmentRepository submissionAuditorAssignmentRepository;
     private final jakarta.servlet.http.HttpServletRequest httpRequest;
+
+    @Value("${app.upload.local-path:./uploads}")
+    private String uploadLocalPath;
+
+    @Value("${app.storage-service-url:${STORAGE_SERVICE_URL:http://storage-service:9004}}")
+    private String storageServiceUrl;
 
     private String getCurrentUserEmail() {
         if (httpRequest != null) {
@@ -642,12 +658,12 @@ public ResponseEntity<Submission> createNextCycle(
     }
 
     @GetMapping("/{id}/attachments/download")
-public void downloadAttachments(@PathVariable Long id,
+    public void downloadAttachments(@PathVariable Long id,
                                     @RequestParam(required = false, defaultValue = "false") boolean includeAllContributors,
                                     jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
         UserDto user = getCurrentUserDetails();
         Submission submission = submissionService.getSubmissionById(id)
-                .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found"));
+                .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
 
         boolean isIqac = "iqac".equalsIgnoreCase(user.getRole());
         boolean isVc = "vice-chancellor".equalsIgnoreCase(user.getRole());
@@ -655,42 +671,61 @@ public void downloadAttachments(@PathVariable Long id,
             throw new SecurityException("Only IQAC or VC may download attachments");
         }
 
+        // Multi-university tenant isolation check:
+        if (user.getUniversityId() != null && submission.getUniversityId() != null
+                && !user.getUniversityId().equals(submission.getUniversityId())) {
+            throw new SecurityException("Access denied: Submission belongs to another university");
+        }
+
+        String subStatus = submission.getStatus() != null ? submission.getStatus().toUpperCase() : "SUBMITTED";
         if (isVc) {
-            boolean statusAllowed = List.of("AUDITOR_COMPLETED", "APPROVED", "FINAL").contains(submission.getStatus().toUpperCase());
+            boolean statusAllowed = List.of(
+                    "SUBMITTED", "UNDER_REVIEW", "FORWARDED_TO_INTERNAL_AUDITOR", "INTERNAL_AUDITOR_COMPLETED",
+                    "FORWARDED_TO_EXTERNAL_AUDITOR", "AUDITOR_COMPLETED", "EXTERNAL_AUDITOR_COMPLETED",
+                    "APPROVED", "FINAL"
+            ).contains(subStatus);
             if (!statusAllowed) {
-                throw new SecurityException("Unauthorized access to submission");
-            }
-        } else {
-            // IQAC
-            boolean statusAllowed = List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", "APPROVED", "FINAL")
-                    .contains(submission.getStatus().toUpperCase());
-            if (!statusAllowed) {
-                throw new SecurityException("Unauthorized access to submission");
+                throw new SecurityException("Unauthorized access to submission in status: " + subStatus);
             }
         }
 
-        // submission.attachments remains primary, but table/value payloads may contain section-specific attachments.
+        // Collect all attachments belonging strictly to this submission
         List<ExtractedAttachment> attachments = new java.util.ArrayList<>();
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        
+
         try {
             if (submission.getAttachments() != null && !submission.getAttachments().isBlank()) {
-                collectAttachments(mapper.readTree(submission.getAttachments()), attachments);
+                collectAttachments(mapper.readTree(submission.getAttachments()), attachments, "General");
             }
             if (submission.getTablesData() != null && !submission.getTablesData().isBlank()) {
-                collectAttachments(mapper.readTree(submission.getTablesData()), attachments);
+                collectAttachments(mapper.readTree(submission.getTablesData()), attachments, null);
             }
             if (submission.getValuesData() != null && !submission.getValuesData().isBlank()) {
-                collectAttachments(mapper.readTree(submission.getValuesData()), attachments);
+                collectAttachments(mapper.readTree(submission.getValuesData()), attachments, null);
+            }
+            if (submissionAuditorAssignmentRepository != null) {
+                List<SubmissionAuditorAssignment> assignments =
+                        submissionAuditorAssignmentRepository.findBySubmissionId(submission.getId());
+                if (assignments != null) {
+                    for (SubmissionAuditorAssignment assignment : assignments) {
+                        String audSec = "Auditor-" + (assignment.getAuditorType() != null && !assignment.getAuditorType().isBlank() ? assignment.getAuditorType() : "Review");
+                        if (assignment.getAttachments() != null && !assignment.getAttachments().isBlank()) {
+                            collectAttachments(mapper.readTree(assignment.getAttachments()), attachments, audSec);
+                        }
+                        if (assignment.getTablesData() != null && !assignment.getTablesData().isBlank()) {
+                            collectAttachments(mapper.readTree(assignment.getTablesData()), attachments, audSec);
+                        }
+                        if (assignment.getValuesData() != null && !assignment.getValuesData().isBlank()) {
+                            collectAttachments(mapper.readTree(assignment.getValuesData()), attachments, audSec);
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
-            // Ignore parse errors, just use what we can parse
+            log.warn("Error collecting attachments for submission {}: {}", id, e.getMessage());
         }
-        attachments = deduplicateAttachments(attachments);
 
-        if (attachments.isEmpty()) {
-            throw new com.director_appraisal.submission_service.exception.NotFoundException("No attachments found for this submission");
-        }
+        attachments = deduplicateAttachments(attachments);
 
         String zipFileName = getZipFileName(submission);
 
@@ -698,6 +733,24 @@ public void downloadAttachments(@PathVariable Long id,
         response.setHeader("Content-Disposition", "attachment; filename=\"" + zipFileName + "\"");
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+
+        if (attachments.isEmpty()) {
+            try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(response.getOutputStream())) {
+                java.util.zip.ZipEntry readmeEntry = new java.util.zip.ZipEntry("README.txt");
+                zos.putNextEntry(readmeEntry);
+                String info = "Appraisal Attachments Archive\n"
+                        + "============================\n"
+                        + "Submission ID: " + submission.getId() + "\n"
+                        + "Audit Type: " + submission.getAuditType() + "\n"
+                        + "Cycle / Year: " + (submission.getAuditCycle() != null ? submission.getAuditCycle() : submission.getAcademicYear()) + "\n"
+                        + "Entity: " + ("academic".equalsIgnoreCase(submission.getAuditType()) ? submission.getSchool() : "Administrative Office") + "\n"
+                        + "Status: " + submission.getStatus() + "\n\n"
+                        + "Notice: No attachments or uploaded files were found for this submission.\n";
+                zos.write(info.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+            return;
+        }
 
         java.util.Set<String> usedPaths = new java.util.HashSet<>();
         List<String> missingFiles = new java.util.ArrayList<>();
@@ -724,12 +777,24 @@ public void downloadAttachments(@PathVariable Long id,
                     } while (usedPaths.contains(newEntryPath));
                     zipEntryPath = newEntryPath;
                 }
-                try (java.io.ByteArrayInputStream is = new java.io.ByteArrayInputStream(new byte[0])) {
-                    java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(zipEntryPath);
-                    zos.putNextEntry(entry);
-                    zos.closeEntry();
+                usedPaths.add(zipEntryPath);
+
+                try (InputStream is = openAttachmentInputStream(att.url, att.fileName)) {
+                    if (is != null) {
+                        java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(zipEntryPath);
+                        zos.putNextEntry(entry);
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        while ((bytesRead = is.read(buffer)) != -1) {
+                            zos.write(buffer, 0, bytesRead);
+                        }
+                        zos.closeEntry();
+                    } else {
+                        log.warn("Could not locate file for attachment: {} ({})", att.fileName, att.url);
+                        missingFiles.add("File: " + att.fileName + ", URL: " + att.url + " - File not found on disk or storage service");
+                    }
                 } catch (Exception e) {
-                    System.err.println("Skipping inaccessible attachment: " + att.url + " - " + e.getMessage());
+                    log.warn("Skipping inaccessible attachment: {} - {}", att.url, e.getMessage());
                     missingFiles.add("File: " + att.fileName + ", URL: " + att.url + ", Error: " + e.getMessage());
                 }
             }
@@ -738,10 +803,184 @@ public void downloadAttachments(@PathVariable Long id,
                 java.util.zip.ZipEntry missingEntry = new java.util.zip.ZipEntry("missing-files.txt");
                 zos.putNextEntry(missingEntry);
                 String content = String.join("\n", missingFiles);
-                zos.write(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                zos.write(content.getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
             }
         }
+    }
+
+    private InputStream openAttachmentInputStream(String fileUrl, String originalFileName) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return null;
+        }
+
+        String candidateKey = extractCleanObjectName(fileUrl);
+
+        // 1. Try local filesystem
+        InputStream localStream = tryOpenLocalFile(candidateKey, fileUrl, originalFileName);
+        if (localStream != null) {
+            return localStream;
+        }
+
+        // 2. Try remote storage-service via HTTP
+        InputStream remoteStream = tryOpenRemoteFile(fileUrl, candidateKey, originalFileName);
+        if (remoteStream != null) {
+            return remoteStream;
+        }
+
+        return null;
+    }
+
+    private InputStream tryOpenLocalFile(String candidateKey, String rawUrl, String originalFileName) {
+        List<Path> searchRoots = new java.util.ArrayList<>();
+        if (uploadLocalPath != null && !uploadLocalPath.isBlank()) {
+            searchRoots.add(Paths.get(uploadLocalPath).toAbsolutePath().normalize());
+        }
+        Path appUploads = Paths.get("/app/uploads").toAbsolutePath().normalize();
+        Path dotUploads = Paths.get("./uploads").toAbsolutePath().normalize();
+        Path parentUploads = Paths.get("../uploads").toAbsolutePath().normalize();
+
+        if (!searchRoots.contains(appUploads)) searchRoots.add(appUploads);
+        if (!searchRoots.contains(dotUploads)) searchRoots.add(dotUploads);
+        if (!searchRoots.contains(parentUploads)) searchRoots.add(parentUploads);
+
+        List<String> relativePathsToTry = new java.util.ArrayList<>();
+        if (candidateKey != null && !candidateKey.isBlank()) {
+            relativePathsToTry.add(candidateKey);
+        }
+        if (rawUrl != null && !rawUrl.isBlank()) {
+            String sanitized = rawUrl.replace("\\", "/");
+            int qMark = sanitized.indexOf('?');
+            if (qMark >= 0) sanitized = sanitized.substring(0, qMark);
+            if (sanitized.contains("/uploads/")) {
+                sanitized = sanitized.substring(sanitized.indexOf("/uploads/") + "/uploads/".length());
+            } else if (sanitized.startsWith("/")) {
+                sanitized = sanitized.substring(1);
+            }
+            relativePathsToTry.add(sanitized);
+        }
+
+        for (Path root : searchRoots) {
+            if (!Files.exists(root)) continue;
+
+            for (String rel : relativePathsToTry) {
+                Path direct = root.resolve(rel).normalize();
+                if (direct.startsWith(root) && Files.isRegularFile(direct)) {
+                    try {
+                        return Files.newInputStream(direct);
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            // Fallback: search recursively by candidate filename (up to 6 levels deep)
+            List<String> targetNames = new java.util.ArrayList<>();
+            if (originalFileName != null && !originalFileName.isBlank()) {
+                targetNames.add(originalFileName.trim());
+            }
+            if (candidateKey != null && candidateKey.contains("/")) {
+                targetNames.add(candidateKey.substring(candidateKey.lastIndexOf('/') + 1));
+            }
+
+            for (String targetName : targetNames) {
+                if (targetName.isBlank()) continue;
+                String normTarget = normalizeFilenameForSearch(targetName);
+                try (Stream<Path> walk = Files.walk(root, 6)) {
+                    Optional<Path> match = walk
+                            .filter(Files::isRegularFile)
+                            .filter(p -> {
+                                String fname = p.getFileName().toString();
+                                return fname.equalsIgnoreCase(targetName)
+                                        || (!normTarget.isEmpty() && normalizeFilenameForSearch(fname).equalsIgnoreCase(normTarget));
+                            })
+                            .findFirst();
+                    if (match.isPresent()) {
+                        return Files.newInputStream(match.get());
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private InputStream tryOpenRemoteFile(String rawUrl, String candidateKey, String originalFileName) {
+        String base = storageServiceUrl != null && !storageServiceUrl.isBlank()
+                ? storageServiceUrl.trim()
+                : "http://storage-service:9004";
+        if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+
+        List<String> urlsToTry = new java.util.ArrayList<>();
+        if (candidateKey != null && !candidateKey.isBlank()) {
+            urlsToTry.add(candidateKey);
+        }
+        if (rawUrl != null && !rawUrl.isBlank()) {
+            urlsToTry.add(rawUrl);
+        }
+
+        for (String targetUrl : urlsToTry) {
+            try {
+                String downloadEndpoint = base + "/api/attachments/download?url="
+                        + URLEncoder.encode(targetUrl, StandardCharsets.UTF_8)
+                        + (originalFileName != null && !originalFileName.isBlank()
+                            ? "&filename=" + URLEncoder.encode(originalFileName, StandardCharsets.UTF_8)
+                            : "")
+                        + "&inline=false";
+
+                java.net.URI uri = java.net.URI.create(downloadEndpoint);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) uri.toURL().openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(4000);
+                conn.setReadTimeout(15000);
+                conn.setInstanceFollowRedirects(true);
+
+                int code = conn.getResponseCode();
+                if (code >= 200 && code < 300) {
+                    return conn.getInputStream();
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private String extractCleanObjectName(String url) {
+        if (url == null || url.isBlank()) {
+            return "";
+        }
+        String clean = url.trim();
+        if (clean.contains("url=")) {
+            int qIdx = clean.indexOf("url=");
+            String paramVal = clean.substring(qIdx + 4);
+            int ampIdx = paramVal.indexOf('&');
+            if (ampIdx >= 0) {
+                paramVal = paramVal.substring(0, ampIdx);
+            }
+            try {
+                clean = URLDecoder.decode(paramVal, StandardCharsets.UTF_8);
+            } catch (Exception ignored) {}
+        }
+
+        int qMark = clean.indexOf('?');
+        if (qMark >= 0) {
+            clean = clean.substring(0, qMark);
+        }
+
+        if (clean.contains("users/")) {
+            clean = clean.substring(clean.indexOf("users/"));
+        } else if (clean.contains("/uploads/")) {
+            clean = clean.substring(clean.indexOf("/uploads/") + "/uploads/".length());
+        } else if (clean.contains("uploads/")) {
+            clean = clean.substring(clean.indexOf("uploads/") + "uploads/".length());
+        }
+
+        if (clean.startsWith("/")) {
+            clean = clean.substring(1);
+        }
+        return clean;
+    }
+
+    private String normalizeFilenameForSearch(String str) {
+        if (str == null) return "";
+        String cleaned = str.replaceAll("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-", "");
+        return cleaned.toLowerCase().replaceAll("[^a-z0-9.]", "");
     }
 
     private void collectAttachments(com.fasterxml.jackson.databind.JsonNode node, List<ExtractedAttachment> list) {
@@ -749,87 +988,76 @@ public void downloadAttachments(@PathVariable Long id,
     }
 
     private void collectAttachments(com.fasterxml.jackson.databind.JsonNode node, List<ExtractedAttachment> list, String sectionContext) {
-        if (node == null) return;
+        if (node == null || node.isNull()) return;
+
+        if (node.isTextual()) {
+            String text = node.asText().trim();
+            if (isAttachmentUrlOrPath(text)) {
+                ExtractedAttachment att = new ExtractedAttachment();
+                att.url = text;
+                att.objectKey = extractCleanObjectName(text);
+                att.sectionId = sectionContext;
+                att.fileName = extractFileNameFromUrlOrPath(text, null);
+                list.add(att);
+            }
+            return;
+        }
+
         if (node.isObject()) {
             String currentSection = sectionContext;
-            String url = null;
-            if (node.has("url") && node.get("url").isTextual()) {
-                url = node.get("url").asText();
-            } else if (node.has("publicUrl") && node.get("publicUrl").isTextual()) {
-                url = node.get("publicUrl").asText();
-            } else if (node.has("downloadUrl") && node.get("downloadUrl").isTextual()) {
-                url = node.get("downloadUrl").asText();
-            } else if (node.has("fileUrl") && node.get("fileUrl").isTextual()) {
-                url = node.get("fileUrl").asText();
-            }
+            String url = extractUrlFromObject(node);
 
-            if (url != null && !url.isBlank()) {
-                String lowerUrl = url.toLowerCase();
-                boolean isAttachment = lowerUrl.contains("/uploads/")
-                        || lowerUrl.contains("/attachments/")
-                        || lowerUrl.startsWith("users/")
-                        || lowerUrl.contains("/users/")
-                        || lowerUrl.contains("storage.googleapis.com")
-                        || lowerUrl.endsWith(".pdf")
-                        || lowerUrl.endsWith(".docx")
-                        || lowerUrl.endsWith(".xlsx")
-                        || lowerUrl.endsWith(".png")
-                        || lowerUrl.endsWith(".jpg")
-                        || lowerUrl.endsWith(".jpeg")
-                        || lowerUrl.endsWith(".doc")
-                        || lowerUrl.endsWith(".xls")
-                        || lowerUrl.endsWith(".zip");
+            if (url != null && !url.isBlank() && isAttachmentUrlOrPath(url)) {
+                ExtractedAttachment att = new ExtractedAttachment();
+                att.url = url;
+                att.objectKey = extractCleanObjectName(url);
+                att.sectionId = currentSection;
 
-                if (isAttachment) {
-                    ExtractedAttachment att = new ExtractedAttachment();
-                    att.url = url;
-                    att.objectKey = extractObjectKey(url);
-                    att.sectionId = currentSection;
-                    
-                    if (node.has("fileName") && node.get("fileName").isTextual()) {
-                        att.fileName = node.get("fileName").asText();
-                    } else if (node.has("name") && node.get("name").isTextual()) {
-                        att.fileName = node.get("name").asText();
-                    } else {
-                        int lastSlash = url.lastIndexOf('/');
-                        att.fileName = lastSlash >= 0 ? url.substring(lastSlash + 1) : "attachment.pdf";
-                    }
-                    
-                    if (node.has("sectionId") && node.get("sectionId").isTextual()) {
-                        att.sectionId = node.get("sectionId").asText();
-                    }
-                    if (node.has("tableId") && node.get("tableId").isTextual()) {
-                        att.tableId = node.get("tableId").asText();
-                    }
-                    if (node.has("rowIndex") && node.get("rowIndex").isNumber()) {
-                        att.rowIndex = node.get("rowIndex").asInt();
-                    }
-                    if (node.has("column") && node.get("column").isTextual()) {
-                        att.column = node.get("column").asText();
-                    }
-                    if (node.has("id")) {
-                        att.id = node.get("id").asText();
-                    } else if (node.has("attachmentId")) {
-                        att.id = node.get("attachmentId").asText();
-                    }
-                    if (node.has("objectKey")) {
-                        att.objectKey = node.get("objectKey").asText();
-                    } else if (node.has("storageObjectKey")) {
-                        att.objectKey = node.get("storageObjectKey").asText();
-                    }
-                    if (node.has("checksum")) {
-                        att.checksum = node.get("checksum").asText();
-                    } else if (node.has("sha256")) {
-                        att.checksum = node.get("sha256").asText();
-                    }
-                    if (node.has("size")) {
-                        att.size = node.get("size").asText();
-                    } else if (node.has("fileSize")) {
-                        att.size = node.get("fileSize").asText();
-                    }
-                    list.add(att);
+                String fn = null;
+                if (node.has("fileName") && node.get("fileName").isTextual()) {
+                    fn = node.get("fileName").asText();
+                } else if (node.has("name") && node.get("name").isTextual()) {
+                    fn = node.get("name").asText();
+                } else if (node.has("filename") && node.get("filename").isTextual()) {
+                    fn = node.get("filename").asText();
+                } else if (node.has("originalFilename") && node.get("originalFilename").isTextual()) {
+                    fn = node.get("originalFilename").asText();
+                } else if (node.has("originalName") && node.get("originalName").isTextual()) {
+                    fn = node.get("originalName").asText();
                 }
+                att.fileName = extractFileNameFromUrlOrPath(url, fn);
+
+                if (node.has("sectionId") && node.get("sectionId").isTextual()) {
+                    att.sectionId = node.get("sectionId").asText();
+                } else if (node.has("section") && node.get("section").isTextual()) {
+                    att.sectionId = node.get("section").asText();
+                }
+
+                if (node.has("tableId") && node.get("tableId").isTextual()) {
+                    att.tableId = node.get("tableId").asText();
+                }
+                if (node.has("rowIndex") && node.get("rowIndex").isNumber()) {
+                    att.rowIndex = node.get("rowIndex").asInt();
+                }
+                if (node.has("column") && node.get("column").isTextual()) {
+                    att.column = node.get("column").asText();
+                }
+                if (node.has("id") && node.get("id").isTextual()) {
+                    att.id = node.get("id").asText();
+                }
+                if (node.has("checksum") && node.get("checksum").isTextual()) {
+                    att.checksum = node.get("checksum").asText();
+                } else if (node.has("sha256") && node.get("sha256").isTextual()) {
+                    att.checksum = node.get("sha256").asText();
+                }
+                if (node.has("size") && node.get("size").isTextual()) {
+                    att.size = node.get("size").asText();
+                } else if (node.has("fileSize") && node.get("fileSize").isTextual()) {
+                    att.size = node.get("fileSize").asText();
+                }
+                list.add(att);
             }
+
             node.fields().forEachRemaining(entry ->
                     collectAttachments(entry.getValue(), list, resolveAttachmentSectionContext(entry.getKey(), currentSection)));
         } else if (node.isArray()) {
@@ -839,43 +1067,87 @@ public void downloadAttachments(@PathVariable Long id,
         }
     }
 
+    private boolean isAttachmentUrlOrPath(String str) {
+        if (str == null || str.isBlank()) return false;
+        String lower = str.toLowerCase();
+        if (lower.contains("/uploads/") || lower.contains("/attachments/") || lower.contains("users/")
+                || lower.contains("storage.googleapis.com")) {
+            return true;
+        }
+        return lower.endsWith(".pdf") || lower.endsWith(".docx") || lower.endsWith(".doc")
+                || lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".csv")
+                || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                || lower.endsWith(".webp") || lower.endsWith(".zip") || lower.endsWith(".txt");
+    }
+
+    private String extractUrlFromObject(com.fasterxml.jackson.databind.JsonNode node) {
+        String[] fields = {"url", "publicUrl", "downloadUrl", "fileUrl", "path", "filePath", "storagePath",
+                "key", "objectKey", "storageObjectKey", "file_url", "download_url", "public_url"};
+        for (String f : fields) {
+            if (node.has(f) && node.get(f).isTextual() && !node.get(f).asText().isBlank()) {
+                return node.get(f).asText();
+            }
+        }
+        return null;
+    }
+
+    private String extractFileNameFromUrlOrPath(String url, String candidateName) {
+        if (candidateName != null && !candidateName.isBlank()
+                && !"attachment.pdf".equalsIgnoreCase(candidateName)
+                && !"file.pdf".equalsIgnoreCase(candidateName)) {
+            return sanitizeFilename(candidateName);
+        }
+        if (url == null || url.isBlank()) {
+            return "attachment.pdf";
+        }
+        String clean = url.trim();
+        if (clean.contains("fileName=")) {
+            int idx = clean.indexOf("fileName=");
+            String val = clean.substring(idx + 9);
+            int amp = val.indexOf('&');
+            if (amp >= 0) val = val.substring(0, amp);
+            try {
+                return sanitizeFilename(URLDecoder.decode(val, StandardCharsets.UTF_8));
+            } catch (Exception ignored) {}
+        }
+        int qMark = clean.indexOf('?');
+        if (qMark >= 0) clean = clean.substring(0, qMark);
+        int lastSlash = clean.lastIndexOf('/');
+        String base = lastSlash >= 0 ? clean.substring(lastSlash + 1) : clean;
+        base = base.replaceAll("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-", "");
+        return sanitizeFilename(base);
+    }
+
     private String resolveAttachmentSectionContext(String key, String currentSection) {
         if (key == null || key.isBlank()) {
             return currentSection;
         }
         String normalized = key.toLowerCase().replaceAll("[^a-z0-9]", "");
-        if (normalized.contains("scholarshipsummary")
-                || normalized.contains("scholarshipdetails")
-                || normalized.contains("scholarshipstudents")
-                || normalized.contains("scholarshipstudentdetails")
-                || normalized.contains("coursesoffered")
-                || normalized.contains("studentstatistics")
-                || normalized.contains("statutory")
+        if (normalized.contains("scholarship") || normalized.contains("coursesoffered")
+                || normalized.contains("studentstatistics") || normalized.contains("statutory")
                 || normalized.contains("auditrecords")) {
-            return "registrar-part-a";
+            return "Registrar/Part-A";
         }
-        if (normalized.contains("infrastructure")
-                || normalized.contains("library") || normalized.contains("eresource")
-                || normalized.contains("researchresource")) {
-            return "registrar-part-c";
+        if (normalized.contains("infrastructure") || normalized.contains("library")
+                || normalized.contains("eresource") || normalized.contains("researchresource")) {
+            return "Registrar/Part-C";
         }
-        if (normalized.contains("faculty") || normalized.contains("staff") || normalized.contains("bogmom")) {
-            return "hr-part-b";
+        if (normalized.contains("faculty") || normalized.contains("staff") || normalized.contains("bogmom") || normalized.contains("hr")) {
+            return "HR/Part-B";
         }
-        if (normalized.contains("hackathon")
-                || normalized.contains("ideation")
-                || normalized.contains("cultural")
-                || normalized.contains("sportsactivities")
-                || normalized.contains("sportsclubs")
-                || normalized.contains("community")
-                || normalized.contains("adminstudentawards")
-                || normalized.contains("awardsprizesrecognitions")) {
-            return "dean-student-welfare-part-d";
+        if (normalized.contains("finance") || normalized.contains("budget") || normalized.contains("account")) {
+            return "Finance";
         }
-        if (normalized.contains("parte") || normalized.contains("parteschools")
-                || normalized.contains("placement") || normalized.contains("trainingactivities")
-                || normalized.contains("industrycollaboration")) {
-            return "dean-placement-part-e";
+        if (normalized.contains("hackathon") || normalized.contains("ideation") || normalized.contains("cultural")
+                || normalized.contains("sports") || normalized.contains("community") || normalized.contains("welfare")) {
+            return "Dean-Student-Welfare/Part-D";
+        }
+        if (normalized.contains("parte") || normalized.contains("placement") || normalized.contains("training")
+                || normalized.contains("industry")) {
+            return "Dean-Placement/Part-E";
+        }
+        if (normalized.contains("auditor") || normalized.contains("internal") || normalized.contains("external")) {
+            return "Auditor-Review";
         }
         return currentSection;
     }
@@ -892,7 +1164,6 @@ public void downloadAttachments(@PathVariable Long id,
             }
             String matchedKey = keys.stream().filter(seenKeys::contains).findFirst().orElse(null);
             if (matchedKey != null) {
-                System.err.println("Skipping duplicate attachment in ZIP: " + matchedKey);
                 continue;
             }
             seenKeys.addAll(keys);
@@ -904,57 +1175,20 @@ public void downloadAttachments(@PathVariable Long id,
 
     private List<String> attachmentIdentityKeys(ExtractedAttachment attachment) {
         List<String> keys = new java.util.ArrayList<>();
-        if (notBlank(attachment.id)) {
-            keys.add("id:" + attachment.id.trim());
-        }
         if (notBlank(attachment.objectKey)) {
             keys.add("key:" + normalizeAttachmentUrl(attachment.objectKey));
         }
         if (notBlank(attachment.url)) {
             keys.add("url:" + normalizeAttachmentUrl(attachment.url));
         }
-        if (notBlank(attachment.checksum)) {
+        if (notBlank(attachment.checksum) && attachment.checksum.length() >= 16) {
             keys.add("checksum:" + attachment.checksum.trim().toLowerCase());
-        }
-        if (notBlank(attachment.fileName) && notBlank(attachment.size)) {
-            keys.add("name-size:" + attachment.fileName.trim().toLowerCase() + ":" + attachment.size.trim());
         }
         return keys;
     }
 
     private String extractObjectKey(String url) {
-        if (url == null || url.isBlank()) {
-            return null;
-        }
-        if (url.contains("users/")) {
-            int idx = url.indexOf("users/");
-            return url.substring(idx);
-        }
-        if (url.contains("/uploads/")) {
-            int idx = url.indexOf("/uploads/");
-            return url.substring(idx + "/uploads/".length());
-        }
-        try {
-            java.net.URI uri = java.net.URI.create(url);
-            String path = uri.getPath();
-            if (path == null || path.isBlank()) {
-                return null;
-            }
-            if (path.contains("users/")) {
-                int idx = path.indexOf("users/");
-                return path.substring(idx);
-            }
-            if (path.contains("/uploads/")) {
-                int idx = path.indexOf("/uploads/");
-                return path.substring(idx + "/uploads/".length());
-            }
-            if (path.startsWith("/")) {
-                path = path.substring(1);
-            }
-            return path;
-        } catch (Exception e) {
-            return url;
-        }
+        return extractCleanObjectName(url);
     }
 
     private String normalizeAttachmentUrl(String value) {
@@ -970,32 +1204,38 @@ public void downloadAttachments(@PathVariable Long id,
     }
 
     private String getZipFileName(Submission submission) {
+        String uniCode = submission.getUniversityCode();
+        String uniPrefix = (uniCode != null && !uniCode.isBlank())
+                ? uniCode.trim().toUpperCase() + "_"
+                : "";
+
         String type = "academic".equalsIgnoreCase(submission.getAuditType()) ? "Academic" : "Administrative";
-        String entityName = "Unknown";
+        String entityName;
         if ("academic".equalsIgnoreCase(submission.getAuditType())) {
             entityName = SchoolUtils.canonicalizeSchool(submission.getSchool());
+            if (entityName == null || entityName.isBlank()) {
+                entityName = "School";
+            }
         } else {
-            entityName = Optional.ofNullable(safeGetUserByEmail(submission.getEmail()))
-                    .map(UserDto::getPost)
-
-                    .orElse(submission.getAdministrativePost());
-            entityName = formatAdministrativePost(entityName);
-        }
-        if (entityName == null || entityName.isBlank()) {
-            entityName = "Unknown";
+            if (submission.getAdministrativePost() != null && !submission.getAdministrativePost().isBlank()) {
+                entityName = formatAdministrativePost(submission.getAdministrativePost());
+            } else {
+                entityName = "Administrative_Office";
+            }
         }
         entityName = entityName.replaceAll("[^A-Za-z0-9._-]", "_");
-        String cycle = submission.getAuditCycle() != null ? submission.getAuditCycle() : submission.getAcademicYear();
-        if (cycle == null || cycle.isBlank()) {
-            cycle = submissionService.getCurrentAcademicYearLabel();
-        }
+
+        String cycle = submission.getAuditCycle() != null && !submission.getAuditCycle().isBlank()
+                ? submission.getAuditCycle()
+                : (submission.getAcademicYear() != null ? submission.getAcademicYear() : submissionService.getCurrentAcademicYearLabel());
         cycle = cycle.replaceAll("[^A-Za-z0-9._-]", "_");
-        return type + "_" + entityName + "_" + cycle + ".zip";
+
+        return uniPrefix + type + "_" + entityName + "_" + cycle + ".zip";
     }
 
     private String formatAdministrativePost(String post) {
         if (post == null || post.isBlank()) {
-            return "Unknown";
+            return "Administrative_Office";
         }
         String clean = post.trim().replace('-', '_').replace(' ', '_');
         String[] parts = clean.split("_");
@@ -1013,24 +1253,68 @@ public void downloadAttachments(@PathVariable Long id,
     }
 
     private String getZipFolderPath(ExtractedAttachment att, String auditType) {
-        if (att.sectionId == null || att.sectionId.isBlank()) {
-            return "Other-Attachments/";
+        String sec = att.sectionId != null ? att.sectionId.trim() : "";
+        if ("administrative".equalsIgnoreCase(auditType)) {
+            String lower = sec.toLowerCase();
+            if (lower.contains("registrar")) {
+                return lower.contains("part-c") || lower.contains("part_c") ? "Registrar/Part-C/" : "Registrar/Part-A/";
+            }
+            if (lower.contains("hr")) {
+                return "HR/Part-B/";
+            }
+            if (lower.contains("finance")) {
+                return "Finance/";
+            }
+            if (lower.contains("welfare") || lower.contains("student")) {
+                return "Dean-Student-Welfare/Part-D/";
+            }
+            if (lower.contains("placement")) {
+                return "Dean-Placement/Part-E/";
+            }
+            if (lower.contains("auditor")) {
+                return "Auditor-Review/";
+            }
+            if (!sec.isBlank()) {
+                return sec.replaceAll("[^A-Za-z0-9._-]", "_") + "/";
+            }
+            return "Administrative-Documents/";
+        } else {
+            String lower = sec.toLowerCase();
+            if (lower.contains("auditor")) {
+                return "Auditor-Review/";
+            }
+            if (lower.contains("part_a") || lower.contains("part-a") || lower.contains("part a")) {
+                return "Part-A/";
+            }
+            if (lower.contains("part_b") || lower.contains("part-b") || lower.contains("part b")) {
+                return "Part-B/";
+            }
+            if (lower.contains("part_c") || lower.contains("part-c") || lower.contains("part c")) {
+                return "Part-C/";
+            }
+            if (lower.contains("part_d") || lower.contains("part-d") || lower.contains("part d")) {
+                return "Part-D/";
+            }
+            if (lower.contains("part_e") || lower.contains("part-e") || lower.contains("part e")) {
+                return "Part-E/";
+            }
+            if (!sec.isBlank()) {
+                return sec.replaceAll("[^A-Za-z0-9._-]", "_") + "/";
+            }
+            return "Supporting-Documents/";
         }
-        String sec = att.sectionId.trim();
-        String cleanSec = sec.replaceAll("[^A-Za-z0-9._-]", "_");
-        return cleanSec + "/";
     }
 
     private String sanitizeFilename(String filename) {
         if (filename == null || filename.isBlank()) {
-            return "file.pdf";
+            return "attachment.pdf";
         }
         filename = filename.replace("\\", "/");
         int lastSlash = filename.lastIndexOf('/');
         String base = lastSlash >= 0 ? filename.substring(lastSlash + 1) : filename;
         base = base.replace("..", "_");
         String clean = base.replaceAll("[^A-Za-z0-9._-]", "_");
-        return clean.isBlank() ? "file.pdf" : clean;
+        return clean.isBlank() ? "attachment.pdf" : clean;
     }
 
     @Data

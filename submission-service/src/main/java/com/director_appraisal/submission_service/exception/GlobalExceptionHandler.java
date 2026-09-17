@@ -48,8 +48,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "DUPLICATE_RESOURCE", e.getMessage(), req, null);
     }
 
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<ApiErrorResponse> handleNotFound(NoSuchElementException e, HttpServletRequest req) {
+    @ExceptionHandler({NoSuchElementException.class, NotFoundException.class})
+    public ResponseEntity<ApiErrorResponse> handleNotFound(Exception e, HttpServletRequest req) {
         log.warn("[RESOURCE_NOT_FOUND] path={} message={}", req.getRequestURI(), e.getMessage());
         return build(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", e.getMessage(), req, null);
     }
