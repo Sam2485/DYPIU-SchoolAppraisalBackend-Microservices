@@ -697,18 +697,31 @@ public ResponseEntity<Submission> createNextCycle(
             if (submission.getAttachments() != null && !submission.getAttachments().isBlank()) {
                 collectAttachments(mapper.readTree(submission.getAttachments()), attachments, "General");
             }
+            String defaultContext = null;
+            if ("administrative".equalsIgnoreCase(submission.getAuditType())
+                    && submission.getAdministrativePost() != null
+                    && !submission.getAdministrativePost().isBlank()) {
+                defaultContext = formatAdministrativePost(submission.getAdministrativePost());
+            }
+
             if (submission.getTablesData() != null && !submission.getTablesData().isBlank()) {
-                collectAttachments(mapper.readTree(submission.getTablesData()), attachments, null);
+                collectAttachments(mapper.readTree(submission.getTablesData()), attachments, defaultContext);
             }
             if (submission.getValuesData() != null && !submission.getValuesData().isBlank()) {
-                collectAttachments(mapper.readTree(submission.getValuesData()), attachments, null);
+                collectAttachments(mapper.readTree(submission.getValuesData()), attachments, defaultContext);
             }
             if (submissionAuditorAssignmentRepository != null) {
                 List<SubmissionAuditorAssignment> assignments =
                         submissionAuditorAssignmentRepository.findBySubmissionId(submission.getId());
                 if (assignments != null) {
                     for (SubmissionAuditorAssignment assignment : assignments) {
-                        String audSec = "Auditor-" + (assignment.getAuditorType() != null && !assignment.getAuditorType().isBlank() ? assignment.getAuditorType() : "Review");
+                        String audType = assignment.getAuditorType() != null && !assignment.getAuditorType().isBlank()
+                                ? assignment.getAuditorType().trim()
+                                : "Review";
+                        String audSec = "Auditor-" + capitalizeWord(audType);
+                        if (assignment.getPost() != null && !assignment.getPost().isBlank() && !"academic".equalsIgnoreCase(assignment.getCategory())) {
+                            audSec = audSec + "/" + formatAdministrativePost(assignment.getPost());
+                        }
                         if (assignment.getAttachments() != null && !assignment.getAttachments().isBlank()) {
                             collectAttachments(mapper.readTree(assignment.getAttachments()), attachments, audSec);
                         }
@@ -1122,7 +1135,81 @@ public ResponseEntity<Submission> createNextCycle(
         if (key == null || key.isBlank()) {
             return currentSection;
         }
-        String normalized = key.toLowerCase().replaceAll("[^a-z0-9]", "");
+
+        // 1. Scoped table key format: role__instance__sectionKey__baseKey or instance__sectionKey__baseKey
+        if (key.contains("__")) {
+            String[] tokens = key.split("__");
+            if (tokens.length >= 4) {
+                String role = tokens[0].trim().toLowerCase();
+                String secKey = tokens[2].trim();
+                String part = formatDynamicPartName(secKey);
+
+                if (role.contains("ext")) {
+                    return !part.isBlank() ? "Auditor-External/" + part : "Auditor-External";
+                }
+                if (role.contains("int") || role.contains("audit")) {
+                    return !part.isBlank() ? "Auditor-Internal/" + part : "Auditor-Internal";
+                }
+                if (currentSection != null && !currentSection.isBlank()) {
+                    return !part.isBlank() ? currentSection + "/" + part : currentSection;
+                }
+                return !part.isBlank() ? part : currentSection;
+            } else if (tokens.length == 3) {
+                String secKey = tokens[1].trim();
+                String part = formatDynamicPartName(secKey);
+                if (currentSection != null && !currentSection.isBlank()) {
+                    return !part.isBlank() ? currentSection + "/" + part : currentSection;
+                }
+                return !part.isBlank() ? part : currentSection;
+            }
+        }
+
+        // 2. Direct dynamic part detection in key (e.g. part_1, part_2, part_a, part-3, sec_4)
+        String detectedPart = formatDynamicPartName(key);
+        if (detectedPart.startsWith("Part-") || detectedPart.startsWith("Section-")) {
+            if (currentSection != null && !currentSection.isBlank()) {
+                String lowerCur = currentSection.toLowerCase();
+                if (!lowerCur.contains("part-") && !lowerCur.contains("part_") && !lowerCur.contains("section-")) {
+                    return currentSection + "/" + detectedPart;
+                }
+            }
+            return detectedPart;
+        }
+
+        // 3. Auditor context detection
+        String lowerKey = key.toLowerCase();
+        if (lowerKey.contains("external_auditor") || lowerKey.contains("externalauditor") || lowerKey.contains("auditor_external")) {
+            return currentSection != null && currentSection.startsWith("Auditor-External") ? currentSection : "Auditor-External";
+        }
+        if (lowerKey.contains("internal_auditor") || lowerKey.contains("internalauditor") || lowerKey.contains("auditor_internal")) {
+            return currentSection != null && currentSection.startsWith("Auditor-Internal") ? currentSection : "Auditor-Internal";
+        }
+        if (lowerKey.contains("auditor")) {
+            return currentSection != null && currentSection.startsWith("Auditor-") ? currentSection : "Auditor-Review";
+        }
+
+        // 4. Administrative roles / posts detection
+        if (lowerKey.contains("registrar")) {
+            return currentSection != null && currentSection.contains("Registrar") ? currentSection : "Registrar";
+        }
+        if (lowerKey.contains("finance") || lowerKey.contains("account") || lowerKey.contains("budget")) {
+            return currentSection != null && currentSection.contains("Finance") ? currentSection : "Finance";
+        }
+        if (lowerKey.contains("faculty") || lowerKey.contains("staff") || lowerKey.contains("bogmom") || lowerKey.contains("hr")) {
+            return currentSection != null && currentSection.contains("HR") ? currentSection : "HR";
+        }
+        if (lowerKey.contains("welfare") || lowerKey.contains("student") || lowerKey.contains("cultural") || lowerKey.contains("sports")) {
+            return currentSection != null && currentSection.contains("Dean-Student-Welfare") ? currentSection : "Dean-Student-Welfare";
+        }
+        if (lowerKey.contains("placement") || lowerKey.contains("training") || lowerKey.contains("industry")) {
+            return currentSection != null && currentSection.contains("Dean-Placement") ? currentSection : "Dean-Placement";
+        }
+        if (lowerKey.contains("exam") || lowerKey.contains("controller")) {
+            return currentSection != null && currentSection.contains("Exam-Controller") ? currentSection : "Exam-Controller";
+        }
+
+        // 5. Legacy keyword fallbacks (for backward compatibility)
+        String normalized = lowerKey.replaceAll("[^a-z0-9]", "");
         if (normalized.contains("scholarship") || normalized.contains("coursesoffered")
                 || normalized.contains("studentstatistics") || normalized.contains("statutory")
                 || normalized.contains("auditrecords")) {
@@ -1132,23 +1219,7 @@ public ResponseEntity<Submission> createNextCycle(
                 || normalized.contains("eresource") || normalized.contains("researchresource")) {
             return "Registrar/Part-C";
         }
-        if (normalized.contains("faculty") || normalized.contains("staff") || normalized.contains("bogmom") || normalized.contains("hr")) {
-            return "HR/Part-B";
-        }
-        if (normalized.contains("finance") || normalized.contains("budget") || normalized.contains("account")) {
-            return "Finance";
-        }
-        if (normalized.contains("hackathon") || normalized.contains("ideation") || normalized.contains("cultural")
-                || normalized.contains("sports") || normalized.contains("community") || normalized.contains("welfare")) {
-            return "Dean-Student-Welfare/Part-D";
-        }
-        if (normalized.contains("parte") || normalized.contains("placement") || normalized.contains("training")
-                || normalized.contains("industry")) {
-            return "Dean-Placement/Part-E";
-        }
-        if (normalized.contains("auditor") || normalized.contains("internal") || normalized.contains("external")) {
-            return "Auditor-Review";
-        }
+
         return currentSection;
     }
 
@@ -1237,72 +1308,93 @@ public ResponseEntity<Submission> createNextCycle(
         if (post == null || post.isBlank()) {
             return "Administrative_Office";
         }
-        String clean = post.trim().replace('-', '_').replace(' ', '_');
+        return capitalizeWord(post.trim().replace('-', '_').replace(' ', '_')).replace('-', '_');
+    }
+
+    private String formatDynamicPartName(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String clean = raw.trim();
+
+        // Check for scoped keys like "role__instance__part_1__base"
+        if (clean.contains("__")) {
+            String[] tokens = clean.split("__");
+            if (tokens.length >= 3) {
+                clean = tokens.length >= 4 ? tokens[2] : tokens[1];
+            }
+        }
+
+        // Match "part_1", "part-2", "part 3", "part_a", "part-f", "part12", etc.
+        java.util.regex.Matcher mPart = java.util.regex.Pattern
+                .compile("(?i)(?:^|[_-])part[_-]?([0-9a-zA-Z]+)").matcher(clean);
+        if (mPart.find()) {
+            return "Part-" + mPart.group(1).toUpperCase();
+        }
+
+        // Match "sec_1", "section_2", etc.
+        java.util.regex.Matcher mSec = java.util.regex.Pattern
+                .compile("(?i)(?:^|[_-])sec(?:tion)?[_-]?([0-9a-zA-Z]+)").matcher(clean);
+        if (mSec.find()) {
+            return "Section-" + mSec.group(1).toUpperCase();
+        }
+
+        return capitalizeWord(clean.replaceAll("[^a-zA-Z0-9_-]", "_"));
+    }
+
+    private String capitalizeWord(String str) {
+        if (str == null || str.isBlank()) return "";
+        String clean = str.trim().replace('-', '_').replace(' ', '_');
         String[] parts = clean.split("_");
         StringBuilder sb = new StringBuilder();
         for (String p : parts) {
-            if (!p.isEmpty()) {
-                if (!sb.isEmpty()) sb.append("_");
+            if (!p.isBlank()) {
+                if (!sb.isEmpty()) sb.append("-");
                 sb.append(Character.toUpperCase(p.charAt(0)));
                 if (p.length() > 1) {
-                    sb.append(p.substring(1));
+                    sb.append(p.substring(1).toLowerCase());
                 }
             }
         }
-        return !sb.isEmpty() ? sb.toString() : clean;
+        return !sb.isEmpty() ? sb.toString() : str;
     }
 
     private String getZipFolderPath(ExtractedAttachment att, String auditType) {
         String sec = att.sectionId != null ? att.sectionId.trim() : "";
-        if ("administrative".equalsIgnoreCase(auditType)) {
-            String lower = sec.toLowerCase();
-            if (lower.contains("registrar")) {
-                return lower.contains("part-c") || lower.contains("part_c") ? "Registrar/Part-C/" : "Registrar/Part-A/";
+        if ((sec.isBlank() || "general".equalsIgnoreCase(sec)) && att.tableId != null && !att.tableId.isBlank()) {
+            sec = resolveAttachmentSectionContext(att.tableId, null);
+        } else if (!sec.isBlank() && att.tableId != null && !att.tableId.isBlank()) {
+            String lowerSec = sec.toLowerCase();
+            if (!lowerSec.contains("part-") && !lowerSec.contains("part_") && !lowerSec.contains("section-")) {
+                String tablePart = formatDynamicPartName(att.tableId);
+                if (tablePart.startsWith("Part-") || tablePart.startsWith("Section-")) {
+                    sec = sec + "/" + tablePart;
+                }
             }
-            if (lower.contains("hr")) {
-                return "HR/Part-B/";
-            }
-            if (lower.contains("finance")) {
-                return "Finance/";
-            }
-            if (lower.contains("welfare") || lower.contains("student")) {
-                return "Dean-Student-Welfare/Part-D/";
-            }
-            if (lower.contains("placement")) {
-                return "Dean-Placement/Part-E/";
-            }
-            if (lower.contains("auditor")) {
-                return "Auditor-Review/";
-            }
-            if (!sec.isBlank()) {
-                return sec.replaceAll("[^A-Za-z0-9._-]", "_") + "/";
-            }
-            return "Administrative-Documents/";
-        } else {
-            String lower = sec.toLowerCase();
-            if (lower.contains("auditor")) {
-                return "Auditor-Review/";
-            }
-            if (lower.contains("part_a") || lower.contains("part-a") || lower.contains("part a")) {
-                return "Part-A/";
-            }
-            if (lower.contains("part_b") || lower.contains("part-b") || lower.contains("part b")) {
-                return "Part-B/";
-            }
-            if (lower.contains("part_c") || lower.contains("part-c") || lower.contains("part c")) {
-                return "Part-C/";
-            }
-            if (lower.contains("part_d") || lower.contains("part-d") || lower.contains("part d")) {
-                return "Part-D/";
-            }
-            if (lower.contains("part_e") || lower.contains("part-e") || lower.contains("part e")) {
-                return "Part-E/";
-            }
-            if (!sec.isBlank()) {
-                return sec.replaceAll("[^A-Za-z0-9._-]", "_") + "/";
-            }
-            return "Supporting-Documents/";
         }
+
+        if (sec == null || sec.isBlank() || "general".equalsIgnoreCase(sec)) {
+            return "academic".equalsIgnoreCase(auditType) ? "Supporting-Documents/" : "Administrative-Documents/";
+        }
+
+        // Split hierarchical path by / or \ to sanitize each dynamic segment
+        String[] segments = sec.replace('\\', '/').split("/");
+        StringBuilder folderPath = new StringBuilder();
+        for (String segment : segments) {
+            String cleanSegment = segment.trim();
+            if (cleanSegment.isEmpty()) continue;
+
+            cleanSegment = formatDynamicPartName(cleanSegment);
+            cleanSegment = cleanSegment.replaceAll("[^A-Za-z0-9._-]", "_");
+
+            if (!cleanSegment.isEmpty()) {
+                folderPath.append(cleanSegment).append("/");
+            }
+        }
+
+        if (folderPath.length() == 0) {
+            return "academic".equalsIgnoreCase(auditType) ? "Supporting-Documents/" : "Administrative-Documents/";
+        }
+
+        return folderPath.toString();
     }
 
     private String sanitizeFilename(String filename) {
