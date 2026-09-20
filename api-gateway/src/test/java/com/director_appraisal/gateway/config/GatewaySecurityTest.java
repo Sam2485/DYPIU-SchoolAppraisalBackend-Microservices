@@ -42,19 +42,16 @@ class GatewaySecurityTest {
         String token = Jwts.builder()
                 .subject("faculty@dypiu.ac.in")
                 .claims(Map.of(
-                        "role", "director",
-                        "universityId", 1L,
-                        "universityCode", "dypiu"
+                        "role", "director"
                 ))
                 .expiration(new Date(System.currentTimeMillis() + 3600000))
                 .signWith(key)
                 .compact();
 
-        // Client attempts to spoof super_admin role and fake university ID
+        // Client attempts to spoof super_admin role
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/submissions/my-draft")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .header("X-User-Role", "super_admin")
-                .header("X-University-Id", "999")
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
@@ -63,7 +60,6 @@ class GatewaySecurityTest {
             HttpHeaders forwardedHeaders = ex.getRequest().getHeaders();
             // Verify that spoofed headers were replaced by verified claims from token
             assertEquals("director", forwardedHeaders.getFirst("X-User-Role"));
-            assertEquals("1", forwardedHeaders.getFirst("X-University-Id"));
             assertEquals("faculty@dypiu.ac.in", forwardedHeaders.getFirst("X-User-Email"));
             verified.set(true);
             return Mono.empty();

@@ -92,16 +92,14 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("Should validate valid JWT and forward X-User-Email, X-User-Role, X-University-Id, and X-University-Code")
+    @DisplayName("Should validate valid JWT and forward X-User-Email, X-User-Role, X-User-School, and X-User-Name")
     void testValidJwtAttachesDownstreamHeaders() {
         String token = Jwts.builder()
                 .subject("director@dypiu.ac.in")
                 .claims(Map.of(
                         "role", "director",
                         "name", "Dr. Director",
-                        "school", "School of Computing",
-                        "universityId", 1L,
-                        "universityCode", "dypiu"
+                        "school", "School of Computing"
                 ))
                 .expiration(new Date(System.currentTimeMillis() + 3600000))
                 .signWith(key)
@@ -120,8 +118,6 @@ class JwtAuthenticationFilterTest {
             assertEquals("director", headers.getFirst("X-User-Role"));
             assertEquals("School of Computing", headers.getFirst("X-User-School"));
             assertEquals("Dr. Director", headers.getFirst("X-User-Name"));
-            assertEquals("1", headers.getFirst("X-University-Id"));
-            assertEquals("dypiu", headers.getFirst("X-University-Code"));
             return Mono.empty();
         };
 

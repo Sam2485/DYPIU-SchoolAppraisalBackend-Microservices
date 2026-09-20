@@ -24,11 +24,11 @@ class SubmissionDiagnosticsTest {
     private final FeignCorrelationInterceptor feignInterceptor = new FeignCorrelationInterceptor();
 
     @Test
-    @DisplayName("Diagnostics: FeignCorrelationInterceptor propagates correlation ID and tenant context downstream")
+    @DisplayName("Diagnostics: FeignCorrelationInterceptor propagates correlation ID and user context downstream")
     void testFeignCorrelationPropagation() {
         MDC.put(MdcLoggingFilter.MDC_CORRELATION_ID, "corr-feign-xyz");
         MDC.put(MdcLoggingFilter.MDC_USER_EMAIL, "director@dypiu.ac.in");
-        MDC.put(MdcLoggingFilter.MDC_UNIVERSITY_ID, "1");
+        MDC.put(MdcLoggingFilter.MDC_USER_ROLE, "director");
 
         try {
             RequestTemplate template = new RequestTemplate();
@@ -39,8 +39,8 @@ class SubmissionDiagnosticsTest {
             assertTrue(headers.get("X-Correlation-Id").contains("corr-feign-xyz"));
             assertTrue(headers.containsKey("X-User-Email"));
             assertTrue(headers.get("X-User-Email").contains("director@dypiu.ac.in"));
-            assertTrue(headers.containsKey("X-University-Id"));
-            assertTrue(headers.get("X-University-Id").contains("1"));
+            assertTrue(headers.containsKey("X-User-Role"));
+            assertTrue(headers.get("X-User-Role").contains("director"));
         } finally {
             MDC.clear();
         }
