@@ -21,24 +21,22 @@ class SubmissionSecurityTest {
     private SubmissionRepository submissionRepository;
 
     @Test
-    @DisplayName("Security: Reject cross-tenant IDOR attack where University A user tries to query University B submission ID")
-    void testCrossTenantIdorProtection() {
-        Submission uniBSubmission = Submission.builder()
+    @DisplayName("Security: Reject cross-user IDOR access where Director A tries to mutate Director B submission")
+    void testUserOwnershipIdorProtection() {
+        Submission submission = Submission.builder()
                 .id(100L)
-                .email("director@apex.edu.in")
-                .universityId(2L)
-                .universityCode("apex_uni")
+                .email("director1@example.com")
                 .status("SUBMITTED")
                 .build();
 
-        when(submissionRepository.findById(100L)).thenReturn(Optional.of(uniBSubmission));
+        when(submissionRepository.findById(100L)).thenReturn(Optional.of(submission));
 
-        Long callerUniversityId = 1L; // Caller from DYPIU
+        String callerEmail = "director2@example.com";
         Optional<Submission> target = submissionRepository.findById(100L);
 
         assertTrue(target.isPresent());
-        boolean isAuthorizedTenant = target.get().getUniversityId().equals(callerUniversityId);
-        assertFalse(isAuthorizedTenant, "Tenant isolation must flag cross-tenant access as unauthorized");
+        boolean isOwner = target.get().getEmail().equalsIgnoreCase(callerEmail);
+        assertFalse(isOwner, "User ownership check must flag non-owner access as unauthorized");
     }
 
     @Test

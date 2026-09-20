@@ -18,14 +18,14 @@ public class UniversitySchoolService {
 
     public List<UniversitySchool> getSchoolsByUniversity(Long universityId) {
         if (universityId == null) {
-            return List.of();
+            return schoolRepository.findAllByOrderByDisplayOrderAscIdAsc();
         }
         return schoolRepository.findByUniversityIdOrderByDisplayOrderAscIdAsc(universityId);
     }
 
     public List<UniversitySchool> getActiveSchoolsByUniversity(Long universityId) {
         if (universityId == null) {
-            return List.of();
+            return schoolRepository.findByStatusOrderByDisplayOrderAscIdAsc("ACTIVE");
         }
         return schoolRepository.findByUniversityIdAndStatusOrderByDisplayOrderAscIdAsc(universityId, "ACTIVE");
     }
@@ -36,9 +36,7 @@ public class UniversitySchoolService {
 
     @Transactional
     public UniversitySchool createSchool(Long universityId, UniversitySchool school) {
-        if (universityId == null) {
-            throw new IllegalArgumentException("University ID is required.");
-        }
+        Long targetUniId = universityId != null ? universityId : 1L;
         if (school.getName() == null || school.getName().isBlank()) {
             throw new IllegalArgumentException("School name is required.");
         }
@@ -47,11 +45,12 @@ public class UniversitySchoolService {
         }
 
         String normalizedCode = school.getCode().trim().toUpperCase();
-        if (schoolRepository.existsByUniversityIdAndCodeIgnoreCase(universityId, normalizedCode)) {
-            throw new IllegalArgumentException("School code '" + normalizedCode + "' already exists for this university.");
+        if (schoolRepository.existsByUniversityIdAndCodeIgnoreCase(targetUniId, normalizedCode)
+                || schoolRepository.existsByCodeIgnoreCase(normalizedCode)) {
+            throw new IllegalArgumentException("School code '" + normalizedCode + "' already exists.");
         }
 
-        school.setUniversityId(universityId);
+        school.setUniversityId(targetUniId);
         school.setCode(normalizedCode);
         school.setName(school.getName().trim());
         if (school.getGroupName() == null || school.getGroupName().isBlank()) {

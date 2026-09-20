@@ -21,7 +21,8 @@ public class FormSchema {
     private Long id;
 
     @Column(nullable = false)
-    private Long universityId;
+    @Builder.Default
+    private Long universityId = 1L;
 
     @Column(nullable = false, length = 50)
     private String auditType; // ACADEMIC, ADMINISTRATIVE

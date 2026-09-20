@@ -27,10 +27,8 @@ public class AdminConfigController {
     private final FormSectionRepository formSectionRepository;
     private final FormTableRepository formTableRepository;
     private final FormFieldRepository formFieldRepository;
-    private final UniversityRepository universityRepository;
     private final FormConfigService formConfigService;
     private final SchemaCompilerService schemaCompilerService;
-    private final ObjectMapper objectMapper;
 
     private static final Set<String> ALLOWED_ADMIN_ROLES = Set.of("super_admin", "admin", "iqac", "director");
 
@@ -47,22 +45,11 @@ public class AdminConfigController {
             @RequestParam(required = false) String universityCode,
             @RequestParam(required = false) String auditType) {
 
-        Long targetUniId = universityId;
-        if (targetUniId == null && universityCode != null && !universityCode.isBlank()) {
-            targetUniId = universityRepository.findByCodeIgnoreCase(universityCode.trim())
-                    .map(University::getId)
-                    .orElse(1L);
-        }
-        if (targetUniId == null) {
-            targetUniId = 1L;
-        }
-
-        List<FormSchema> schemas = formSchemaRepository.findByUniversityId(targetUniId);
+        List<FormSchema> schemas;
         if (auditType != null && !auditType.isBlank()) {
-            String filterType = auditType.trim().toLowerCase();
-            schemas = schemas.stream()
-                    .filter(s -> s.getAuditType() != null && s.getAuditType().trim().toLowerCase().equals(filterType))
-                    .toList();
+            schemas = formSchemaRepository.findByAuditTypeIgnoreCase(auditType.trim());
+        } else {
+            schemas = formSchemaRepository.findAll();
         }
         return ResponseEntity.ok(schemas);
     }
@@ -116,7 +103,7 @@ public class AdminConfigController {
         validateAdminRole(userRole);
         String newName = req != null ? req.getNewName() : null;
         String auditType = req != null ? req.getAuditType() : null;
-        Long uniId = req != null ? req.getUniversityId() : null;
+        Long uniId = 1L;
         String assignedSchools = req != null ? req.getAssignedSchools() : null;
         String creator = userName != null && !userName.isBlank() ? userName : "iqac-admin";
 
@@ -148,20 +135,9 @@ public class AdminConfigController {
 
     @DeleteMapping("/schemas/clear-all")
     public ResponseEntity<Map<String, Object>> clearAllSchemas(
-            @RequestParam(required = false) Long universityId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole) {
         validateAdminRole(userRole);
-        Long targetUniId = universityId != null ? universityId : 1L;
-        formConfigService.deleteAllSchemasForUniversity(targetUniId);
-        return ResponseEntity.ok(Map.of("success", true, "message", "All schemas cleared successfully."));
-    }
-
-    @DeleteMapping("/universities/{universityId}/schemas")
-    public ResponseEntity<Map<String, Object>> clearUniversitySchemas(
-            @PathVariable Long universityId,
-            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
-        validateAdminRole(userRole);
-        formConfigService.deleteAllSchemasForUniversity(universityId);
+        formConfigService.deleteAllSchemasForUniversity(1L);
         return ResponseEntity.ok(Map.of("success", true, "message", "All schemas cleared successfully."));
     }
 
@@ -516,17 +492,7 @@ public class AdminConfigController {
     public ResponseEntity<List<Map<String, Object>>> getAvailableTables(
             @RequestParam(required = false) Long universityId,
             @RequestParam(required = false) String universityCode) {
-        Long targetUniId = universityId;
-        if (targetUniId == null && universityCode != null && !universityCode.isBlank()) {
-            targetUniId = universityRepository.findByCodeIgnoreCase(universityCode.trim())
-                    .map(University::getId)
-                    .orElse(1L);
-        }
-        if (targetUniId == null) {
-            targetUniId = 1L;
-        }
-
-        List<Map<String, Object>> tables = formConfigService.getAvailableTablesForUniversity(targetUniId);
+        List<Map<String, Object>> tables = formConfigService.getAvailableTablesForUniversity(1L);
         return ResponseEntity.ok(tables);
     }
 

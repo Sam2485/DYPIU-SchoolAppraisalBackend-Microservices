@@ -12,4 +12,6 @@ public interface FormSchemaRepository extends JpaRepository<FormSchema, Long> {
     List<FormSchema> findByUniversityId(Long universityId);
     List<FormSchema> findByUniversityIdAndAuditTypeIgnoreCase(Long universityId, String auditType);
     Optional<FormSchema> findFirstByUniversityIdAndAuditTypeIgnoreCaseOrderByIdAsc(Long universityId, String auditType);
+    List<FormSchema> findByAuditTypeIgnoreCase(String auditType);
+    Optional<FormSchema> findFirstByAuditTypeIgnoreCaseOrderByIdAsc(String auditType);
 }

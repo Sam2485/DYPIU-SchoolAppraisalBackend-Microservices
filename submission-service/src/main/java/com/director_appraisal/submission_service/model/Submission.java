@@ -28,10 +28,6 @@ public class Submission {
 
     private Long schemaVersionId;
 
-    private Long universityId;
-
-    private String universityCode;
-
     private String school;
 
     

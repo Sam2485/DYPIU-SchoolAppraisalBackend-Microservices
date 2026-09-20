@@ -38,7 +38,7 @@ spring:
         - id: form-data-service
           uri: ${FORMS_SERVICE_URL:http://localhost:9002}
           predicates:
-            - Path=/api/academic/**, /api/administrative/**, /api/config/**, /api/admin/config/**, /api/universities/**
+            - Path=/api/academic/**, /api/administrative/**, /api/config/**, /api/admin/config/**
 
 
         - id: submission-service

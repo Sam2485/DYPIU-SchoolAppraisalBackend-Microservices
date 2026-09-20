@@ -131,9 +131,7 @@ public class SubmissionService {
             throw new SecurityException("Only administrative authorities can access the shared administrative form");
         }
         String academicYear = getCurrentAcademicYearLabel();
-        Long uniId = caller != null ? caller.getUniversityId() : null;
-        String uniCode = caller != null ? caller.getUniversityCode() : null;
-        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(academicYear, uniId, uniCode);
+        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(academicYear, null, null);
         
         // Concurrency safety: row-level lock
         Submission locked = submissionRepository.findByIdForUpdate(submission.getId()).orElse(submission);
@@ -219,8 +217,6 @@ public class SubmissionService {
         if (cycleId == null || cycleId.isBlank()) {
             cycleId = getCurrentAcademicYearLabel();
         }
-        Long effectiveUniId = universityId;
-        String effectiveUniCode = (universityCode != null && !universityCode.isBlank()) ? universityCode : null;
 
         String academicYear;
         String auditCycle;
@@ -237,18 +233,10 @@ public class SubmissionService {
             auditCycle = cycleId;
         }
 
-        Optional<Submission> existing;
-        if (effectiveUniId != null) {
-            existing = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearAndUniversityIdOrderByIdDesc(
-                    SHARED_ADMINISTRATIVE_EMAIL, "administrative", academicYear, effectiveUniId)
-                .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAuditCycleAndUniversityIdOrderByIdDesc(
-                    SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle, effectiveUniId));
-        } else {
-            existing = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(
-                    SHARED_ADMINISTRATIVE_EMAIL, "administrative", academicYear)
-                .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAuditCycleOrderByIdDesc(
-                    SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle));
-        }
+        Optional<Submission> existing = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(
+                SHARED_ADMINISTRATIVE_EMAIL, "administrative", academicYear)
+            .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAuditCycleOrderByIdDesc(
+                SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle));
 
         if (existing.isPresent()) {
             Submission sub = existing.get();
@@ -316,8 +304,6 @@ public class SubmissionService {
                 .reportCategory("INTERNAL")
                 .version(1)
                 .hasNextCycle(false)
-                .universityId(effectiveUniId)
-                .universityCode(effectiveUniCode)
                 .build();
         Submission saved = submissionRepository.save(submission);
         saved.setRootSubmissionId(saved.getId());
@@ -337,9 +323,7 @@ public class SubmissionService {
             throw new SecurityException("Administrative post is required");
         }
 
-        Long uniId = caller != null ? caller.getUniversityId() : null;
-        String uniCode = caller != null ? caller.getUniversityCode() : null;
-        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(cycleId, uniId, uniCode);
+        Submission submission = getOrCreateSharedAdministrativeDraftForCycle(cycleId, null, null);
         
         // Concurrency safety: row-level lock
         Submission lockedSubmission = submissionRepository.findByIdForUpdate(submission.getId())
@@ -729,8 +713,6 @@ public class SubmissionService {
         }
         String academicYear = getCurrentAcademicYearLabel();
         UserDto caller = resolveUser(email);
-        Long universityId = caller != null ? caller.getUniversityId() : null;
-        String universityCode = caller != null && caller.getUniversityCode() != null && !caller.getUniversityCode().isBlank() ? caller.getUniversityCode() : null;
 
         Optional<Submission> editableCycle = submissionRepository
                 .findFirstByEmailAndAuditTypeAndAcademicYearAndStatusInOrderByIdDesc(email, auditType, academicYear, EDITABLE_CYCLE_STATUSES);
@@ -740,13 +722,7 @@ public class SubmissionService {
             return sub;
         }
 
-        Optional<Submission> latestCycle;
-        if (universityId != null) {
-            latestCycle = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearAndUniversityIdOrderByIdDesc(email, auditType, academicYear, universityId)
-                    .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(email, auditType, academicYear));
-        } else {
-            latestCycle = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(email, auditType, academicYear);
-        }
+        Optional<Submission> latestCycle = submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(email, auditType, academicYear);
         if (latestCycle.isPresent()) {
             Submission sub = latestCycle.get();
             populateAuditorProgressAndAssignments(sub);
@@ -755,7 +731,7 @@ public class SubmissionService {
 
         Long schemaVersionId = null;
         try {
-            Map<String, Object> cfg = formDataClient.getActiveConfig(auditType, universityCode);
+            Map<String, Object> cfg = formDataClient.getActiveConfig(auditType);
             if (cfg != null && cfg.get("versionId") != null) {
                 schemaVersionId = Long.valueOf(cfg.get("versionId").toString());
             }
@@ -773,8 +749,6 @@ public class SubmissionService {
                 .reportCategory("INTERNAL")
                 .version(1)
                 .schemaVersionId(schemaVersionId)
-                .universityId(universityId)
-                .universityCode(universityCode)
                 .school(caller != null && caller.getSchool() != null ? SchoolUtils.canonicalizeSchool(caller.getSchool()) : null)
                 .build();
         Submission saved = submissionRepository.save(submission);
@@ -943,7 +917,7 @@ public class SubmissionService {
                 stageAssignments = allAssignments;
             }
             if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-                java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
+                java.util.Set<String> validAdminPosts = getValidAdministrativePosts();
                 stageAssignments = stageAssignments.stream()
                         .filter(a -> {
                             String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -1321,10 +1295,9 @@ public class SubmissionService {
 
     public List<Submission> getAllSubmissionsForUser(UserDto user) {
         String role = user.getRole().toLowerCase();
-        Long universityId = user.getUniversityId() != null ? user.getUniversityId() : 1L;
 
-        List<Submission> allInDb = submissionRepository.findAllByUniversityId(universityId);
-        System.out.println("[AUDIT_DEBUG] getAllSubmissionsForUser: user=" + user.getEmail() + ", role=" + role + ", uniId=" + universityId + ", totalInDb=" + allInDb.size());
+        List<Submission> allInDb = submissionRepository.findAll();
+        System.out.println("[AUDIT_DEBUG] getAllSubmissionsForUser: user=" + user.getEmail() + ", role=" + role + ", totalInDb=" + allInDb.size());
         for (Submission s : allInDb) {
             System.out.println("[AUDIT_DEBUG]   Sub in DB: id=" + s.getId() + ", auditType=" + s.getAuditType() + ", status=" + s.getStatus() + ", email=" + s.getEmail());
         }
@@ -1354,10 +1327,10 @@ public class SubmissionService {
         List<Submission> list;
 
         if ("iqac".equals(role)) {
-            list = submissionRepository.findByUniversityIdAndStatusIn(universityId, IQAC_VISIBLE_STATUSES);
+            list = submissionRepository.findByStatusIn(IQAC_VISIBLE_STATUSES);
             System.out.println("[AUDIT_DEBUG] iqac list count: " + list.size());
         } else if ("vice-chancellor".equals(role)) {
-            list = submissionRepository.findByUniversityIdAndStatusIn(universityId, VC_VISIBLE_STATUSES);
+            list = submissionRepository.findByStatusIn(VC_VISIBLE_STATUSES);
         } else if (role.contains("auditor") || "auditor".equalsIgnoreCase(user.getAccountType())) {
             List<Submission> allSubmissions = allInDb;
             list = allSubmissions.stream()
@@ -1408,8 +1381,7 @@ public class SubmissionService {
 
     public List<Submission> getPreviousReports(UserDto user, String academicYear) {
         validateReviewer(user);
-        Long universityId = user != null && user.getUniversityId() != null ? user.getUniversityId() : 1L;
-        return submissionRepository.findByUniversityIdAndStatusIn(universityId, List.of(STATUS_APPROVED_LEGACY, STATUS_FINAL)).stream()
+        return submissionRepository.findByStatusIn(List.of(STATUS_APPROVED_LEGACY, STATUS_FINAL)).stream()
                 .filter(submission -> academicYear == null || academicYear.isBlank()
                         || academicYear.equals(submission.getAcademicYear())
                         || academicYear.equals(submission.getAuditCycle()))
@@ -1899,8 +1871,6 @@ public class SubmissionService {
                 .email(approved.getEmail())
                 .auditType(approved.getAuditType())
                 .schemaVersionId(approved.getSchemaVersionId())
-                .universityId(approved.getUniversityId())
-                .universityCode(approved.getUniversityCode() != null && !approved.getUniversityCode().isBlank() ? approved.getUniversityCode() : null)
                 .school(approved.getSchool())
                 .submittedBy("administrative".equalsIgnoreCase(approved.getAuditType()) ? "Administrative Authorities" : approved.getSubmittedBy())
                 .submittedByDetails(null)
@@ -2809,9 +2779,8 @@ public class SubmissionService {
                 : mapper.createObjectNode();
         
         java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
-        Long uniId = submission != null ? submission.getUniversityId() : null;
         activePosts.forEach(post -> {
-            if (!hasActiveAdministrativeUserForPost(post, uniId)) {
+            if (!hasActiveAdministrativeUserForPost(post)) {
                 progress.put(post, "APPROVED");
             } else {
                 boolean submittedByActive = isSubmittedByActiveUser(values, post);
@@ -2846,8 +2815,7 @@ public class SubmissionService {
         java.util.Set<String> sections = new java.util.LinkedHashSet<>();
 
         try {
-            String uniCode = submission != null ? submission.getUniversityCode() : null;
-            Map<String, Object> schema = formDataClient.getActiveConfig("administrative", uniCode);
+            Map<String, Object> schema = formDataClient.getActiveConfig("administrative");
             if (schema != null && schema.get("sections") instanceof List<?> secList) {
                 for (Object secObj : secList) {
                     if (secObj instanceof Map<?, ?> secMap) {
@@ -2889,25 +2857,21 @@ public class SubmissionService {
 
     public java.util.Set<String> resolveActiveAdministrativePostsForSubmission(Submission submission) {
         java.util.Set<String> posts = new java.util.LinkedHashSet<>();
-        Long uniId = submission != null ? submission.getUniversityId() : null;
-        String uniCode = submission != null ? submission.getUniversityCode() : null;
-
-        if (uniId != null) {
-            try {
-                List<Map<String, Object>> dynamicPosts = formDataClient.getUniversityPosts(uniId);
-                if (dynamicPosts != null) {
-                    for (Map<String, Object> p : dynamicPosts) {
-                        if (p.get("code") != null) {
-                            String c = canonicalAdministrativePost(p.get("code").toString());
-                            if (c != null && !c.isBlank()) posts.add(c);
-                        }
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
 
         try {
-            Map<String, Object> schema = formDataClient.getActiveConfig("administrative", uniCode);
+            List<Map<String, Object>> dynamicPosts = formDataClient.getUniversityPosts();
+            if (dynamicPosts != null) {
+                for (Map<String, Object> p : dynamicPosts) {
+                    if (p.get("code") != null) {
+                        String c = canonicalAdministrativePost(p.get("code").toString());
+                        if (c != null && !c.isBlank()) posts.add(c);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            Map<String, Object> schema = formDataClient.getActiveConfig("administrative");
             if (schema != null && schema.get("sections") instanceof List<?> secList) {
                 for (Object secObj : secList) {
                     if (secObj instanceof Map<?, ?> secMap && secMap.get("ownerRole") != null) {
@@ -2925,8 +2889,7 @@ public class SubmissionService {
             if (users != null) {
                 for (UserDto u : users) {
                     if (Boolean.TRUE.equals(u.getDeleted())) continue;
-                    Long userUniId = u.getUniversityId();
-                    if ((uniId == null || java.util.Objects.equals(userUniId, uniId)) && "administrative".equalsIgnoreCase(u.getRole())) {
+                    if ("administrative".equalsIgnoreCase(u.getRole())) {
                         posts.addAll(resolveAdministrativePosts(u));
                     }
                 }
@@ -2957,14 +2920,13 @@ public class SubmissionService {
     private boolean isAllAdministrativePostsSubmitted(Submission submission, com.fasterxml.jackson.databind.JsonNode progressNode) {
         if (submission == null) return false;
         java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
-        Long uniId = submission.getUniversityId() != null ? submission.getUniversityId() : 1L;
 
         List<String> requiredPosts = activePosts.stream()
                 .map(this::canonicalAdministrativePost)
                 .filter(java.util.Objects::nonNull)
                 .filter(post -> !"auditor".equalsIgnoreCase(post))
                 .distinct()
-                .filter(post -> hasActiveAdministrativeUserForPost(post, uniId))
+                .filter(this::hasActiveAdministrativeUserForPost)
                 .toList();
 
         if (requiredPosts.isEmpty()) {
@@ -3044,15 +3006,10 @@ public class SubmissionService {
     }
 
     private boolean hasActiveAdministrativeUserForPost(String post) {
-        return hasActiveAdministrativeUserForPost(post, null);
-    }
-
-    private boolean hasActiveAdministrativeUserForPost(String post, Long universityId) {
         if (post == null || post.isBlank()) return false;
         String canonicalPost = canonicalAdministrativePost(post);
         if (canonicalPost == null) return false;
 
-        Long uniId = universityId != null ? universityId : 1L;
         List<UserDto> allUsers = safeGetAllUsers();
         if (allUsers == null || allUsers.isEmpty()) return true;
 
@@ -3060,8 +3017,7 @@ public class SubmissionService {
             if (Boolean.TRUE.equals(u.getDeleted())) {
                 continue;
             }
-            Long userUniId = u.getUniversityId() != null ? u.getUniversityId() : 1L;
-            if (userUniId.equals(uniId) && "administrative".equalsIgnoreCase(u.getRole())) {
+            if ("administrative".equalsIgnoreCase(u.getRole())) {
                 java.util.Set<String> uPosts = resolveAdministrativePosts(u);
                 if (uPosts.contains(canonicalPost)) {
                     return true;
@@ -3069,6 +3025,10 @@ public class SubmissionService {
             }
         }
         return false;
+    }
+
+    private boolean hasActiveAdministrativeUserForPost(String post, Long universityId) {
+        return hasActiveAdministrativeUserForPost(post);
     }
 
     private boolean isPostRequiredForAdministrativeWorkflow(String post) {
@@ -3276,11 +3236,10 @@ public class SubmissionService {
         };
     }
 
-    private java.util.Set<String> getValidAdministrativePosts(Long universityId) {
+    private java.util.Set<String> getValidAdministrativePosts() {
         java.util.Set<String> valid = new java.util.HashSet<>(java.util.Set.of("registrar", "hr", "dean-placement", "dean-student-welfare", "dp"));
         try {
-            Long uniId = universityId != null ? universityId : 1L;
-            List<Map<String, Object>> dynamicPosts = formDataClient.getUniversityPosts(uniId);
+            List<Map<String, Object>> dynamicPosts = formDataClient.getUniversityPosts();
             if (dynamicPosts != null) {
                 for (Map<String, Object> p : dynamicPosts) {
                     if (p.get("code") != null) {
@@ -3807,40 +3766,13 @@ public class SubmissionService {
     }
 
     public boolean matchesUniversity(Submission s, UserDto user) {
-        if (s == null || user == null) return false;
-
-        String userCode = user.getUniversityCode();
-        String subCode = s.getUniversityCode();
-        if (userCode != null && !userCode.isBlank() && subCode != null && !subCode.isBlank()) {
-            return userCode.trim().equalsIgnoreCase(subCode.trim());
-        }
-
-        Long userId = user.getUniversityId();
-        Long subId = s.getUniversityId();
-        if (userId != null && subId != null) {
-            return userId.equals(subId);
-        }
-
-        // Domain-based tenant matching fallback
-        if (user.getEmail() != null && s.getEmail() != null) {
-            String uEmail = user.getEmail().trim().toLowerCase();
-            String sEmail = s.getEmail().trim().toLowerCase();
-            int uAt = uEmail.indexOf('@');
-            int sAt = sEmail.indexOf('@');
-            if (uAt > 0 && sAt > 0) {
-                String uDomain = uEmail.substring(uAt + 1);
-                String sDomain = sEmail.substring(sAt + 1);
-                return uDomain.equalsIgnoreCase(sDomain);
-            }
-        }
-
-        return false;
+        return s != null && user != null;
     }
 
     public Submission getDraftForUser(UserDto user, String auditType, String requestedYear, boolean includeHistorical, boolean shared) {
         if (shared && "administrative".equalsIgnoreCase(auditType)) {
             if (requestedYear != null && !requestedYear.isBlank()) {
-                return getOrCreateSharedAdministrativeDraftForCycle(requestedYear, user.getUniversityId(), user.getUniversityCode());
+                return getOrCreateSharedAdministrativeDraftForCycle(requestedYear, null, null);
             }
             return getOrCreateSharedAdministrativeDraft(user);
         }
@@ -3854,23 +3786,18 @@ public class SubmissionService {
         if (isHistoricalRequest || includeHistorical) {
             List<String> yearVariants = getYearVariants(isYearRequested ? requestedYear : activeYear);
 
-            // 1. Try to find user's own submission for this historical cycle in their university
+            // 1. Try to find user's own submission for this historical cycle
             List<Submission> userSubmissions = submissionRepository.findSubmissionsByEmailAndAuditTypeAndYearLabels(
                     user.getEmail(), auditType, yearVariants);
-            Submission userMatch = userSubmissions.stream()
-                    .filter(s -> matchesUniversity(s, user))
-                    .findFirst()
-                    .orElse(null);
-            if (userMatch != null) {
-                return userMatch;
+            if (!userSubmissions.isEmpty()) {
+                return userSubmissions.get(0);
             }
 
-            // 2. For directors, try to find the school's historical submission within the same university
+            // 2. For directors, try to find the school's historical submission
             if (role.contains("director") && "academic".equalsIgnoreCase(auditType)) {
                 String userSchool = SchoolUtils.canonicalizeSchool(user.getSchool());
                 List<Submission> candidates = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("academic", yearVariants);
                 Submission schoolMatch = candidates.stream()
-                        .filter(s -> matchesUniversity(s, user))
                         .filter(s -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(s.getSchool())))
                         .findFirst()
                         .orElse(null);
@@ -3891,19 +3818,16 @@ public class SubmissionService {
             emptyHist.setValuesData("{}");
             emptyHist.setTablesData("{}");
             emptyHist.setAttachments("[]");
-            emptyHist.setUniversityId(user.getUniversityId());
-            emptyHist.setUniversityCode(user.getUniversityCode());
             return emptyHist;
         }
 
         // Active year request:
-        // For directors, check if an existing submission for this school in the SAME university is already submitted/approved by another director
+        // For directors, check if an existing submission for this school is already submitted/approved by another director
         if (role.contains("director") && "academic".equalsIgnoreCase(auditType)) {
             String userSchool = SchoolUtils.canonicalizeSchool(user.getSchool());
             List<String> yearVariants = getYearVariants(isYearRequested ? requestedYear : activeYear);
             List<Submission> candidates = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("academic", yearVariants);
             Submission existingSchoolSubmission = candidates.stream()
-                    .filter(s -> matchesUniversity(s, user))
                     .filter(s -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(s.getSchool())))
                     .filter(s -> !s.getEmail().equalsIgnoreCase(user.getEmail()))
                     .filter(s -> List.of("SUBMITTED", "UNDER_REVIEW", "AUDITOR_COMPLETED", "APPROVED", "FINAL").contains(s.getStatus().toUpperCase()))
@@ -3978,7 +3902,7 @@ public class SubmissionService {
             java.util.Map<String, String> progress = submission.getAdministrativeProgressForJson();
             java.util.Set<String> activePosts = resolveActiveAdministrativePostsForSubmission(submission);
             List<String> requiredPosts = activePosts.stream()
-                    .filter(post -> hasActiveAdministrativeUserForPost(post, submission.getUniversityId()))
+                    .filter(this::hasActiveAdministrativeUserForPost)
                     .toList();
             if (!requiredPosts.isEmpty()) {
                 allContributorsSubmitted = requiredPosts.stream()
@@ -4484,7 +4408,7 @@ public class SubmissionService {
         
         java.util.List<SubmissionAuditorAssignment> validAssignments = allAssignments;
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts();
             validAssignments = allAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -4504,7 +4428,7 @@ public class SubmissionService {
         }
 
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts();
             currentGroupAssignments = currentGroupAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -4603,7 +4527,7 @@ public class SubmissionService {
         
         java.util.List<SubmissionAuditorAssignment> validAssignments = allAssignments;
         if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts();
             validAssignments = allAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -4749,7 +4673,7 @@ public class SubmissionService {
                     .filter(a -> "academic".equalsIgnoreCase(a.getCategory()) && activeType.equalsIgnoreCase(a.getAuditorType()))
                     .collect(java.util.stream.Collectors.toList());
         } else if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-            java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
+            java.util.Set<String> validAdminPosts = getValidAdministrativePosts();
             currentValidAssignments = currentAssignments.stream()
                     .filter(a -> {
                         String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -5088,7 +5012,7 @@ public class SubmissionService {
             
             java.util.List<SubmissionAuditorAssignment> validRemainingAssignments = remainingAssignments;
             if ("administrative".equalsIgnoreCase(submission.getAuditType())) {
-                java.util.Set<String> validAdminPosts = getValidAdministrativePosts(submission.getUniversityId());
+                java.util.Set<String> validAdminPosts = getValidAdministrativePosts();
                 validRemainingAssignments = remainingAssignments.stream()
                         .filter(a -> {
                             String postCanonical = canonicalAdministrativePost(a.getPost());
@@ -5183,7 +5107,6 @@ public class SubmissionService {
     }
 
     public long getSubmissionsCountByUniversity(Long universityId) {
-        if (universityId == null) return 0;
-        return submissionRepository.findAllByUniversityId(universityId).size();
+        return submissionRepository.count();
     }
 }

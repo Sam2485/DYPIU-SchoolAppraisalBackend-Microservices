@@ -51,7 +51,6 @@ class FormConfigServiceTest {
                 formSectionRepository,
                 formTableRepository,
                 formFieldRepository,
-                universityRepository,
                 schemaCompilerService,
                 objectMapper
         );

@@ -2,25 +2,28 @@ package com.director_appraisal.submission_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
 import java.util.Map;
 
 @FeignClient(name = "form-data-service", url = "${FORMS_SERVICE_URL:http://localhost:9002}")
 public interface FormDataClient {
-
 
     @GetMapping("/api/academic-year/info")
     Map<String, Object> getAcademicYearInfo();
 
     @GetMapping("/api/config/active")
     Map<String, Object> getActiveConfig(
-            @org.springframework.web.bind.annotation.RequestParam("auditType") String auditType,
-            @org.springframework.web.bind.annotation.RequestParam(value = "universityCode", required = false) String universityCode);
+            @RequestParam("auditType") String auditType);
 
     @GetMapping("/api/config/version/{versionId}")
-    Map<String, Object> getConfigByVersion(@org.springframework.web.bind.annotation.PathVariable("versionId") Long versionId);
+    Map<String, Object> getConfigByVersion(@PathVariable("versionId") Long versionId);
 
-    @GetMapping("/api/config/universities/{universityId}/posts")
-    java.util.List<Map<String, Object>> getUniversityPosts(@org.springframework.web.bind.annotation.PathVariable("universityId") Long universityId);
+    @GetMapping("/api/config/posts")
+    List<Map<String, Object>> getUniversityPosts();
+
+    @GetMapping("/api/config/branding")
+    Map<String, Object> getBranding();
 }
-

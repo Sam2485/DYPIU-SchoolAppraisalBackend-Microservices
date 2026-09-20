@@ -845,7 +845,7 @@ public class ReportExportService {
         }
 
         try {
-            Map<String, Object> active = formDataClient.getActiveConfig(submission.getAuditType(), submission.getUniversityCode());
+            Map<String, Object> active = formDataClient.getActiveConfig(submission.getAuditType());
             if (active != null && active.get("sections") != null) return active;
         } catch (Exception e) {
             log.warn("Failed to load active schema for auditType {}: {}", submission.getAuditType(), e.getMessage());
@@ -1043,11 +1043,13 @@ public class ReportExportService {
         if (header.get("university") != null && !header.get("university").toString().isBlank()) {
             return header.get("university").toString();
         }
-        String uniCode = submission.getUniversityCode();
-        if ("DYPIU".equalsIgnoreCase(uniCode)) {
-            return "D Y Patil International University, Akurdi, Pune";
-        }
-        return uniCode != null && !uniCode.isBlank() ? uniCode + " University" : "D Y Patil International University, Akurdi, Pune";
+        try {
+            Map<String, Object> branding = formDataClient.getBranding();
+            if (branding != null && branding.get("universityName") != null && !branding.get("universityName").toString().isBlank()) {
+                return branding.get("universityName").toString();
+            }
+        } catch (Exception ignored) {}
+        return "Faculty Appraisal & Institutional Audit System";
     }
 
     private String resolveReportTitle(Submission submission, Map<String, Object> schema) {

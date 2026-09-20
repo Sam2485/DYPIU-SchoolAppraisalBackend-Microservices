@@ -125,24 +125,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String userRole = jwtUtil.extractRole(token);
         String userSchool = jwtUtil.extractSchool(token);
         String userName = jwtUtil.extractName(token);
-        String universityId = jwtUtil.extractUniversityId(token);
-        String universityCode = jwtUtil.extractUniversityCode(token);
 
         reqBuilder.headers(httpHeaders -> {
             httpHeaders.remove("X-User-Email");
             httpHeaders.remove("X-User-Role");
             httpHeaders.remove("X-User-School");
             httpHeaders.remove("X-User-Name");
-            httpHeaders.remove("X-University-Id");
-            httpHeaders.remove("X-University-Code");
         });
 
         if (userEmail != null) reqBuilder.header("X-User-Email", userEmail);
         if (userRole != null) reqBuilder.header("X-User-Role", userRole);
         if (userSchool != null) reqBuilder.header("X-User-School", userSchool);
         if (userName != null) reqBuilder.header("X-User-Name", userName);
-        if (universityId != null) reqBuilder.header("X-University-Id", universityId);
-        if (universityCode != null) reqBuilder.header("X-University-Code", universityCode);
     }
 
     private boolean isPublicEndpoint(String path) {
@@ -152,8 +146,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 || path.startsWith("/api/attachments/download")
                 || path.startsWith("/api/attachments/view")
                 || path.startsWith("/api/attachments/public/")
-                || path.startsWith("/api/users/university/")
-                || path.startsWith("/api/universities")
                 || path.startsWith("/api/admin/config/")
                 || path.startsWith("/api/config/")) {
             return true;

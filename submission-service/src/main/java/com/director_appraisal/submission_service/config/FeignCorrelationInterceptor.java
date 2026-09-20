@@ -23,12 +23,6 @@ public class FeignCorrelationInterceptor implements RequestInterceptor {
         String userRole = MDC.get(MdcLoggingFilter.MDC_USER_ROLE);
         if (userRole != null) template.header("X-User-Role", userRole);
 
-        String uniId = MDC.get(MdcLoggingFilter.MDC_UNIVERSITY_ID);
-        if (uniId != null) template.header("X-University-Id", uniId);
-
-        String uniCode = MDC.get(MdcLoggingFilter.MDC_UNIVERSITY_CODE);
-        if (uniCode != null) template.header("X-University-Code", uniCode);
-
         log.info("[DOWNSTREAM_REQUEST] targetService={} method={} url={} correlationId={}",
                 template.feignTarget() != null ? template.feignTarget().name() : "unknown",
                 template.method(),

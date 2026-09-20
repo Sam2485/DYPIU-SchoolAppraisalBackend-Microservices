@@ -5,8 +5,6 @@ CREATE TABLE IF NOT EXISTS submissions (
     email VARCHAR(255) NOT NULL,
     audit_type VARCHAR(50) NOT NULL,
     schema_version_id BIGINT,
-    university_id BIGINT DEFAULT 1,
-    university_code VARCHAR(50) DEFAULT 'dypiu',
     school VARCHAR(255),
     submitted_by VARCHAR(255),
     submitted_by_details TEXT,
@@ -124,8 +122,6 @@ CREATE INDEX IF NOT EXISTS idx_submissions_email ON submissions(email);
 CREATE INDEX IF NOT EXISTS idx_submissions_audit_type ON submissions(audit_type);
 CREATE INDEX IF NOT EXISTS idx_submissions_academic_year ON submissions(academic_year);
 CREATE INDEX IF NOT EXISTS idx_submissions_school ON submissions(school);
-CREATE INDEX IF NOT EXISTS idx_submissions_university_id ON submissions(university_id);
-CREATE INDEX IF NOT EXISTS idx_submissions_university_code ON submissions(university_code);
 CREATE INDEX IF NOT EXISTS idx_submissions_schema_version_id ON submissions(schema_version_id);
 CREATE INDEX IF NOT EXISTS idx_snapshots_submission_id ON snapshots(submission_id);
 CREATE INDEX IF NOT EXISTS idx_auditor_assignments_sub_id ON submission_auditor_assignments(submission_id);

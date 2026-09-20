@@ -24,8 +24,6 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
     public static final String MDC_SERVICE = "service";
     public static final String MDC_USER_EMAIL = "userEmail";
     public static final String MDC_USER_ROLE = "userRole";
-    public static final String MDC_UNIVERSITY_ID = "universityId";
-    public static final String MDC_UNIVERSITY_CODE = "universityCode";
     public static final String SERVICE_NAME = "submission-service";
 
     @Override
@@ -45,15 +43,11 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
 
         String userEmail = request.getHeader("X-User-Email");
         String userRole = request.getHeader("X-User-Role");
-        String uniId = request.getHeader("X-University-Id");
-        String uniCode = request.getHeader("X-University-Code");
 
         MDC.put(MDC_CORRELATION_ID, correlationId);
         MDC.put(MDC_SERVICE, SERVICE_NAME);
         if (userEmail != null) MDC.put(MDC_USER_EMAIL, userEmail);
         if (userRole != null) MDC.put(MDC_USER_ROLE, userRole);
-        if (uniId != null) MDC.put(MDC_UNIVERSITY_ID, uniId);
-        if (uniCode != null) MDC.put(MDC_UNIVERSITY_CODE, uniCode);
 
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
 
@@ -62,11 +56,10 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         String query = request.getQueryString() != null ? "?" + request.getQueryString() : "";
 
-        log.info("[REQUEST_START] correlationId={} service={} method={} path={}{} user={} role={} uniId={}",
+        log.info("[REQUEST_START] correlationId={} service={} method={} path={}{} user={} role={}",
                 correlationId, SERVICE_NAME, method, uri, query,
                 userEmail != null ? userEmail : "anonymous",
-                userRole != null ? userRole : "none",
-                uniId != null ? uniId : "none");
+                userRole != null ? userRole : "none");
 
         try {
             filterChain.doFilter(request, response);

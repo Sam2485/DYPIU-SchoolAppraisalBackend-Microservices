@@ -47,8 +47,6 @@ class JwtUtilTest {
         assertEquals("director", jwtUtil.extractRole(token));
         assertEquals("Dr. Director", jwtUtil.extractName(token));
         assertEquals("School of Computing", jwtUtil.extractSchool(token));
-        assertEquals("1", jwtUtil.extractUniversityId(token));
-        assertEquals("dypiu", jwtUtil.extractUniversityCode(token));
     }
 
     @Test
@@ -74,20 +72,5 @@ class JwtUtilTest {
                 .compact();
 
         assertFalse(jwtUtil.validateToken(token));
-    }
-
-    @Test
-    @DisplayName("Should safely handle missing university claims with null")
-    void testLegacyTokenFallback() {
-        String token = Jwts.builder()
-                .subject("legacy@dypiu.ac.in")
-                .claims(Map.of("role", "director"))
-                .expiration(new Date(System.currentTimeMillis() + 3600000))
-                .signWith(key)
-                .compact();
-
-        assertTrue(jwtUtil.validateToken(token));
-        assertNull(jwtUtil.extractUniversityId(token));
-        assertNull(jwtUtil.extractUniversityCode(token));
     }
 }

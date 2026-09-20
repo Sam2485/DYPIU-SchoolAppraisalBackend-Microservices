@@ -68,23 +68,6 @@ public class UserService implements UserDetailsService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    public List<User> findByUniversityId(Long universityId) {
-        if (universityId == null) {
-            return List.of();
-        }
-        return userRepository.findByUniversityId(universityId).stream()
-                .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
-                .toList();
-    }
-
-    public List<User> findByUniversityCode(String universityCode) {
-        if (universityCode == null || universityCode.isBlank()) {
-            return List.of();
-        }
-        return userRepository.findByUniversityCode(universityCode.trim()).stream()
-                .filter(u -> !Boolean.TRUE.equals(u.getDeleted()))
-                .toList();
-    }
 
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
@@ -130,12 +113,6 @@ public class UserService implements UserDetailsService {
             existing.setCategory("all");
             existing.setStatus("active");
             existing.setDeleted(false);
-            if (user.getUniversityId() != null) {
-                existing.setUniversityId(user.getUniversityId());
-            }
-            if (user.getUniversityCode() != null && !user.getUniversityCode().isBlank()) {
-                existing.setUniversityCode(user.getUniversityCode());
-            }
             if (rawPassword != null && !rawPassword.isBlank()) {
                 existing.setPassword(passwordEncoder.encode(rawPassword));
             }
@@ -267,20 +244,4 @@ public class UserService implements UserDetailsService {
         }
     }
 
-    @Transactional
-    public void deleteAllUsersForUniversity(Long universityId, boolean hardDelete) {
-        if (universityId == null) return;
-        List<User> users = userRepository.findByUniversityId(universityId);
-        for (User u : users) {
-            if (hardDelete) {
-                if (u.getEmail() != null) {
-                    resetTokenRepository.deleteByEmail(u.getEmail().trim().toLowerCase());
-                }
-                userAdministrativePostRepository.deleteByUserId(u.getId());
-                userRepository.delete(u);
-            } else {
-                deleteUser(u);
-            }
-        }
-    }
 }

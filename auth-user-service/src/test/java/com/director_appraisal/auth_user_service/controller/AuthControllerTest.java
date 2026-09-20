@@ -62,7 +62,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("Should successfully login user and return LoginResponse with tenant claims")
+    @DisplayName("Should successfully login user and return LoginResponse")
     void testSuccessfulLogin() {
         User user = User.builder()
                 .id(1L)
@@ -71,8 +71,6 @@ class AuthControllerTest {
                 .name("Dr. Director")
                 .role("director")
                 .school("School of Engineering")
-                .universityId(1L)
-                .universityCode("dypiu")
                 .build();
 
         when(userService.findByEmail("director@dypiu.ac.in")).thenReturn(Optional.of(user));
@@ -91,8 +89,6 @@ class AuthControllerTest {
         AuthController.LoginResponse res = (AuthController.LoginResponse) response.getBody();
         assertEquals("director@dypiu.ac.in", res.getEmail());
         assertEquals("mocked.jwt.token", res.getToken());
-        assertEquals(1L, res.getUniversityId());
-        assertEquals("dypiu", res.getUniversityCode());
     }
 
     @Test

@@ -48,10 +48,8 @@ class FormConfigSecurityTest {
                 formSectionRepository,
                 formTableRepository,
                 formFieldRepository,
-                universityRepository,
                 formConfigService,
-                schemaCompilerService,
-                new ObjectMapper()
+                schemaCompilerService
         );
     }
 
@@ -84,7 +82,6 @@ class FormConfigSecurityTest {
                 formSectionRepository,
                 formTableRepository,
                 formFieldRepository,
-                universityRepository,
                 schemaCompilerService,
                 new ObjectMapper()
         );

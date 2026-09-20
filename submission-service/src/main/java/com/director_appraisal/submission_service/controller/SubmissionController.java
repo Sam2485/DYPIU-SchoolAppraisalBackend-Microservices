@@ -90,8 +90,6 @@ public class SubmissionController {
         String nameFromContext = null;
         String postFromContext = null;
         String categoryFromContext = null;
-        Long universityIdFromContext = null;
-        String universityCodeFromContext = null;
 
         if (httpRequest != null) {
             String headerRole = httpRequest.getHeader("X-User-Role");
@@ -100,16 +98,6 @@ public class SubmissionController {
             if (headerSchool != null && !headerSchool.isBlank()) schoolFromContext = headerSchool.trim();
             String headerName = httpRequest.getHeader("X-User-Name");
             if (headerName != null && !headerName.isBlank()) nameFromContext = headerName.trim();
-            String headerUniId = httpRequest.getHeader("X-University-Id");
-            if (headerUniId != null && !headerUniId.isBlank()) {
-                try {
-                    universityIdFromContext = Long.parseLong(headerUniId.trim());
-                } catch (Exception ignored) {}
-            }
-            String headerUniCode = httpRequest.getHeader("X-University-Code");
-            if (headerUniCode != null && !headerUniCode.isBlank()) {
-                universityCodeFromContext = headerUniCode.trim();
-            }
 
             String authHeader = httpRequest.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -135,14 +123,6 @@ public class SubmissionController {
                         if (jsonNode.has("category") && (categoryFromContext == null || categoryFromContext.isBlank())) {
                             categoryFromContext = jsonNode.get("category").asText();
                         }
-                        if (jsonNode.has("universityId") && universityIdFromContext == null) {
-                            try {
-                                universityIdFromContext = jsonNode.get("universityId").asLong();
-                            } catch (Exception ignored) {}
-                        }
-                        if (jsonNode.has("universityCode") && (universityCodeFromContext == null || universityCodeFromContext.isBlank())) {
-                            universityCodeFromContext = jsonNode.get("universityCode").asText();
-                        }
                     }
                 } catch (Exception ignored) {}
             }
@@ -166,12 +146,6 @@ public class SubmissionController {
                 if ((u.getCategory() == null || u.getCategory().isBlank()) && categoryFromContext != null) {
                     u.setCategory(categoryFromContext);
                 }
-                if (universityIdFromContext != null) {
-                    u.setUniversityId(universityIdFromContext);
-                }
-                if (universityCodeFromContext != null && !universityCodeFromContext.isBlank()) {
-                    u.setUniversityCode(universityCodeFromContext);
-                }
                 return u;
             }
         }
@@ -183,8 +157,6 @@ public class SubmissionController {
                 .school(schoolFromContext)
                 .post(postFromContext)
                 .category(categoryFromContext)
-                .universityId(universityIdFromContext)
-                .universityCode(universityCodeFromContext != null && !universityCodeFromContext.isBlank() ? universityCodeFromContext : null)
                 .build();
     }
 
@@ -241,10 +213,7 @@ public class SubmissionController {
 
     @GetMapping("/administrative/{cycleId}/status")
     public ResponseEntity<Object> getAdministrativeStatus(@PathVariable String cycleId) {
-        UserDto caller = getCurrentUserDetails();
-        Long uniId = caller != null ? caller.getUniversityId() : null;
-        String uniCode = caller != null ? caller.getUniversityCode() : null;
-        Submission submission = submissionService.getOrCreateSharedAdministrativeDraftForCycle(cycleId, uniId, uniCode);
+        Submission submission = submissionService.getOrCreateSharedAdministrativeDraftForCycle(cycleId);
         return ResponseEntity.ok(submission.getSubmittedByForJson());
     }
 
@@ -673,12 +642,6 @@ public ResponseEntity<Submission> createNextCycle(
             throw new SecurityException("Only IQAC or VC may download attachments");
         }
 
-        // Multi-university tenant isolation check:
-        if (user.getUniversityId() != null && submission.getUniversityId() != null
-                && !user.getUniversityId().equals(submission.getUniversityId())) {
-            throw new SecurityException("Access denied: Submission belongs to another university");
-        }
-
         String subStatus = submission.getStatus() != null ? submission.getStatus().toUpperCase() : "SUBMITTED";
         if (isVc) {
             boolean statusAllowed = List.of(
@@ -840,12 +803,6 @@ public ResponseEntity<Submission> createNextCycle(
         Submission submission = submissionService.getSubmissionById(id)
                 .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
 
-        // Tenant isolation check:
-        if (user.getUniversityId() != null && submission.getUniversityId() != null
-                && !user.getUniversityId().equals(submission.getUniversityId())) {
-            throw new SecurityException("Access denied: Submission belongs to another university");
-        }
-
         // Check role permissions: IQAC, VC, Submitter/Owner, Assigned Auditor, or Administrative Contributor
         boolean isOwner = submission.getEmail() != null && submission.getEmail().equalsIgnoreCase(user.getEmail());
         boolean isIqac = "iqac".equalsIgnoreCase(user.getRole());
@@ -874,12 +831,6 @@ public ResponseEntity<Submission> createNextCycle(
         Submission submission = submissionService.getSubmissionById(id)
                 .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
 
-        // Tenant isolation check:
-        if (user.getUniversityId() != null && submission.getUniversityId() != null
-                && !user.getUniversityId().equals(submission.getUniversityId())) {
-            throw new SecurityException("Access denied: Submission belongs to another university");
-        }
-
         // Check role permissions: IQAC, VC, Submitter/Owner, Assigned Auditor, or Administrative Contributor
         boolean isOwner = submission.getEmail() != null && submission.getEmail().equalsIgnoreCase(user.getEmail());
         boolean isIqac = "iqac".equalsIgnoreCase(user.getRole());
@@ -903,10 +854,7 @@ public ResponseEntity<Submission> createNextCycle(
     }
 
     private String getReportFileName(Submission submission, String extension) {
-        String uniCode = submission.getUniversityCode();
-        String uniPrefix = (uniCode != null && !uniCode.isBlank())
-                ? uniCode.trim().toUpperCase() + "_"
-                : "";
+        String uniPrefix = "";
 
         String type = "academic".equalsIgnoreCase(submission.getAuditType()) ? "Academic" : "Administrative";
         String entityName;
@@ -1410,10 +1358,7 @@ public ResponseEntity<Submission> createNextCycle(
     }
 
     private String getZipFileName(Submission submission) {
-        String uniCode = submission.getUniversityCode();
-        String uniPrefix = (uniCode != null && !uniCode.isBlank())
-                ? uniCode.trim().toUpperCase() + "_"
-                : "";
+        String uniPrefix = "";
 
         String type = "academic".equalsIgnoreCase(submission.getAuditType()) ? "Academic" : "Administrative";
         String entityName;
@@ -1558,10 +1503,10 @@ public ResponseEntity<Submission> createNextCycle(
         private String size;
     }
 
-    @GetMapping("/university/{universityId}/count")
-    public ResponseEntity<Map<String, Object>> getSubmissionsCountByUniversity(@PathVariable Long universityId) {
+    @GetMapping({"/university/{universityId}/count", "/count"})
+    public ResponseEntity<Map<String, Object>> getSubmissionsCountByUniversity(@PathVariable(required = false) Long universityId) {
         long count = submissionService.getSubmissionsCountByUniversity(universityId);
-        return ResponseEntity.ok(Map.of("universityId", universityId, "count", count));
+        return ResponseEntity.ok(Map.of("count", count));
     }
 
     @Data

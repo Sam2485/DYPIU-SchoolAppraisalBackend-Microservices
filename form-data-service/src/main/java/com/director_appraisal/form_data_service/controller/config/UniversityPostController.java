@@ -12,7 +12,12 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping({"/api/admin/config/universities/{universityId}/posts", "/api/config/universities/{universityId}/posts"})
+@RequestMapping({
+        "/api/config/posts",
+        "/api/admin/config/posts",
+        "/api/admin/config/universities/{universityId}/posts",
+        "/api/config/universities/{universityId}/posts"
+})
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class UniversityPostController {
@@ -21,7 +26,7 @@ public class UniversityPostController {
 
     @GetMapping
     public ResponseEntity<List<UniversityPost>> getPosts(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @RequestParam(required = false, defaultValue = "false") boolean all) {
         List<UniversityPost> posts = universityPostService.getPostsByUniversity(universityId, !all);
         return ResponseEntity.ok(posts);
@@ -29,7 +34,7 @@ public class UniversityPostController {
 
     @PostMapping
     public ResponseEntity<UniversityPost> createPost(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @RequestBody UniversityPost req) {
         UniversityPost saved = universityPostService.createPost(universityId, req);
         return ResponseEntity.ok(saved);
@@ -37,7 +42,7 @@ public class UniversityPostController {
 
     @PutMapping("/{postId}")
     public ResponseEntity<UniversityPost> updatePost(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @PathVariable Long postId,
             @RequestBody UniversityPost req) {
         UniversityPost updated = universityPostService.updatePost(postId, req);
@@ -46,7 +51,7 @@ public class UniversityPostController {
 
     @DeleteMapping("/{postId}")
     public ResponseEntity<Map<String, Object>> deletePost(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @PathVariable Long postId) {
         universityPostService.deletePost(postId);
         return ResponseEntity.ok(Map.of("success", true, "message", "Administrative post deleted."));

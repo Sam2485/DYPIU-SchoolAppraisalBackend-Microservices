@@ -10,6 +10,10 @@ import java.util.Optional;
 @Repository
 public interface UniversityPostRepository extends JpaRepository<UniversityPost, Long> {
 
+    List<UniversityPost> findAllByOrderByDisplayOrderAscNameAsc();
+
+    List<UniversityPost> findByStatusOrderByDisplayOrderAscNameAsc(String status);
+
     List<UniversityPost> findByUniversityIdOrderByDisplayOrderAscNameAsc(Long universityId);
 
     List<UniversityPost> findByUniversityIdAndStatusOrderByDisplayOrderAscNameAsc(Long universityId, String status);
@@ -17,6 +21,8 @@ public interface UniversityPostRepository extends JpaRepository<UniversityPost, 
     Optional<UniversityPost> findByUniversityIdAndCodeIgnoreCase(Long universityId, String code);
 
     boolean existsByUniversityIdAndCodeIgnoreCase(Long universityId, String code);
+
+    boolean existsByCodeIgnoreCase(String code);
 
     void deleteByUniversityId(Long universityId);
 }

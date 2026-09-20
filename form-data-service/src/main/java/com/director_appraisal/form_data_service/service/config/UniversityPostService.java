@@ -20,14 +20,14 @@ public class UniversityPostService {
     @Transactional
     public List<UniversityPost> getPostsByUniversity(Long universityId, boolean activeOnly) {
         if (universityId == null) {
-            universityId = 1L;
+            return activeOnly
+                    ? universityPostRepository.findByStatusOrderByDisplayOrderAscNameAsc("ACTIVE")
+                    : universityPostRepository.findAllByOrderByDisplayOrderAscNameAsc();
         }
 
-        List<UniversityPost> existing = activeOnly
+        return activeOnly
                 ? universityPostRepository.findByUniversityIdAndStatusOrderByDisplayOrderAscNameAsc(universityId, "ACTIVE")
                 : universityPostRepository.findByUniversityIdOrderByDisplayOrderAscNameAsc(universityId);
-
-        return existing;
     }
 
     @Transactional

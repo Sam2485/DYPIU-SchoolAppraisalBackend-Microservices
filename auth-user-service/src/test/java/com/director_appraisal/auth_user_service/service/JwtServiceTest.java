@@ -21,7 +21,7 @@ class JwtServiceTest {
     }
 
     @Test
-    @DisplayName("Should generate token with user details and custom tenant claims")
+    @DisplayName("Should generate token with user details")
     void testGenerateToken() {
         User user = User.builder()
                 .id(10L)
@@ -29,13 +29,9 @@ class JwtServiceTest {
                 .password("encodedPassword")
                 .role("director")
                 .school("School of Engineering")
-                .universityId(1L)
-                .universityCode("dypiu")
                 .build();
 
         String token = jwtService.generateToken(user, Map.of(
-                "universityId", 1L,
-                "universityCode", "dypiu",
                 "role", "director"
         ));
 

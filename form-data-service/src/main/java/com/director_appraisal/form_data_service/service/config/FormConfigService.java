@@ -22,39 +22,30 @@ public class FormConfigService {
     private final FormSectionRepository formSectionRepository;
     private final FormTableRepository formTableRepository;
     private final FormFieldRepository formFieldRepository;
-    private final UniversityRepository universityRepository;
     private final SchemaCompilerService schemaCompilerService;
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
-    public CompiledSchemaDto getActiveCompiledSchema(String universityCode, String auditType) {
-        return getActiveCompiledSchema(universityCode, auditType, null);
+    public CompiledSchemaDto getActiveCompiledSchema(String auditType) {
+        return getActiveCompiledSchema(auditType, null);
     }
 
     @Transactional(readOnly = true)
     public CompiledSchemaDto getActiveCompiledSchema(String universityCode, String auditType, String school) {
-        String code = (universityCode != null && !universityCode.isBlank()) ? universityCode.trim().toLowerCase() : null;
+        return getActiveCompiledSchema(auditType, school);
+    }
+
+    @Transactional(readOnly = true)
+    public CompiledSchemaDto getActiveCompiledSchema(String auditType, String school) {
         String type = (auditType != null && !auditType.isBlank()) ? auditType.trim().toLowerCase() : "academic";
 
-        University university = null;
-        if (code != null) {
-            university = universityRepository.findByCodeIgnoreCase(code).orElse(null);
-        }
-        if (university == null) {
-            university = universityRepository.findAll().stream().findFirst().orElse(null);
-        }
-
-        if (university == null) {
-            throw new IllegalArgumentException("University not found for code: " + (code != null ? code : "any"));
-        }
-
-        List<FormSchema> allSchemas = formSchemaRepository.findByUniversityId(university.getId());
+        List<FormSchema> allSchemas = formSchemaRepository.findAll();
         List<FormSchema> matchingType = allSchemas.stream()
                 .filter(s -> type.equalsIgnoreCase(s.getAuditType()) && "ACTIVE".equalsIgnoreCase(s.getStatus()))
                 .toList();
 
         if (matchingType.isEmpty()) {
-            throw new IllegalArgumentException("No active form schema found for " + code + " and " + type);
+            throw new IllegalArgumentException("No active form schema found for " + type);
         }
 
         FormSchema selectedSchema = null;
@@ -345,12 +336,11 @@ public class FormConfigService {
 
     @Transactional
     public void deleteAllSchemasForUniversity(Long universityId) {
-        if (universityId == null) return;
-        List<FormSchema> schemas = formSchemaRepository.findByUniversityId(universityId);
+        List<FormSchema> schemas = formSchemaRepository.findAll();
         for (FormSchema s : schemas) {
             deleteSchema(s.getId());
         }
-        log.info("Deleted all schemas for university ID: {}", universityId);
+        log.info("Deleted all schemas");
     }
 
     private void validateVersionIntegrity(Long versionId) {
@@ -509,7 +499,7 @@ public class FormConfigService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAvailableTablesForUniversity(Long universityId) {
-        List<FormSchema> schemas = formSchemaRepository.findByUniversityId(universityId);
+        List<FormSchema> schemas = formSchemaRepository.findAll();
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (FormSchema schema : schemas) {

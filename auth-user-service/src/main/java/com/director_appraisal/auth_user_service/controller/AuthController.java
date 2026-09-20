@@ -168,8 +168,6 @@ public class AuthController {
         String canonicalPost = canonicalAdministrativePost(user.getPost());
         String role = user.getRole();
         String school = isReviewerRole(role) ? null : user.getSchool();
-        Long universityId = user.getUniversityId();
-        String universityCode = user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : null;
 
         Map<String, Object> claims = new java.util.LinkedHashMap<>();
         putClaim(claims, "name", user.getName());
@@ -178,8 +176,6 @@ public class AuthController {
         putClaim(claims, "role", role);
         putClaim(claims, "post", canonicalPost);
         putClaim(claims, "currentAcademicYear", currentAcademicYear);
-        putClaim(claims, "universityId", universityId);
-        putClaim(claims, "universityCode", universityCode);
         claims.put("administrativePosts", administrativePosts);
 
         String token = jwtService.generateToken(user, claims);
@@ -211,9 +207,7 @@ public class AuthController {
                 user.getAuditorRole(),
                 canonicalPost,
                 currentAcademicYear,
-                administrativePosts,
-                universityId,
-                universityCode
+                administrativePosts
         );
     }
 
@@ -233,8 +227,6 @@ public class AuthController {
                         String school = isReviewerRole(role) ? null : user.getSchool();
                         String currentAcademicYear = resolveCurrentAcademicYear();
                         java.util.List<String> administrativePosts = getAdministrativePosts(user);
-                        Long universityId = user.getUniversityId();
-                        String universityCode = user.getUniversityCode() != null && !user.getUniversityCode().isBlank() ? user.getUniversityCode() : null;
 
                         Map<String, Object> claims = new java.util.LinkedHashMap<>();
                         putClaim(claims, "name", user.getName());
@@ -243,8 +235,6 @@ public class AuthController {
                         putClaim(claims, "role", role);
                         putClaim(claims, "post", canonicalPost);
                         putClaim(claims, "currentAcademicYear", currentAcademicYear);
-                        putClaim(claims, "universityId", universityId);
-                        putClaim(claims, "universityCode", universityCode);
                         claims.put("administrativePosts", administrativePosts);
 
                         String newAccessToken = jwtService.generateToken(user, claims);
@@ -253,9 +243,7 @@ public class AuthController {
                                 "accessToken", newAccessToken,
                                 "refreshToken", requestRefreshToken,
                                 "tokenType", "Bearer",
-                                "expiresIn", 86400,
-                                "universityId", universityId,
-                                "universityCode", universityCode
+                                "expiresIn", 86400
                         ));
                     })
                     .orElseGet(() -> ResponseEntity.status(401).body(Map.of("message", "Refresh token is invalid or expired. Please login again.")));
@@ -390,8 +378,6 @@ public class AuthController {
         private final String post;
         private final String currentAcademicYear;
         private final java.util.List<String> administrativePosts;
-        private final Long universityId;
-        private final String universityCode;
     }
 
 

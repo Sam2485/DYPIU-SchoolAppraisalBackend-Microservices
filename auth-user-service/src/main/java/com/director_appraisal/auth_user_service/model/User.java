@@ -43,10 +43,6 @@ public class User implements UserDetails {
     private String schools;
     private String avatarUrl;
 
-    private Long universityId;
-
-    private String universityCode;
-
 
     public List<String> getSchoolsList() {
         if (schools == null || schools.isBlank()) {

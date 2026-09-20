@@ -44,10 +44,6 @@ public class UserDto {
     @Builder.Default
     private List<String> administrativePosts = new ArrayList<>();
 
-    private Long universityId;
-
-    private String universityCode;
-
 
     @JsonProperty("schools")
     public void setSchools(Object schoolsObj) {

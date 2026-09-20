@@ -45,9 +45,9 @@ class ClientConfigControllerTest {
                 .title("External Academic Audit")
                 .build();
 
-        when(formConfigService.getActiveCompiledSchema("dypiu", "academic", null)).thenReturn(dto);
+        when(formConfigService.getActiveCompiledSchema(null, "academic", null)).thenReturn(dto);
 
-        ResponseEntity<CompiledSchemaDto> response = clientConfigController.getActiveSchema("academic", "dypiu", null, null, null, null, null);
+        ResponseEntity<CompiledSchemaDto> response = clientConfigController.getActiveSchema("academic", null, null);
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals("External Academic Audit", response.getBody().getTitle());
@@ -65,9 +65,9 @@ class ClientConfigControllerTest {
                 .primaryColor("#1e3a8a")
                 .build();
 
-        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(u));
+        when(universityService.getInstitution()).thenReturn(u);
 
-        ResponseEntity<Map<String, Object>> response = clientConfigController.getBranding("dypiu", null, null, null);
+        ResponseEntity<Map<String, Object>> response = clientConfigController.getBranding();
         assertEquals(200, response.getStatusCode().value());
         assertEquals("D Y Patil International University Akurdi Pune", response.getBody().get("universityName"));
         assertEquals("#1e3a8a", response.getBody().get("primaryColor"));
@@ -80,7 +80,7 @@ class ClientConfigControllerTest {
                 new com.director_appraisal.form_data_service.dto.config.UpdateBrandingRequestDto();
         req.setUniversityName("DYPIU");
 
-        ResponseEntity<?> response = clientConfigController.updateBranding(req, "director", "dypiu", 1L, null);
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "director", null);
         assertEquals(403, response.getStatusCode().value());
     }
 
@@ -92,9 +92,9 @@ class ClientConfigControllerTest {
         req.setUniversityName("   ");
 
         University u = University.builder().id(1L).code("dypiu").name("Existing").build();
-        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(u));
+        when(universityService.getInstitution()).thenReturn(u);
 
-        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", "dypiu", 1L, null);
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", null);
         assertEquals(400, response.getStatusCode().value());
     }
 
@@ -107,9 +107,9 @@ class ClientConfigControllerTest {
         req.setLogoUrl("<script>alert('hack')</script>");
 
         University u = University.builder().id(1L).code("dypiu").name("Existing").build();
-        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(u));
+        when(universityService.getInstitution()).thenReturn(u);
 
-        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", "dypiu", 1L, null);
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", null);
         assertEquals(400, response.getStatusCode().value());
     }
 
@@ -144,10 +144,10 @@ class ClientConfigControllerTest {
                 .primaryColor("#1e3a8a")
                 .build();
 
-        when(universityService.getByCode("dypiu")).thenReturn(Optional.of(existing));
+        when(universityService.getInstitution()).thenReturn(existing);
         when(universityService.updateUniversity(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any())).thenReturn(updated);
 
-        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", "dypiu", 1L, null);
+        ResponseEntity<?> response = clientConfigController.updateBranding(req, "iqac", null);
         assertEquals(200, response.getStatusCode().value());
         assertTrue(response.getBody() instanceof Map);
         Map<?, ?> body = (Map<?, ?>) response.getBody();

@@ -29,14 +29,10 @@ public class UserController {
     private static final String ADMINISTRATIVE_OFFICE = "Administrative Office";
 
     private record DynamicPostsCache(long timestamp, Map<String, String> posts) {}
-    private final Map<Long, DynamicPostsCache> dynamicPostsCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile DynamicPostsCache dynamicPostsCache = null;
 
-    private Map<String, String> getDynamicUniversityPosts(Long universityId) {
-        if (universityId == null) {
-            return Map.of();
-        }
-        Long uId = universityId;
-        DynamicPostsCache cached = dynamicPostsCache.get(uId);
+    private Map<String, String> getDynamicPosts() {
+        DynamicPostsCache cached = dynamicPostsCache;
         long now = System.currentTimeMillis();
         if (cached != null && (now - cached.timestamp()) < 30_000L) {
             return cached.posts();
@@ -48,7 +44,7 @@ public class UserController {
             if (formsUrl == null || formsUrl.isBlank()) {
                 formsUrl = "http://localhost:9002";
             }
-            java.net.URI uri = java.net.URI.create(formsUrl + "/api/config/universities/" + uId + "/posts");
+            java.net.URI uri = java.net.URI.create(formsUrl + "/api/config/posts");
             java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
                     .connectTimeout(java.time.Duration.ofSeconds(2))
                     .build();
@@ -77,7 +73,7 @@ public class UserController {
             }
         } catch (Exception ignored) {
         }
-        dynamicPostsCache.put(uId, new DynamicPostsCache(now, postsMap));
+        dynamicPostsCache = new DynamicPostsCache(now, postsMap);
         return postsMap;
     }
 
@@ -109,19 +105,7 @@ public class UserController {
             return authorizationError;
         }
 
-        User currentUser = getCurrentUser(authentication);
-        Long currentUniId = currentUser != null ? currentUser.getUniversityId() : null;
-        String currentUniCode = currentUser != null ? currentUser.getUniversityCode() : null;
-
-        List<User> allSourceList;
-        if (currentUniId != null) {
-            allSourceList = userService.findByUniversityId(currentUniId);
-        } else if (currentUniCode != null && !currentUniCode.isBlank()) {
-            allSourceList = userService.findByUniversityCode(currentUniCode);
-        } else {
-            allSourceList = userService.findAllUsers();
-        }
-
+        List<User> allSourceList = userService.findAllUsers();
         List<User> sourceList = includeDeleted
                 ? allSourceList
                 : allSourceList.stream().filter(this::isManagedUser).toList();
@@ -131,94 +115,6 @@ public class UserController {
                 .toList();
 
         return ResponseEntity.ok(Map.of("users", users));
-    }
-
-    @GetMapping("/university/{universityId}")
-    public ResponseEntity<?> getLeadershipUsersByUniversity(@PathVariable Long universityId) {
-        List<Map<String, Object>> users = userService.findByUniversityId(universityId).stream()
-                .filter(u -> "iqac".equalsIgnoreCase(u.getRole()) || "vice-chancellor".equalsIgnoreCase(u.getRole()))
-                .map(this::toUserResponse)
-                .toList();
-        return ResponseEntity.ok(Map.of("users", users));
-    }
-
-    @PostMapping("/university/{universityId}/leadership")
-    public ResponseEntity<?> createOrUpdateLeadershipUser(
-            @PathVariable Long universityId,
-            @RequestBody(required = false) CreateLeadershipRequest request) {
-        if (request == null) {
-            return error(HttpStatus.BAD_REQUEST, "Request body is required.");
-        }
-        String name = clean(request.getName());
-        String email = normalize(request.getEmail());
-        String password = request.getPassword();
-        String role = normalize(request.getRole());
-        String designation = clean(request.getDesignation());
-        String universityCode = clean(request.getUniversityCode());
-
-        if (isBlank(name)) {
-            return error(HttpStatus.BAD_REQUEST, "Full name is required.");
-        }
-        if (isBlank(email) || !EMAIL_PATTERN.matcher(email).matches()) {
-            return error(HttpStatus.BAD_REQUEST, "A valid email address is required.");
-        }
-        if (isBlank(password) || password.length() < 6) {
-            return error(HttpStatus.BAD_REQUEST, "Password must be at least 6 characters.");
-        }
-        if (!"iqac".equals(role) && !"vice-chancellor".equals(role)) {
-            return error(HttpStatus.BAD_REQUEST, "Role must be either 'iqac' or 'vice-chancellor'.");
-        }
-
-        if (isBlank(designation)) {
-            designation = "iqac".equals(role) ? "IQAC Coordinator" : "Vice Chancellor";
-        }
-
-        User userToSave = User.builder()
-                .name(name)
-                .email(email)
-                .role(role)
-                .school("Root")
-                .designation(designation)
-                .universityId(universityId)
-                .universityCode(universityCode != null && !universityCode.isBlank() ? universityCode : null)
-                .accountType("reviewer")
-                .category("all")
-                .status("active")
-                .build();
-
-        User savedUser = userService.createOrUpdateLeadership(userToSave, password);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "message", "Leadership account configured successfully",
-                "user", toUserResponse(savedUser)
-        ));
-    }
-
-    @DeleteMapping("/university/{universityId}/leadership/{userId}")
-    public ResponseEntity<?> deleteLeadershipUser(
-            @PathVariable Long universityId,
-            @PathVariable Long userId) {
-        return userService.findById(userId)
-                .map(user -> {
-                    if (user.getUniversityId() != null && !user.getUniversityId().equals(universityId)) {
-                        return deleteError(HttpStatus.BAD_REQUEST, "User does not belong to specified university.");
-                    }
-                    userService.deleteUser(user);
-                    return ResponseEntity.ok(Map.of(
-                            "success", true,
-                            "message", "Leadership user deleted successfully"));
-                })
-                .orElseGet(() -> deleteError(HttpStatus.NOT_FOUND, "User not found"));
-    }
-
-    @DeleteMapping("/university/{universityId}")
-    public ResponseEntity<?> deleteUsersByUniversity(
-            @PathVariable Long universityId,
-            @RequestParam(required = false, defaultValue = "false") boolean hard) {
-        userService.deleteAllUsersForUniversity(universityId, hard);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", hard ? "All users for university permanently deleted" : "All users for university archived/deactivated"
-        ));
     }
 
     @GetMapping("/{id}")
@@ -241,12 +137,6 @@ public class UserController {
         }
 
         User targetUser = userOpt.get();
-        User currentUser = getCurrentUser(authentication);
-        if (currentUser != null && currentUser.getUniversityId() != null && targetUser.getUniversityId() != null
-                && !currentUser.getUniversityId().equals(targetUser.getUniversityId())) {
-            return error(HttpStatus.FORBIDDEN, "You do not have permission to view users of another university.");
-        }
-
         return ResponseEntity.ok(Map.of("user", toUserResponse(targetUser)));
     }
 
@@ -263,10 +153,6 @@ public class UserController {
                 return error(HttpStatus.CONFLICT, "Email already exists.");
             }
 
-            User currentUser = getCurrentUser(authentication);
-            Long uniId = currentUser != null ? currentUser.getUniversityId() : null;
-            String uniCode = currentUser != null && currentUser.getUniversityCode() != null && !currentUser.getUniversityCode().isBlank() ? currentUser.getUniversityCode() : null;
-
             User userToSave = User.builder()
                     .name(validatedUser.name)
                     .email(validatedUser.email)
@@ -279,8 +165,6 @@ public class UserController {
                     .auditorType(validatedUser.auditorType)
                     .auditorRole(validatedUser.auditorRole)
                     .post(validatedUser.post)
-                    .universityId(uniId)
-                    .universityCode(uniCode)
                     .build();
             userToSave.setSchoolsList(validatedUser.schools);
             User savedUser = userService.createUser(userToSave);
@@ -313,13 +197,8 @@ public class UserController {
             return deleteError(HttpStatus.BAD_REQUEST, "Invalid user id");
         }
 
-        User currentUser = getCurrentUser(authentication);
         return userService.findById(userId)
                 .map(user -> {
-                    if (currentUser != null && currentUser.getUniversityId() != null && user.getUniversityId() != null
-                            && !currentUser.getUniversityId().equals(user.getUniversityId())) {
-                        return deleteError(HttpStatus.FORBIDDEN, "You are not authorized to delete users of another university");
-                    }
                     if (!isManagedUser(user)) {
                         return deleteError(HttpStatus.FORBIDDEN, "You are not authorized to delete users");
                     }
@@ -355,11 +234,6 @@ public class UserController {
         }
 
         User user = existingUser.get();
-        User currentUser = getCurrentUser(authentication);
-        if (currentUser != null && currentUser.getUniversityId() != null && user.getUniversityId() != null
-                && !currentUser.getUniversityId().equals(user.getUniversityId())) {
-            return updateError(HttpStatus.FORBIDDEN, "You are not authorized to update users of another university");
-        }
         if (!isManagedUser(user)) {
             return updateError(HttpStatus.FORBIDDEN, "You are not authorized to update users");
         }
@@ -598,7 +472,7 @@ public class UserController {
                 throw new IllegalArgumentException("Post is required.");
             }
 
-            Map<String, String> dynamicPosts = getDynamicUniversityPosts(request.getUniversityId());
+            Map<String, String> dynamicPosts = getDynamicPosts();
             String mappedDesignation = dynamicPosts.get(post.toLowerCase(Locale.ROOT));
             if (mappedDesignation == null) {
                 String canonical = canonicalAdministrativePost(post);
@@ -686,8 +560,6 @@ public class UserController {
         response.put("auditorRole", user.getAuditorRole());
         response.put("status", Boolean.TRUE.equals(user.getDeleted()) ? "deleted" : (user.getStatus() != null ? user.getStatus() : "active"));
         response.put("deleted", Boolean.TRUE.equals(user.getDeleted()));
-        response.put("universityId", user.getUniversityId());
-        response.put("universityCode", user.getUniversityCode());
         return response;
     }
 
@@ -1049,18 +921,5 @@ public class UserController {
         private String auditorRole;
         private List<String> administrativePosts;
         private List<String> schools;
-        private Long universityId;
-        private String universityCode;
-    }
-
-    @Data
-    public static class CreateLeadershipRequest {
-        private String name;
-        private String email;
-        private String password;
-        private String role;
-        private String designation;
-        private Long universityId;
-        private String universityCode;
     }
 }

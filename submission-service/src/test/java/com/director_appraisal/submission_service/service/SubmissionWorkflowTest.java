@@ -37,13 +37,13 @@ class SubmissionWorkflowTest {
     }
 
     @Test
-    @DisplayName("Should initialize submission with universityId, universityCode and active schemaVersionId")
+    @DisplayName("Should initialize submission with active schemaVersionId")
     void testSubmissionInitialization() {
-        when(formDataClient.getActiveConfig("academic", "dypiu"))
+        when(formDataClient.getActiveConfig("academic"))
                 .thenReturn(Map.of("versionId", 1L, "title", "External Academic Audit"));
 
         Long schemaVersionId = 1L;
-        Map<String, Object> cfg = formDataClient.getActiveConfig("academic", "dypiu");
+        Map<String, Object> cfg = formDataClient.getActiveConfig("academic");
         if (cfg != null && cfg.get("versionId") != null) {
             schemaVersionId = Long.valueOf(cfg.get("versionId").toString());
         }
@@ -59,12 +59,8 @@ class SubmissionWorkflowTest {
                 .tablesData("{}")
                 .attachments("[]")
                 .schemaVersionId(schemaVersionId)
-                .universityId(1L)
-                .universityCode("dypiu")
                 .build();
 
-        assertEquals(1L, sub.getUniversityId());
-        assertEquals("dypiu", sub.getUniversityCode());
         assertEquals(1L, sub.getSchemaVersionId());
         assertEquals("DRAFT", sub.getStatus());
     }
@@ -101,23 +97,23 @@ class SubmissionWorkflowTest {
     }
 
     @Test
-    @DisplayName("Should enforce tenant isolation: University A submissions cannot match University B queries")
-    void testTenantQueryIsolation() {
-        Submission subUniA = Submission.builder()
+    @DisplayName("Should differentiate submissions across different schools and cycles")
+    void testSchoolAndCycleQueryIsolation() {
+        Submission subSchoolA = Submission.builder()
                 .id(1L)
-                .email("user@dypiu.ac.in")
-                .universityId(1L)
-                .universityCode("dypiu")
+                .email("user1@dypiu.ac.in")
+                .school("School of Engineering")
+                .academicYear("2025-26")
                 .build();
 
-        Submission subUniB = Submission.builder()
+        Submission subSchoolB = Submission.builder()
                 .id(2L)
-                .email("user@apex.edu.in")
-                .universityId(2L)
-                .universityCode("apex_uni")
+                .email("user2@dypiu.ac.in")
+                .school("School of Management")
+                .academicYear("2025-26")
                 .build();
 
-        assertNotEquals(subUniA.getUniversityId(), subUniB.getUniversityId());
-        assertNotEquals(subUniA.getUniversityCode(), subUniB.getUniversityCode());
+        assertNotEquals(subSchoolA.getSchool(), subSchoolB.getSchool());
+        assertNotEquals(subSchoolA.getId(), subSchoolB.getId());
     }
 }

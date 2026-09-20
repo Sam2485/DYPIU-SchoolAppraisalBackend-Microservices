@@ -49,24 +49,11 @@ public class ClientConfigController {
     @GetMapping("/active")
     public ResponseEntity<CompiledSchemaDto> getActiveSchema(
             @RequestParam(required = false, defaultValue = "academic") String auditType,
-            @RequestParam(required = false) String universityCode,
-            @RequestParam(required = false) Long universityId,
             @RequestParam(required = false) String school,
-            @RequestHeader(value = "X-University-Code", required = false) String headerUniversityCode,
-            @RequestHeader(value = "X-University-Id", required = false) Long headerUniversityId,
             @RequestHeader(value = "X-User-School", required = false) String headerSchool) {
 
-        String code = universityCode != null && !universityCode.isBlank() ? universityCode : headerUniversityCode;
-        Long uId = universityId != null ? universityId : headerUniversityId;
-        if ((code == null || code.isBlank()) && uId != null) {
-            code = universityService.getById(uId).map(University::getCode).orElse(null);
-        }
-        if (code == null || code.isBlank()) {
-            code = universityService.getAllUniversities().stream().findFirst().map(University::getCode).orElse(null);
-        }
-
         String schoolToUse = (school != null && !school.isBlank()) ? school : headerSchool;
-        CompiledSchemaDto compiled = formConfigService.getActiveCompiledSchema(code, auditType, schoolToUse);
+        CompiledSchemaDto compiled = formConfigService.getActiveCompiledSchema(null, auditType, schoolToUse);
         return ResponseEntity.ok(compiled);
     }
 
@@ -77,25 +64,8 @@ public class ClientConfigController {
     }
 
     @GetMapping("/branding")
-    public ResponseEntity<Map<String, Object>> getBranding(
-            @RequestParam(required = false) String universityCode,
-            @RequestParam(required = false) Long universityId,
-            @RequestHeader(value = "X-University-Code", required = false) String headerUniversityCode,
-            @RequestHeader(value = "X-University-Id", required = false) Long headerUniversityId) {
-
-        String code = universityCode != null && !universityCode.isBlank() ? universityCode : headerUniversityCode;
-        Long uId = universityId != null ? universityId : headerUniversityId;
-
-        University u = null;
-        if (code != null && !code.isBlank()) {
-            u = universityService.getByCode(code).orElse(null);
-        } else if (uId != null) {
-            u = universityService.getById(uId).orElse(null);
-        }
-        if (u == null) {
-            u = universityService.getAllUniversities().stream().findFirst().orElse(null);
-        }
-
+    public ResponseEntity<Map<String, Object>> getBranding() {
+        University u = universityService.getInstitution();
         return ResponseEntity.ok(toBrandingMap(u));
     }
 
@@ -103,65 +73,35 @@ public class ClientConfigController {
     public ResponseEntity<?> updateBranding(
             @RequestBody UpdateBrandingRequestDto req,
             @RequestHeader(value = "X-User-Role", required = false) String headerUserRole,
-            @RequestHeader(value = "X-University-Code", required = false) String headerUniversityCode,
-            @RequestHeader(value = "X-University-Id", required = false) Long headerUniversityId,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
-        // 1. Resolve role & university claims from headers or JWT claims
+        // 1. Resolve role from header or JWT claims
         String role = headerUserRole;
-        String code = headerUniversityCode;
-        Long uId = headerUniversityId;
-
-        if (role == null || role.isBlank() || ((code == null || code.isBlank()) && uId == null)) {
+        if (role == null || role.isBlank()) {
             Map<String, Object> claims = parseJwtClaims(authHeader);
-            if (role == null || role.isBlank()) {
-                Object r = claims.get("role");
-                if (r != null) role = r.toString();
-            }
-            if ((code == null || code.isBlank()) && uId == null) {
-                Object c = claims.get("universityCode");
-                if (c != null && !c.toString().isBlank()) code = c.toString();
-                Object idVal = claims.get("universityId");
-                if (idVal != null) {
-                    try {
-                        uId = Long.valueOf(idVal.toString());
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
+            Object r = claims.get("role");
+            if (r != null) role = r.toString();
         }
 
-        // 2. Authorize: role iqac, super-admin, platform-admin, admin. Reject every other role with 403.
+        // 2. Authorize
         if (!isAuthorizedBrandingRole(role)) {
             log.warn("[SECURITY] Unauthorized branding update attempt by role: '{}'", role);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                    "message", "Access denied. Role '" + (role != null ? role : "anonymous") + "' is not authorized to update university branding."
+                    "message", "Access denied. Role '" + (role != null ? role : "anonymous") + "' is not authorized to update institution branding."
             ));
         }
 
-        // 3. Resolve target university strictly from caller JWT claim — never trust client-supplied identifier
-        University target = null;
-        if (code != null && !code.isBlank()) {
-            target = universityService.getByCode(code).orElse(null);
-        } else if (uId != null) {
-            target = universityService.getById(uId).orElse(null);
-        }
-        if (target == null) {
-            target = universityService.getAllUniversities().stream().findFirst().orElse(null);
-        }
-        if (target == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                    "message", "Target university could not be resolved from authentication claims."
-            ));
-        }
+        // 3. Resolve target institution
+        University target = universityService.getInstitution();
 
         // 4. Validation: universityName non-empty
         if (req == null || req.getUniversityName() == null || req.getUniversityName().trim().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
-                    "message", "University name is required and cannot be empty."
+                    "message", "Institution name is required and cannot be empty."
             ));
         }
 
-        // Validation: logoUrl / iqacLogoUrl pointing to valid URL / uploads / data:image
+        // Validation: logoUrl / iqacLogoUrl
         if (req.getLogoUrl() != null && !req.getLogoUrl().trim().isBlank() && !isValidLogoUrl(req.getLogoUrl())) {
             return ResponseEntity.badRequest().body(Map.of(
                     "message", "Invalid logoUrl: must be a well-formed URL, an uploaded attachment path (/uploads/...), or a data:image base64 URI."
@@ -173,7 +113,7 @@ public class ClientConfigController {
             ));
         }
 
-        // 5. Persistence: reuse existing updateUniversity logic behind PUT /api/universities/{id}
+        // 5. Persistence
         University updateEntity = new University();
         updateEntity.setName(req.getUniversityName().trim());
         if (req.getDomain() != null) {
@@ -192,10 +132,10 @@ public class ClientConfigController {
             updateEntity.setIqacLogoUrl(req.getIqacLogoUrl().trim());
         }
 
-        University updated = universityService.updateUniversity(target.getId(), updateEntity);
-        log.info("[BRANDING_UPDATE] University id={} code='{}' updated by role='{}'", target.getId(), target.getCode(), role);
+        University updated = universityService.updateUniversity(target != null ? target.getId() : null, updateEntity);
+        log.info("[BRANDING_UPDATE] Institution branding updated by role='{}'", role);
 
-        // 6. Response: return full updated branding object, same shape as GET response
+        // 6. Response
         return ResponseEntity.ok(toBrandingMap(updated));
     }
 

@@ -12,7 +12,13 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping({"/api/admin/config/universities/{universityId}/schools", "/api/config/universities/{universityId}/schools", "/api/universities/{universityId}/schools"})
+@RequestMapping({
+        "/api/config/schools",
+        "/api/admin/config/schools",
+        "/api/admin/config/universities/{universityId}/schools",
+        "/api/config/universities/{universityId}/schools",
+        "/api/universities/{universityId}/schools"
+})
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class UniversitySchoolController {
@@ -21,7 +27,7 @@ public class UniversitySchoolController {
 
     @GetMapping
     public ResponseEntity<List<UniversitySchool>> getSchools(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @RequestParam(required = false, defaultValue = "false") boolean all) {
         List<UniversitySchool> schools = all
                 ? schoolService.getSchoolsByUniversity(universityId)
@@ -31,7 +37,7 @@ public class UniversitySchoolController {
 
     @PostMapping
     public ResponseEntity<?> createSchool(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @RequestBody CreateSchoolRequest request) {
         if (request == null || request.getName() == null || request.getName().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "School name is required."));
@@ -58,7 +64,7 @@ public class UniversitySchoolController {
 
     @PutMapping("/{schoolId}")
     public ResponseEntity<?> updateSchool(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @PathVariable Long schoolId,
             @RequestBody CreateSchoolRequest request) {
         try {
@@ -79,7 +85,7 @@ public class UniversitySchoolController {
 
     @DeleteMapping("/{schoolId}")
     public ResponseEntity<?> deleteSchool(
-            @PathVariable Long universityId,
+            @PathVariable(required = false) Long universityId,
             @PathVariable Long schoolId) {
         schoolService.deleteSchool(schoolId);
         return ResponseEntity.ok(Map.of("success", true, "message", "School deleted successfully."));

@@ -54,10 +54,8 @@ class AdminConfigControllerTest {
                 formSectionRepository,
                 formTableRepository,
                 formFieldRepository,
-                universityRepository,
                 formConfigService,
-                schemaCompilerService,
-                objectMapper
+                schemaCompilerService
         );
     }
 
