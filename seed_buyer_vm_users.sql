@@ -21,9 +21,7 @@ INSERT INTO users (
     account_type,
     category,
     status,
-    deleted,
-    created_at,
-    updated_at
+    deleted
 )
 VALUES (
     'iqac@buyer-university.edu.in',
@@ -35,15 +33,12 @@ VALUES (
     'iqac',
     'iqac',
     'active',
-    FALSE,
-    NOW(),
-    NOW()
+    FALSE
 )
 ON CONFLICT (email) DO UPDATE SET
     role = EXCLUDED.role,
     status = 'active',
-    deleted = FALSE,
-    updated_at = NOW();
+    deleted = FALSE;
 
 -- 2. Provision Vice-Chancellor Account
 INSERT INTO users (
@@ -56,9 +51,7 @@ INSERT INTO users (
     account_type,
     category,
     status,
-    deleted,
-    created_at,
-    updated_at
+    deleted
 )
 VALUES (
     'vc@buyer-university.edu.in',
@@ -70,15 +63,12 @@ VALUES (
     'vice-chancellor',
     'vice-chancellor',
     'active',
-    FALSE,
-    NOW(),
-    NOW()
+    FALSE
 )
 ON CONFLICT (email) DO UPDATE SET
     role = EXCLUDED.role,
     status = 'active',
-    deleted = FALSE,
-    updated_at = NOW();
+    deleted = FALSE;
 
 -- ==============================================================================
 -- Verification Query
