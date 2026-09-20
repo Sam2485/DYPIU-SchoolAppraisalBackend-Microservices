@@ -6,7 +6,7 @@
 --
 -- Note: Passwords below are BCrypt hashes with 10 rounds:
 -- Default Password: Password@123
--- Hash: $2a$10$7EqJtq98hPqEX7fNZaFWoO.8/bB8cE04K3g8g8Qk8o0j1l9u3K8y6
+-- Hash: $2a$10$Epkl0E2K4og54.Ag2axCbe3O0YpMRrCuLTeAEaKuGpa3UGm/HeS4m
 -- (You can change passwords anytime or supply your own BCrypt hash)
 -- ==============================================================================
 
@@ -25,7 +25,7 @@ INSERT INTO users (
 )
 VALUES (
     'iqac@buyer-university.edu.in',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoO.8/bB8cE04K3g8g8Qk8o0j1l9u3K8y6',
+    '$2a$10$Epkl0E2K4og54.Ag2axCbe3O0YpMRrCuLTeAEaKuGpa3UGm/HeS4m',
     'IQAC Coordinator',
     'Head of Quality Assurance',
     'IQAC Office',
@@ -36,6 +36,7 @@ VALUES (
     FALSE
 )
 ON CONFLICT (email) DO UPDATE SET
+    password = EXCLUDED.password,
     role = EXCLUDED.role,
     status = 'active',
     deleted = FALSE;
@@ -55,7 +56,7 @@ INSERT INTO users (
 )
 VALUES (
     'vc@buyer-university.edu.in',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoO.8/bB8cE04K3g8g8Qk8o0j1l9u3K8y6',
+    '$2a$10$Epkl0E2K4og54.Ag2axCbe3O0YpMRrCuLTeAEaKuGpa3UGm/HeS4m',
     'Vice Chancellor',
     'Vice Chancellor',
     'Chancellor Secretariat',
@@ -66,6 +67,7 @@ VALUES (
     FALSE
 )
 ON CONFLICT (email) DO UPDATE SET
+    password = EXCLUDED.password,
     role = EXCLUDED.role,
     status = 'active',
     deleted = FALSE;
