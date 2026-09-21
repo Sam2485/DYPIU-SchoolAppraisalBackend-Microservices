@@ -5109,4 +5109,32 @@ public class SubmissionService {
     public long getSubmissionsCountByUniversity(Long universityId) {
         return submissionRepository.count();
     }
+
+    public Map<Long, Long> countBySchemaVersionIds(List<Long> versionIds) {
+        Map<Long, Long> result = new LinkedHashMap<>();
+        if (versionIds == null || versionIds.isEmpty()) {
+            return result;
+        }
+        List<Long> cleanIds = versionIds.stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        for (Long id : cleanIds) {
+            result.put(id, 0L);
+        }
+        if (cleanIds.isEmpty()) {
+            return result;
+        }
+        List<Object[]> rows = submissionRepository.countBySchemaVersionIds(cleanIds);
+        if (rows != null) {
+            for (Object[] row : rows) {
+                if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                    Long vId = ((Number) row[0]).longValue();
+                    Long count = ((Number) row[1]).longValue();
+                    result.put(vId, count);
+                }
+            }
+        }
+        return result;
+    }
 }

@@ -70,6 +70,9 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     @Query("select distinct s.auditCycle from Submission s where s.auditCycle is not null")
     List<String> findDistinctAuditCycles();
+
+    @Query("select s.schemaVersionId, count(s) from Submission s where s.schemaVersionId in :versionIds group by s.schemaVersionId")
+    List<Object[]> countBySchemaVersionIds(@Param("versionIds") List<Long> versionIds);
 }
 
 

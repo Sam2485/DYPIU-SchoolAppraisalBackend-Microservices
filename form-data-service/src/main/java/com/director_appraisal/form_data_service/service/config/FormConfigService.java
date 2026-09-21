@@ -1,20 +1,22 @@
 package com.director_appraisal.form_data_service.service.config;
 
+import com.director_appraisal.form_data_service.client.SubmissionServiceClient;
 import com.director_appraisal.form_data_service.dto.config.*;
 import com.director_appraisal.form_data_service.model.config.*;
 import com.director_appraisal.form_data_service.repository.config.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FormConfigService {
 
     private final FormSchemaRepository formSchemaRepository;
@@ -24,6 +26,37 @@ public class FormConfigService {
     private final FormFieldRepository formFieldRepository;
     private final SchemaCompilerService schemaCompilerService;
     private final ObjectMapper objectMapper;
+    private final SubmissionServiceClient submissionServiceClient;
+
+    @Autowired
+    public FormConfigService(FormSchemaRepository formSchemaRepository,
+                             SchemaVersionRepository schemaVersionRepository,
+                             FormSectionRepository formSectionRepository,
+                             FormTableRepository formTableRepository,
+                             FormFieldRepository formFieldRepository,
+                             SchemaCompilerService schemaCompilerService,
+                             ObjectMapper objectMapper,
+                             @Autowired(required = false) SubmissionServiceClient submissionServiceClient) {
+        this.formSchemaRepository = formSchemaRepository;
+        this.schemaVersionRepository = schemaVersionRepository;
+        this.formSectionRepository = formSectionRepository;
+        this.formTableRepository = formTableRepository;
+        this.formFieldRepository = formFieldRepository;
+        this.schemaCompilerService = schemaCompilerService;
+        this.objectMapper = objectMapper;
+        this.submissionServiceClient = submissionServiceClient;
+    }
+
+    public FormConfigService(FormSchemaRepository formSchemaRepository,
+                             SchemaVersionRepository schemaVersionRepository,
+                             FormSectionRepository formSectionRepository,
+                             FormTableRepository formTableRepository,
+                             FormFieldRepository formFieldRepository,
+                             SchemaCompilerService schemaCompilerService,
+                             ObjectMapper objectMapper) {
+        this(formSchemaRepository, schemaVersionRepository, formSectionRepository,
+                formTableRepository, formFieldRepository, schemaCompilerService, objectMapper, null);
+    }
 
     @Transactional(readOnly = true)
     public CompiledSchemaDto getActiveCompiledSchema(String auditType) {
@@ -278,6 +311,32 @@ public class FormConfigService {
         SchemaVersion version = schemaVersionRepository.findById(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
 
+        validateNoSubmissionsForVersions(List.of(versionId), "This version");
+
+        deleteVersionInternal(version);
+    }
+
+    @Transactional
+    public void deleteSchema(Long schemaId) {
+        FormSchema schema = formSchemaRepository.findById(schemaId)
+                .orElseThrow(() -> new IllegalArgumentException("Schema not found: " + schemaId));
+
+        List<SchemaVersion> versions = schemaVersionRepository.findBySchemaIdOrderByVersionNumberDesc(schemaId);
+        List<Long> versionIds = versions.stream().map(SchemaVersion::getId).toList();
+        if (!versionIds.isEmpty()) {
+            validateNoSubmissionsForVersions(versionIds, "This schema");
+        }
+
+        for (SchemaVersion v : versions) {
+            deleteVersionInternal(v);
+        }
+
+        formSchemaRepository.deleteById(schemaId);
+        log.info("Deleted schema '{}' (ID: {})", schema.getName(), schemaId);
+    }
+
+    private void deleteVersionInternal(SchemaVersion version) {
+        Long versionId = version.getId();
         Long schemaId = version.getSchemaId();
 
         // 1. Delete all fields, tables, sections
@@ -297,41 +356,69 @@ public class FormConfigService {
 
         // 3. Update active version on parent schema if this was the active version
         if (schemaId != null) {
-            formSchemaRepository.findById(schemaId).ifPresent(schema -> {
-                if (versionId.equals(schema.getActiveVersionId())) {
+            formSchemaRepository.findById(schemaId).ifPresent(parentSchema -> {
+                if (versionId.equals(parentSchema.getActiveVersionId())) {
                     List<SchemaVersion> remainingVersions = schemaVersionRepository.findBySchemaIdOrderByVersionNumberDesc(schemaId);
                     Optional<SchemaVersion> latestPublished = remainingVersions.stream()
                             .filter(v -> "PUBLISHED".equalsIgnoreCase(v.getStatus()))
                             .findFirst();
                     if (latestPublished.isPresent()) {
-                        schema.setActiveVersionId(latestPublished.get().getId());
-                        schema.setActiveVersionNumber(latestPublished.get().getVersionNumber());
+                        parentSchema.setActiveVersionId(latestPublished.get().getId());
+                        parentSchema.setActiveVersionNumber(latestPublished.get().getVersionNumber());
                     } else if (!remainingVersions.isEmpty()) {
-                        schema.setActiveVersionId(remainingVersions.get(0).getId());
-                        schema.setActiveVersionNumber(remainingVersions.get(0).getVersionNumber());
+                        parentSchema.setActiveVersionId(remainingVersions.get(0).getId());
+                        parentSchema.setActiveVersionNumber(remainingVersions.get(0).getVersionNumber());
                     } else {
-                        schema.setActiveVersionId(null);
-                        schema.setActiveVersionNumber(null);
+                        parentSchema.setActiveVersionId(null);
+                        parentSchema.setActiveVersionNumber(null);
                     }
-                    formSchemaRepository.save(schema);
+                    formSchemaRepository.save(parentSchema);
                 }
             });
         }
         log.info("Deleted version {}", versionId);
     }
 
-    @Transactional
-    public void deleteSchema(Long schemaId) {
-        FormSchema schema = formSchemaRepository.findById(schemaId)
-                .orElseThrow(() -> new IllegalArgumentException("Schema not found: " + schemaId));
-
-        List<SchemaVersion> versions = schemaVersionRepository.findBySchemaIdOrderByVersionNumberDesc(schemaId);
-        for (SchemaVersion v : versions) {
-            deleteVersion(v.getId());
+    private void validateNoSubmissionsForVersions(List<Long> versionIds, String targetDescription) {
+        if (versionIds == null || versionIds.isEmpty() || submissionServiceClient == null) {
+            return;
         }
 
-        formSchemaRepository.deleteById(schemaId);
-        log.info("Deleted schema '{}' (ID: {})", schema.getName(), schemaId);
+        Map<String, Long> counts;
+        try {
+            counts = submissionServiceClient.countBySchemaVersion(versionIds);
+        } catch (Exception e) {
+            log.error("Failed to verify submissions with submission-service for versions {}: {}", versionIds, e.getMessage(), e);
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot verify whether submissions exist for " + targetDescription.toLowerCase() + " because submission-service is unreachable. Deletion aborted for safety."
+            );
+        }
+
+        if (counts == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Invalid response received from submission-service when checking existing submissions. Deletion aborted for safety."
+            );
+        }
+
+        long totalSubmissions = 0;
+        for (Map.Entry<?, ?> entry : counts.entrySet()) {
+            if (entry.getValue() != null) {
+                long count = ((Number) entry.getValue()).longValue();
+                if (count > 0) {
+                    totalSubmissions += count;
+                }
+            }
+        }
+
+        if (totalSubmissions > 0) {
+            String unit = totalSubmissions == 1 ? "submission" : "submissions";
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    targetDescription + " has " + totalSubmissions + " " + unit + " and cannot be deleted."
+            );
+        }
     }
 
     @Transactional

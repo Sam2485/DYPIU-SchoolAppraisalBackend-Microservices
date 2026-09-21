@@ -20,6 +20,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import com.director_appraisal.form_data_service.client.SubmissionServiceClient;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
+
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Form Config Service - FormConfigService Tests")
 class FormConfigServiceTest {
@@ -38,6 +44,8 @@ class FormConfigServiceTest {
     private UniversityRepository universityRepository;
     @Mock
     private SchemaCompilerService schemaCompilerService;
+    @Mock
+    private SubmissionServiceClient submissionServiceClient;
 
     private FormConfigService formConfigService;
     private ObjectMapper objectMapper;
@@ -52,7 +60,8 @@ class FormConfigServiceTest {
                 formTableRepository,
                 formFieldRepository,
                 schemaCompilerService,
-                objectMapper
+                objectMapper,
+                submissionServiceClient
         );
     }
 
@@ -248,5 +257,61 @@ class FormConfigServiceTest {
         assertEquals(5L, dto.getVersionId());
         assertEquals("Part A", dto.getTitle());
         assertTrue(dto.getSections().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should reject deleting version when submissions exist with 409 Conflict")
+    void shouldRejectDeletingVersionWhenSubmissionsExist() {
+        SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("PUBLISHED").build();
+        when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
+        when(submissionServiceClient.countBySchemaVersion(List.of(10L))).thenReturn(Map.of("10", 3L));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> formConfigService.deleteVersion(10L));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+        assertTrue(ex.getReason().contains("This version has 3 submissions and cannot be deleted."));
+        verify(schemaVersionRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("Should allow deleting version when submissions are zero")
+    void shouldAllowDeletingVersionWhenSubmissionsAreZero() {
+        SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("DRAFT").build();
+        when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
+        when(submissionServiceClient.countBySchemaVersion(List.of(10L))).thenReturn(Map.of("10", 0L));
+        when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(10L)).thenReturn(List.of());
+        when(formSchemaRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> formConfigService.deleteVersion(10L));
+        verify(schemaVersionRepository, times(1)).deleteById(10L);
+    }
+
+    @Test
+    @DisplayName("Should fail closed with 409 when submission-service fails on deleteVersion")
+    void shouldFailClosedWhenSubmissionServiceFailsOnDeleteVersion() {
+        SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("DRAFT").build();
+        when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
+        when(submissionServiceClient.countBySchemaVersion(List.of(10L))).thenThrow(new RuntimeException("Connection refused"));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> formConfigService.deleteVersion(10L));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+        assertTrue(ex.getReason().contains("because submission-service is unreachable"));
+        verify(schemaVersionRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("Should reject deleting schema when submissions exist across its versions with 409 Conflict")
+    void shouldRejectDeletingSchemaWhenSubmissionsExist() {
+        FormSchema schema = FormSchema.builder().id(1L).name("Faculty Form").build();
+        SchemaVersion v1 = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).build();
+        SchemaVersion v2 = SchemaVersion.builder().id(11L).schemaId(1L).versionNumber(2).build();
+
+        when(formSchemaRepository.findById(1L)).thenReturn(Optional.of(schema));
+        when(schemaVersionRepository.findBySchemaIdOrderByVersionNumberDesc(1L)).thenReturn(List.of(v2, v1));
+        when(submissionServiceClient.countBySchemaVersion(List.of(11L, 10L))).thenReturn(Map.of("10", 5L, "11", 0L));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> formConfigService.deleteSchema(1L));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+        assertTrue(ex.getReason().contains("This schema has 5 submissions and cannot be deleted."));
+        verify(formSchemaRepository, never()).deleteById(any());
     }
 }
