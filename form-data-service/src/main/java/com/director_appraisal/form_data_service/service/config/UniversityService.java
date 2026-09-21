@@ -2,8 +2,10 @@ package com.director_appraisal.form_data_service.service.config;
 
 import com.director_appraisal.form_data_service.model.config.University;
 import com.director_appraisal.form_data_service.repository.config.UniversityRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +17,26 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UniversityService {
 
+    public static final String DEFAULT_CODE = "dypiu";
+    public static final String DEFAULT_NAME = "D Y Patil International University, Akurdi, Pune";
+    public static final String DEFAULT_DOMAIN = "dypiu.ac.in";
+    public static final String DEFAULT_ADDRESS = "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044";
+    public static final String DEFAULT_ESTABLISHMENT_ACT = "Maharashtra State Act No. VI of 2019";
+    public static final String DEFAULT_STATUS = "ACTIVE";
+
     private final UniversityRepository universityRepository;
+
+    @PostConstruct
+    public void initDefaultInstitution() {
+        try {
+            if (universityRepository.count() == 0) {
+                log.info("[STARTUP] No institution record found. Initializing default institution profile.");
+                createDefaultInstitution();
+            }
+        } catch (Exception e) {
+            log.warn("[STARTUP] Notice: Default institution initialization at startup will be handled lazily if needed: {}", e.getMessage());
+        }
+    }
 
     @Transactional(readOnly = true)
     public List<University> getAllUniversities(boolean includeArchived) {
@@ -41,21 +62,40 @@ public class UniversityService {
         return universityRepository.findByCodeIgnoreCase(code.trim());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public University getInstitution() {
-        return universityRepository.findAllActive().stream().findFirst()
-                .or(() -> universityRepository.findAll().stream().findFirst())
-                .orElseGet(() -> {
-                    University defaultUni = University.builder()
-                            .name("D Y Patil International University, Akurdi, Pune")
-                            .code("dypiu")
-                            .domain("dypiu.ac.in")
-                            .address("Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044")
-                            .establishmentAct("Maharashtra State Act No. VI of 2019")
-                            .status("ACTIVE")
-                            .build();
-                    return universityRepository.save(defaultUni);
-                });
+        Optional<University> existing = universityRepository.findAllActive().stream().findFirst()
+                .or(() -> universityRepository.findAll().stream().findFirst());
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        return createDefaultInstitution();
+    }
+
+    @Transactional
+    public University createDefaultInstitution() {
+        Optional<University> existing = universityRepository.findAllActive().stream().findFirst()
+                .or(() -> universityRepository.findAll().stream().findFirst());
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        try {
+            University defaultUni = University.builder()
+                    .name(DEFAULT_NAME)
+                    .code(DEFAULT_CODE)
+                    .domain(DEFAULT_DOMAIN)
+                    .address(DEFAULT_ADDRESS)
+                    .establishmentAct(DEFAULT_ESTABLISHMENT_ACT)
+                    .status(DEFAULT_STATUS)
+                    .build();
+            return universityRepository.save(defaultUni);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Concurrent creation detected for default institution code '{}'. Re-reading from database.", DEFAULT_CODE);
+            return universityRepository.findByCodeIgnoreCase(DEFAULT_CODE)
+                    .or(() -> universityRepository.findAll().stream().findFirst())
+                    .orElseThrow(() -> new IllegalStateException("Failed to load or initialize default institution", e));
+        }
     }
 
     @Transactional

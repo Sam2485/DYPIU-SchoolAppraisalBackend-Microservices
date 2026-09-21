@@ -107,4 +107,58 @@ class UniversityServiceTest {
         assertEquals("Sector 29, Pradhikaran, Akurdi, Pune", updated.getAddress());
         assertEquals("#1e3a8a", updated.getPrimaryColor());
     }
+
+    @Test
+    @DisplayName("Should create default institution when table is empty")
+    void testGetInstitutionWhenEmpty() {
+        when(universityRepository.findAllActive()).thenReturn(List.of());
+        when(universityRepository.findAll()).thenReturn(List.of());
+        when(universityRepository.save(any())).thenAnswer(inv -> {
+            University u = inv.getArgument(0);
+            u.setId(1L);
+            return u;
+        });
+
+        University inst = universityService.getInstitution();
+        assertNotNull(inst);
+        assertEquals(UniversityService.DEFAULT_CODE, inst.getCode());
+        assertEquals(UniversityService.DEFAULT_NAME, inst.getName());
+        verify(universityRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should handle concurrent creation and recover safely")
+    void testGetInstitutionConcurrentCreationRecovery() {
+        University createdByOtherThread = University.builder()
+                .id(1L)
+                .code(UniversityService.DEFAULT_CODE)
+                .name(UniversityService.DEFAULT_NAME)
+                .status("ACTIVE")
+                .build();
+
+        when(universityRepository.findAllActive()).thenReturn(List.of());
+        when(universityRepository.findAll()).thenReturn(List.of());
+        when(universityRepository.save(any())).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate code"));
+        when(universityRepository.findByCodeIgnoreCase(UniversityService.DEFAULT_CODE)).thenReturn(Optional.of(createdByOtherThread));
+
+        University inst = universityService.getInstitution();
+        assertNotNull(inst);
+        assertEquals(UniversityService.DEFAULT_CODE, inst.getCode());
+    }
+
+    @Test
+    @DisplayName("Should seed default institution at startup if table is empty")
+    void testInitDefaultInstitutionAtStartup() {
+        when(universityRepository.count()).thenReturn(0L);
+        when(universityRepository.findAllActive()).thenReturn(List.of());
+        when(universityRepository.findAll()).thenReturn(List.of());
+        when(universityRepository.save(any())).thenAnswer(inv -> {
+            University u = inv.getArgument(0);
+            u.setId(1L);
+            return u;
+        });
+
+        universityService.initDefaultInstitution();
+        verify(universityRepository, times(1)).save(any());
+    }
 }

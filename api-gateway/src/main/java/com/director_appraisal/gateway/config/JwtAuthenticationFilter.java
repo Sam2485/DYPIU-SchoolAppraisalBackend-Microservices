@@ -69,7 +69,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         // 2. Allow public auth endpoints
-        if (isPublicEndpoint(path)) {
+        if (isPublicEndpoint(path, request.getMethod())) {
             String token = extractToken(request);
             ServerHttpRequest.Builder reqBuilder = request.mutate()
                     .header("X-Correlation-Id", correlationId);
@@ -139,15 +139,17 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         if (userName != null) reqBuilder.header("X-User-Name", userName);
     }
 
-    private boolean isPublicEndpoint(String path) {
+    private boolean isPublicEndpoint(String path, HttpMethod method) {
         if (path == null) return false;
         if (path.startsWith("/api/auth/") || path.equals("/api/auth")
                 || path.startsWith("/uploads/")
                 || path.startsWith("/api/attachments/download")
                 || path.startsWith("/api/attachments/view")
-                || path.startsWith("/api/attachments/public/")
-                || path.startsWith("/api/admin/config/")
-                || path.startsWith("/api/config/")) {
+                || path.startsWith("/api/attachments/public/")) {
+            return true;
+        }
+        // Only GET requests to client config (e.g. public branding, active schema) are public
+        if (method == HttpMethod.GET && path.startsWith("/api/config/")) {
             return true;
         }
         return PUBLIC_ENDPOINTS.stream().anyMatch(endpoint -> path.equalsIgnoreCase(endpoint) || path.startsWith(endpoint + "/"));
