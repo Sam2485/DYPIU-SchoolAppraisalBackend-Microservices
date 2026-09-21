@@ -238,6 +238,18 @@ public class UserController {
             return updateError(HttpStatus.FORBIDDEN, "You are not authorized to update users");
         }
 
+        if (isReviewerRole(user.getRole())) {
+            if (isBlank(request.getRole()) || "administrative".equals(request.getRole()) || "director".equals(request.getRole())) {
+                request.setRole(user.getRole());
+            }
+            if (isBlank(request.getAccountType()) || "user".equals(request.getAccountType())) {
+                request.setAccountType(user.getRole());
+            }
+            if (isBlank(request.getCategory()) || "administrative".equals(request.getCategory())) {
+                request.setCategory(user.getRole());
+            }
+        }
+
         try {
             ValidatedUser validatedUser = validateUpdateUserRequest(request);
             Optional<User> userWithEmail = userService.findByEmail(validatedUser.email);
@@ -433,11 +445,15 @@ public class UserController {
             return new ValidatedUser(name, email, cleanPassword(password), role, school, designation, accountType, category, auditorType, auditorRole, post, administrativePosts, validatedSchools);
         }
 
-        if ("iqac".equals(role) || "vice-chancellor".equals(role)) {
+        boolean isIqac = "iqac".equals(role) || "iqac".equals(accountType) || "iqac".equals(category);
+        boolean isVc = "vice-chancellor".equals(role) || "vice-chancellor".equals(accountType) || "vice-chancellor".equals(category);
+
+        if (isIqac || isVc) {
+            String reviewerRole = isIqac ? "iqac" : "vice-chancellor";
             String reviewerDesignation = isBlank(designation)
-                    ? ("iqac".equals(role) ? "IQAC" : "Vice Chancellor")
+                    ? (isIqac ? "IQAC Coordinator" : "Vice Chancellor")
                     : designation;
-            return new ValidatedUser(name, email, cleanPassword(password), role, null, reviewerDesignation, "reviewer", null, null, null, null, List.of(), List.of());
+            return new ValidatedUser(name, email, cleanPassword(password), reviewerRole, null, reviewerDesignation, reviewerRole, reviewerRole, null, null, null, List.of(), List.of());
         }
 
         if (isBlank(category)) {
