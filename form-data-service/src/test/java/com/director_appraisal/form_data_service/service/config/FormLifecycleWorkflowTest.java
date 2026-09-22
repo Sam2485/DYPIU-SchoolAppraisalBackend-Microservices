@@ -121,7 +121,7 @@ class FormLifecycleWorkflowTest {
 
         // 3. Admin publishes V2
         when(schemaVersionRepository.findById(20L)).thenReturn(Optional.of(draftV2));
-        FormSection secV2 = FormSection.builder().id(201L).versionId(20L).sectionKey("part_a").title("Part A").build();
+        FormSection secV2 = FormSection.builder().id(201L).versionId(20L).sectionKey("part_a").title("Part A").ownerRole("auditor").build();
         when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(20L)).thenReturn(List.of(secV2));
         when(formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(201L)).thenReturn(List.of());
 

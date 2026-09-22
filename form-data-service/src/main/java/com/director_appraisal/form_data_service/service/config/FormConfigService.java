@@ -112,13 +112,103 @@ public class FormConfigService {
         return getCompiledSchemaByVersion(versionId);
     }
 
+    public static List<String> parseAssignedSchools(String assignedSchools) {
+        if (assignedSchools == null || assignedSchools.isBlank()) {
+            return Collections.emptyList();
+        }
+        String trimmed = assignedSchools.trim();
+        if ("ALL".equalsIgnoreCase(trimmed) || "\"ALL\"".equalsIgnoreCase(trimmed)) {
+            return Collections.emptyList();
+        }
+
+        List<String> result = new ArrayList<>();
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            try {
+                ObjectMapper om = new ObjectMapper();
+                List<?> list = om.readValue(trimmed, List.class);
+                for (Object item : list) {
+                    if (item != null && !item.toString().isBlank()) {
+                        result.add(item.toString().trim().toUpperCase());
+                    }
+                }
+                return result;
+            } catch (Exception ignored) {}
+        }
+
+        for (String part : trimmed.split(",")) {
+            String clean = part.replaceAll("[\"\\[\\]]", "").trim().toUpperCase();
+            if (!clean.isBlank() && !"ALL".equalsIgnoreCase(clean)) {
+                result.add(clean);
+            }
+        }
+        return result;
+    }
+
+    public static boolean isAllSchools(String assignedSchools) {
+        if (assignedSchools == null || assignedSchools.isBlank()) return true;
+        String t = assignedSchools.trim();
+        return "ALL".equalsIgnoreCase(t) || "\"ALL\"".equalsIgnoreCase(t);
+    }
+
+    public void validateSchoolAssignments(Long targetSchemaId, String auditType, String assignedSchools) {
+        if (assignedSchools == null || assignedSchools.isBlank()) {
+            return;
+        }
+
+        String targetType = (auditType != null && !auditType.isBlank()) ? auditType.trim().toLowerCase() : "academic";
+        boolean isAll = isAllSchools(assignedSchools);
+        List<String> targetSchools = parseAssignedSchools(assignedSchools);
+
+        List<FormSchema> existingSchemas = formSchemaRepository.findAll();
+
+        for (FormSchema other : existingSchemas) {
+            // Skip self
+            if (targetSchemaId != null && targetSchemaId.equals(other.getId())) {
+                continue;
+            }
+            // Only compare within the same auditType and active status
+            if (!targetType.equalsIgnoreCase(other.getAuditType()) || !"ACTIVE".equalsIgnoreCase(other.getStatus())) {
+                continue;
+            }
+
+            if (isAll) {
+                if (isAllSchools(other.getAssignedSchools())) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Form '" + other.getName() + "' is already assigned to ALL schools for " + targetType + ". Only one form can be assigned to ALL schools at a time."
+                    );
+                }
+            } else {
+                List<String> otherSchools = parseAssignedSchools(other.getAssignedSchools());
+                for (String school : targetSchools) {
+                    for (String otherSchool : otherSchools) {
+                        if (school.equalsIgnoreCase(otherSchool)) {
+                            throw new ResponseStatusException(
+                                    HttpStatus.BAD_REQUEST,
+                                    "School '" + school + "' is already assigned to form '" + other.getName() + "'. A school can only be assigned to one form at a time."
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private boolean matchesSchool(String assignedSchools, String schoolQuery) {
-        if (assignedSchools == null || assignedSchools.isBlank() || "ALL".equalsIgnoreCase(assignedSchools.trim())) {
+        if (assignedSchools == null || assignedSchools.isBlank() || isAllSchools(assignedSchools)) {
             return false;
         }
-        String lower = assignedSchools.toLowerCase();
-        String q = schoolQuery.toLowerCase();
-        return lower.contains(q) || q.contains(lower);
+        if (schoolQuery == null || schoolQuery.isBlank()) {
+            return false;
+        }
+        List<String> assignedList = parseAssignedSchools(assignedSchools);
+        String q = schoolQuery.trim().toUpperCase();
+        for (String code : assignedList) {
+            if (code.equalsIgnoreCase(q) || q.contains(code) || code.contains(q)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Transactional(readOnly = true)
@@ -430,10 +520,38 @@ public class FormConfigService {
         log.info("Deleted all schemas");
     }
 
+    public static boolean isAuditorSection(FormSection section) {
+        if (section == null) return false;
+        if (section.getOwnerRole() != null && section.getOwnerRole().toLowerCase().contains("auditor")) {
+            return true;
+        }
+        if (section.getSectionKey() != null && section.getSectionKey().toLowerCase().contains("auditor")) {
+            return true;
+        }
+        if (section.getTitle() != null && section.getTitle().toLowerCase().contains("auditor")) {
+            return true;
+        }
+        return false;
+    }
+
     private void validateVersionIntegrity(Long versionId) {
         List<FormSection> sections = formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(versionId);
         if (sections.isEmpty()) {
             throw new IllegalStateException("Cannot publish a schema with 0 sections.");
+        }
+
+        boolean hasAuditorSection = false;
+        for (FormSection s : sections) {
+            if (isAuditorSection(s)) {
+                hasAuditorSection = true;
+                break;
+            }
+        }
+        if (!hasAuditorSection) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot publish form: Every form must contain at least one section designated for the Auditor (Auditor Section). Please configure an Auditor section before publishing."
+            );
         }
 
         Set<String> sectionKeys = new HashSet<>();
@@ -491,6 +609,8 @@ public class FormConfigService {
         String targetType = (newAuditType != null && !newAuditType.isBlank()) ? newAuditType.trim().toLowerCase() : source.getAuditType();
         String targetName = (newName != null && !newName.isBlank()) ? newName.trim() : (source.getName() + " (Copy)");
         String targetAssigned = (assignedSchools != null && !assignedSchools.isBlank()) ? assignedSchools.trim() : "ALL";
+
+        validateSchoolAssignments(null, targetType, targetAssigned);
 
         FormSchema newSchema = FormSchema.builder()
                 .universityId(targetUniId)

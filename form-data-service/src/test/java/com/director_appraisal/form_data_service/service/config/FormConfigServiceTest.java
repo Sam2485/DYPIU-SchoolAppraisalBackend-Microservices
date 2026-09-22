@@ -138,6 +138,7 @@ class FormConfigServiceTest {
                 .versionId(20L)
                 .sectionKey("part-a")
                 .title("Part A")
+                .ownerRole("auditor")
                 .build();
 
         FormTable tbl = FormTable.builder()
@@ -178,6 +179,30 @@ class FormConfigServiceTest {
         assertEquals(2, schema.getActiveVersionNumber());
         verify(schemaVersionRepository).save(draft);
         verify(formSchemaRepository).save(schema);
+    }
+
+    @Test
+    @DisplayName("Should throw exception when attempting to publish schema without Auditor section")
+    void testPublishWithoutAuditorSectionThrows() {
+        FormSchema schema = FormSchema.builder().id(1L).build();
+        SchemaVersion draft = SchemaVersion.builder().id(20L).schemaId(1L).build();
+        FormSection sec = FormSection.builder()
+                .id(200L)
+                .versionId(20L)
+                .sectionKey("part-a")
+                .title("Part A")
+                .ownerRole("director-schools")
+                .build();
+
+        when(schemaVersionRepository.findById(20L)).thenReturn(Optional.of(draft));
+        when(formSchemaRepository.findById(1L)).thenReturn(Optional.of(schema));
+        when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(20L)).thenReturn(List.of(sec));
+
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> formConfigService.publishVersion(20L, "admin")
+        );
+        assertTrue(ex.getReason().contains("Auditor"));
     }
 
     @Test

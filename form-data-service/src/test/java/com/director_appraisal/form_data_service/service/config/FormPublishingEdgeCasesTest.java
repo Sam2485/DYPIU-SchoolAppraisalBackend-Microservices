@@ -79,7 +79,7 @@ class FormPublishingEdgeCasesTest {
     void testPublishTableWithZeroColumnsThrows() {
         FormSchema schema = FormSchema.builder().id(1L).name("Schema With Empty Table").build();
         SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("DRAFT").build();
-        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("sec1").title("Section 1").build();
+        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("sec1").title("Section 1").ownerRole("auditor").build();
         FormTable emptyTable = FormTable.builder().id(201L).sectionId(101L).tableKey("tbl1").title("Empty Table").build();
 
         when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
@@ -99,9 +99,9 @@ class FormPublishingEdgeCasesTest {
         FormSchema schema = FormSchema.builder().id(1L).name("Schema with Dup Keys").build();
         SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("DRAFT").build();
 
-        // Two sections with the identical key "part_a"
+        // Two sections with the identical key "part_a" - one marked as auditor
         FormSection sec1 = FormSection.builder().id(101L).versionId(10L).sectionKey("part_a").title("Part A 1").build();
-        FormSection sec2 = FormSection.builder().id(102L).versionId(10L).sectionKey("part_a").title("Part A 2").build();
+        FormSection sec2 = FormSection.builder().id(102L).versionId(10L).sectionKey("part_a").title("Part A 2").ownerRole("auditor").build();
 
         when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
         when(formSchemaRepository.findById(1L)).thenReturn(Optional.of(schema));
@@ -130,7 +130,7 @@ class FormPublishingEdgeCasesTest {
         FormSchema schema = FormSchema.builder().id(1L).name("Schema with Blank Keys").build();
         SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("DRAFT").build();
 
-        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("").title("General Faculty Info").build();
+        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("").title("General Faculty Info").ownerRole("auditor").build();
         FormTable tbl = FormTable.builder().id(201L).sectionId(101L).tableKey("").title("Faculty Patents").build();
         FormField col = FormField.builder().id(301L).tableId(201L).fieldKey("patent_no").label("Patent Number").build();
 
@@ -156,7 +156,7 @@ class FormPublishingEdgeCasesTest {
     void testRepublishAlreadyPublishedVersion() {
         FormSchema schema = FormSchema.builder().id(1L).activeVersionId(10L).activeVersionNumber(1).name("Schema").build();
         SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("PUBLISHED").build();
-        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("sec").title("Sec").build();
+        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("sec").title("Sec").ownerRole("auditor").build();
 
         when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
         when(formSchemaRepository.findById(1L)).thenReturn(Optional.of(schema));
@@ -248,5 +248,79 @@ class FormPublishingEdgeCasesTest {
         verify(formSectionRepository).save(any(FormSection.class));
         verify(formTableRepository).save(any(FormTable.class));
         verify(formFieldRepository, atLeast(2)).save(any(FormField.class));
+    }
+
+    @Test
+    @DisplayName("Constraint: Publishing version without Auditor section throws 400 Bad Request")
+    void testPublishWithoutAuditorSectionThrowsBadRequest() {
+        FormSchema schema = FormSchema.builder().id(1L).name("Schema Without Auditor").build();
+        SchemaVersion version = SchemaVersion.builder().id(10L).schemaId(1L).versionNumber(1).status("DRAFT").build();
+        FormSection sec = FormSection.builder().id(101L).versionId(10L).sectionKey("general").title("General").ownerRole("director-schools").build();
+
+        when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(version));
+        when(formSchemaRepository.findById(1L)).thenReturn(Optional.of(schema));
+        when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(10L)).thenReturn(List.of(sec));
+
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> formConfigService.publishVersion(10L, "admin")
+        );
+        assertTrue(ex.getReason().contains("Auditor"));
+        verify(schemaVersionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Exclusivity: Assigning a school already assigned to another form throws 400 Bad Request")
+    void testSchoolAssignmentExclusivityThrowsOnDuplicate() {
+        FormSchema schema1 = FormSchema.builder()
+                .id(1L)
+                .name("SoD & SoCE academic form")
+                .auditType("academic")
+                .assignedSchools("[\"SOD\",\"SOCM\"]")
+                .status("ACTIVE")
+                .build();
+
+        when(formSchemaRepository.findAll()).thenReturn(List.of(schema1));
+
+        // Attempt to assign SOD to another schema
+        org.springframework.web.server.ResponseStatusException ex = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> formConfigService.validateSchoolAssignments(2L, "academic", "[\"SOD\",\"SOAA\"]")
+        );
+        assertTrue(ex.getReason().contains("School 'SOD' is already assigned to form 'SoD & SoCE academic form'"));
+    }
+
+    @Test
+    @DisplayName("Exclusivity: Updating existing schema with its own assigned schools succeeds without conflict")
+    void testSchoolAssignmentExclusivityAllowsSelfUpdate() {
+        FormSchema schema1 = FormSchema.builder()
+                .id(1L)
+                .name("SoD & SoCE academic form")
+                .auditType("academic")
+                .assignedSchools("[\"SOD\",\"SOCM\"]")
+                .status("ACTIVE")
+                .build();
+
+        when(formSchemaRepository.findAll()).thenReturn(List.of(schema1));
+
+        // Updating schema1 keeping SOD and SOCM should succeed (no exception)
+        assertDoesNotThrow(() -> formConfigService.validateSchoolAssignments(1L, "academic", "[\"SOD\",\"SOCM\"]"));
+    }
+
+    @Test
+    @DisplayName("Exclusivity: Distinct schools can be assigned across schemas without conflict")
+    void testSchoolAssignmentExclusivityAllowsDistinctSchools() {
+        FormSchema schema1 = FormSchema.builder()
+                .id(1L)
+                .name("SoD form")
+                .auditType("academic")
+                .assignedSchools("[\"SOD\"]")
+                .status("ACTIVE")
+                .build();
+
+        when(formSchemaRepository.findAll()).thenReturn(List.of(schema1));
+
+        // Assigning SOAA to schema 2 should succeed
+        assertDoesNotThrow(() -> formConfigService.validateSchoolAssignments(2L, "academic", "[\"SOAA\"]"));
     }
 }

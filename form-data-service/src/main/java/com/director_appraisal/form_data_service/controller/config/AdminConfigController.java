@@ -63,12 +63,13 @@ public class AdminConfigController {
             schemaReq.setUniversityId(1L);
         }
         if (schemaReq.getAuditType() == null || schemaReq.getAuditType().isBlank()) {
-
             throw new IllegalArgumentException("Audit type is required.");
         }
         if (schemaReq.getName() == null || schemaReq.getName().isBlank()) {
             throw new IllegalArgumentException("Schema name is required.");
         }
+
+        formConfigService.validateSchoolAssignments(null, schemaReq.getAuditType(), schemaReq.getAssignedSchools());
 
         FormSchema saved = formSchemaRepository.save(schemaReq);
         // Create initial v1 draft
@@ -84,6 +85,15 @@ public class AdminConfigController {
         validateAdminRole(userRole);
         FormSchema existing = formSchemaRepository.findById(schemaId)
                 .orElseThrow(() -> new IllegalArgumentException("Schema not found: " + schemaId));
+
+        String targetType = (req.getAuditType() != null && !req.getAuditType().isBlank())
+                ? req.getAuditType().toLowerCase() : existing.getAuditType();
+        String targetAssigned = req.getAssignedSchools() != null
+                ? req.getAssignedSchools() : existing.getAssignedSchools();
+
+        if (req.getAssignedSchools() != null || req.getAuditType() != null) {
+            formConfigService.validateSchoolAssignments(schemaId, targetType, targetAssigned);
+        }
 
         if (req.getName() != null && !req.getName().isBlank()) existing.setName(req.getName());
         if (req.getDescription() != null) existing.setDescription(req.getDescription());
