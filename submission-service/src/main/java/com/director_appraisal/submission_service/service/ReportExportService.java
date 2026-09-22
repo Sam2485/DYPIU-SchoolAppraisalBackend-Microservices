@@ -17,21 +17,31 @@ import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
 import com.lowagie.text.Rectangle;
+import com.lowagie.text.Anchor;
 import com.lowagie.text.pdf.*;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.FontUnderline;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.xssf.usermodel.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -46,6 +56,9 @@ public class ReportExportService {
     private final AuthUserClient authUserClient;
     private final SubmissionAuditorAssignmentRepository auditorAssignmentRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${app.public-base-url:${PUBLIC_BASE_URL:}}")
+    private String defaultPublicBaseUrl;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final DateTimeFormatter DATE_ONLY_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -62,18 +75,41 @@ public class ReportExportService {
     private static final Color COLOR_INTERNAL_AUDITOR = new Color(0x0D, 0x94, 0x88); // #0d9488 Teal
     private static final Color COLOR_EXTERNAL_AUDITOR = new Color(0x7C, 0x3A, 0xED); // #7c3aed Purple
     private static final Color COLOR_NOTE_BG = new Color(0xFE, 0xF9, 0xC3);     // #fef9c3 Yellow note
+    private static final Color COLOR_LINK = new Color(0x1D, 0x4E, 0xD8);        // #1d4ed8 Royal Blue for hyperlinks
+
+    public static class AttachmentInfo {
+        private final String fileName;
+        private final String fullUrl;
+
+        public AttachmentInfo(String fileName, String fullUrl) {
+            this.fileName = fileName;
+            this.fullUrl = fullUrl;
+        }
+
+        public String getFileName() { return fileName; }
+        public String getFullUrl() { return fullUrl; }
+    }
 
     // =========================================================================
     // 1. PDF GENERATION
     // =========================================================================
 
     public void generatePdfReport(Submission submission, HttpServletResponse response) throws Exception {
+        generatePdfReport(submission, response, defaultPublicBaseUrl);
+    }
+
+    public void generatePdfReport(Submission submission, HttpServletResponse response, String publicBaseUrl) throws Exception {
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            publicBaseUrl = defaultPublicBaseUrl;
+        }
         Map<String, Object> schema = loadSchema(submission);
         Map<String, Object> values = parseJsonMap(submission.getValuesData());
         Map<String, Object> tables = parseJsonMap(submission.getTablesData());
         List<SubmissionAuditorAssignment> auditorAssignments = auditorAssignmentRepository != null
                 ? auditorAssignmentRepository.findBySubmissionId(submission.getId())
                 : List.of();
+
+        Map<String, String> attachmentLookup = buildAttachmentLookup(submission, auditorAssignments, publicBaseUrl);
 
         Document document = new Document(PageSize.A4, 28, 28, 42, 42);
         OutputStream out = response.getOutputStream();
@@ -86,19 +122,19 @@ public class ReportExportService {
         document.open();
 
         // 1. Cover Header Block
-        addCoverHeader(document, submission, schema, universityName, reportTitle);
+        addCoverHeader(document, submission, schema, universityName, reportTitle, attachmentLookup, publicBaseUrl);
 
         // 2. Sections / Modules Loop
         List<Map<String, Object>> sections = extractSections(schema, tables, values);
         int sectionIndex = 1;
         for (Map<String, Object> section : sections) {
-            addSection(document, section, sectionIndex, values, tables, submission);
+            addSection(document, section, sectionIndex, values, tables, submission, attachmentLookup, publicBaseUrl);
             sectionIndex++;
         }
 
         // 3. Auditor Observations & Evaluations
         if (auditorAssignments != null && !auditorAssignments.isEmpty()) {
-            addAuditorReviews(document, auditorAssignments, schema);
+            addAuditorReviews(document, auditorAssignments, schema, attachmentLookup, publicBaseUrl);
         }
 
         // 4. Official Sign-Off Block
@@ -109,7 +145,8 @@ public class ReportExportService {
     }
 
     private void addCoverHeader(Document doc, Submission submission, Map<String, Object> schema,
-                                String universityName, String reportTitle) throws DocumentException {
+                                String universityName, String reportTitle,
+                                Map<String, String> attachmentLookup, String publicBaseUrl) throws DocumentException {
         PdfPTable cover = new PdfPTable(1);
         cover.setWidthPercentage(100);
         cover.setSpacingAfter(14);
@@ -189,12 +226,33 @@ public class ReportExportService {
         addMetaCell(metaTable, "Report Date:", true);
         addMetaCell(metaTable, dateVal, false);
 
+        if (attachmentLookup != null && !attachmentLookup.isEmpty()) {
+            addMetaCell(metaTable, "Attachments:", true);
+            if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
+                String zipUrl = toCleanBase(publicBaseUrl) + "/api/submissions/" + submission.getId() + "/attachments/download";
+                com.lowagie.text.Font linkFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, com.lowagie.text.Font.UNDERLINE, COLOR_LINK);
+                Anchor zipAnchor = new Anchor("Download Archive (.zip)", linkFont);
+                zipAnchor.setReference(zipUrl);
+                PdfPCell zipCell = new PdfPCell(new Phrase(zipAnchor));
+                zipCell.setBackgroundColor(Color.WHITE);
+                zipCell.setBorderColor(COLOR_BORDER);
+                zipCell.setPadding(4.5f);
+                zipCell.setColspan(3);
+                metaTable.addCell(zipCell);
+            } else {
+                addMetaCell(metaTable, "Available in table cells", false);
+                addMetaCell(metaTable, "", false);
+                addMetaCell(metaTable, "", false);
+            }
+        }
+
         doc.add(metaTable);
     }
 
     private void addSection(Document doc, Map<String, Object> section, int sectionIndex,
                             Map<String, Object> values, Map<String, Object> tables,
-                            Submission submission) throws DocumentException {
+                            Submission submission, Map<String, String> attachmentLookup,
+                            String publicBaseUrl) throws DocumentException {
         String secNumber = section.get("number") != null ? section.get("number").toString() : String.valueOf(sectionIndex);
         String secTitle = section.get("title") != null ? section.get("title").toString() : "Section " + sectionIndex;
 
@@ -234,7 +292,7 @@ public class ReportExportService {
                 }
             }
             if (!displayFields.isEmpty()) {
-                addFieldsTable(doc, displayFields, values);
+                addFieldsTable(doc, displayFields, values, attachmentLookup, publicBaseUrl);
             }
         }
 
@@ -242,12 +300,13 @@ public class ReportExportService {
         List<Map<String, Object>> secTables = safeListOfMaps(section.get("tables"));
         if (secTables != null) {
             for (Map<String, Object> tbl : secTables) {
-                addTableBlock(doc, tbl, section, tables, submission);
+                addTableBlock(doc, tbl, section, tables, submission, attachmentLookup, publicBaseUrl);
             }
         }
     }
 
-    private void addFieldsTable(Document doc, List<Map<String, Object>> fields, Map<String, Object> values) throws DocumentException {
+    private void addFieldsTable(Document doc, List<Map<String, Object>> fields, Map<String, Object> values,
+                                Map<String, String> attachmentLookup, String publicBaseUrl) throws DocumentException {
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingAfter(8);
@@ -257,12 +316,13 @@ public class ReportExportService {
 
         com.lowagie.text.Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, COLOR_PRIMARY);
         com.lowagie.text.Font valFont = FontFactory.getFont(FontFactory.HELVETICA, 8.5f, COLOR_TEXT);
+        com.lowagie.text.Font linkFont = FontFactory.getFont(FontFactory.HELVETICA, 8.5f, com.lowagie.text.Font.UNDERLINE, COLOR_LINK);
 
         for (Map<String, Object> field : fields) {
             String label = field.get("label") != null ? field.get("label").toString() : "Field";
             String key = field.get("fieldKey") != null ? field.get("fieldKey").toString() : (field.get("id") != null ? field.get("id").toString() : label);
             Object rawVal = resolveFieldValue(key, label, values);
-            String valStr = formatValue(rawVal);
+            List<AttachmentInfo> cellAttachments = extractAttachments(rawVal, attachmentLookup, publicBaseUrl);
 
             PdfPCell lCell = new PdfPCell(new Phrase(label, labelFont));
             lCell.setBackgroundColor(COLOR_HEADER_BG);
@@ -270,7 +330,23 @@ public class ReportExportService {
             lCell.setPadding(4.5f);
             table.addCell(lCell);
 
-            PdfPCell vCell = new PdfPCell(new Phrase(valStr, valFont));
+            PdfPCell vCell;
+            if (cellAttachments != null && !cellAttachments.isEmpty()) {
+                Phrase phrase = new Phrase();
+                for (int ai = 0; ai < cellAttachments.size(); ai++) {
+                    AttachmentInfo att = cellAttachments.get(ai);
+                    if (ai > 0) {
+                        phrase.add(new Phrase(", ", valFont));
+                    }
+                    Anchor anchor = new Anchor(att.getFileName(), linkFont);
+                    anchor.setReference(att.getFullUrl());
+                    phrase.add(anchor);
+                }
+                vCell = new PdfPCell(phrase);
+            } else {
+                String valStr = formatValue(rawVal);
+                vCell = new PdfPCell(new Phrase(valStr, valFont));
+            }
             vCell.setBackgroundColor(Color.WHITE);
             vCell.setBorderColor(COLOR_BORDER);
             vCell.setPadding(4.5f);
@@ -280,7 +356,9 @@ public class ReportExportService {
     }
 
     private void addTableBlock(Document doc, Map<String, Object> tbl, Map<String, Object> section,
-                               Map<String, Object> tablesData, Submission submission) throws DocumentException {
+                               Map<String, Object> tablesData, Submission submission,
+                               Map<String, String> attachmentLookup,
+                               String publicBaseUrl) throws DocumentException {
         String tableTitle = tbl.get("title") != null ? tbl.get("title").toString() : (tbl.get("name") != null ? tbl.get("name").toString() : "Table");
         String tableKey = tbl.get("tableKey") != null ? tbl.get("tableKey").toString() : (tbl.get("id") != null ? tbl.get("id").toString() : tableTitle);
 
@@ -290,19 +368,22 @@ public class ReportExportService {
         if (instancesMap.isEmpty()) {
             // Render standard single instance table
             List<Map<String, Object>> rows = resolveTableRows(tableKey, tbl, tablesData);
-            renderDataTable(doc, tableTitle, tbl, rows);
+            renderDataTable(doc, tableTitle, tbl, rows, attachmentLookup, publicBaseUrl);
         } else {
             // Render table for each instance
             for (Map.Entry<String, List<Map<String, Object>>> entry : instancesMap.entrySet()) {
                 String instanceName = entry.getKey();
                 List<Map<String, Object>> rows = entry.getValue();
                 String titleWithInstance = tableTitle + (instanceName.isBlank() ? "" : " (" + instanceName + ")");
-                renderDataTable(doc, titleWithInstance, tbl, rows);
+                renderDataTable(doc, titleWithInstance, tbl, rows, attachmentLookup, publicBaseUrl);
             }
         }
     }
 
-    private void renderDataTable(Document doc, String title, Map<String, Object> tblDef, List<Map<String, Object>> rows) throws DocumentException {
+    private void renderDataTable(Document doc, String title, Map<String, Object> tblDef,
+                                List<Map<String, Object>> rows,
+                                Map<String, String> attachmentLookup,
+                                String publicBaseUrl) throws DocumentException {
         // Table Sub-Heading
         com.lowagie.text.Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9.5f, COLOR_PRIMARY);
         Paragraph pTitle = new Paragraph(title, titleFont);
@@ -352,6 +433,8 @@ public class ReportExportService {
 
         // 2. Data Rows
         com.lowagie.text.Font tdFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, COLOR_TEXT);
+        com.lowagie.text.Font linkFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, com.lowagie.text.Font.UNDERLINE, COLOR_LINK);
+
         if (rows == null || rows.isEmpty()) {
             PdfPCell emptyCell = new PdfPCell(new Phrase("No data recorded for this table.", FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 7.5f, COLOR_MUTED)));
             emptyCell.setColspan(colCount);
@@ -375,9 +458,25 @@ public class ReportExportService {
                 // Data Cells
                 for (String col : columnLabels) {
                     Object cellVal = resolveCellFromRow(row, col, tblDef);
-                    String displayVal = formatValue(cellVal);
+                    List<AttachmentInfo> cellAttachments = extractAttachments(cellVal, attachmentLookup, publicBaseUrl);
 
-                    PdfPCell tdCell = new PdfPCell(new Phrase(displayVal, tdFont));
+                    PdfPCell tdCell;
+                    if (cellAttachments != null && !cellAttachments.isEmpty()) {
+                        Phrase phrase = new Phrase();
+                        for (int ai = 0; ai < cellAttachments.size(); ai++) {
+                            AttachmentInfo att = cellAttachments.get(ai);
+                            if (ai > 0) {
+                                phrase.add(new Phrase(", ", tdFont));
+                            }
+                            Anchor anchor = new Anchor(att.getFileName(), linkFont);
+                            anchor.setReference(att.getFullUrl());
+                            phrase.add(anchor);
+                        }
+                        tdCell = new PdfPCell(phrase);
+                    } else {
+                        String displayVal = formatValue(cellVal);
+                        tdCell = new PdfPCell(new Phrase(displayVal, tdFont));
+                    }
                     tdCell.setBackgroundColor(rowBg);
                     tdCell.setBorderColor(COLOR_BORDER);
                     tdCell.setHorizontalAlignment(Element.ALIGN_LEFT);
@@ -390,7 +489,10 @@ public class ReportExportService {
         doc.add(pdfTable);
     }
 
-    private void addAuditorReviews(Document doc, List<SubmissionAuditorAssignment> assignments, Map<String, Object> schema) throws DocumentException {
+    private void addAuditorReviews(Document doc, List<SubmissionAuditorAssignment> assignments,
+                                   Map<String, Object> schema,
+                                   Map<String, String> attachmentLookup,
+                                   String publicBaseUrl) throws DocumentException {
         // Section Heading
         PdfPTable headingTable = new PdfPTable(1);
         headingTable.setWidthPercentage(100);
@@ -454,7 +556,7 @@ public class ReportExportService {
                     List<Map<String, Object>> rows = safeListOfMaps(entry.getValue());
                     if (rows != null && !rows.isEmpty()) {
                         String tTitle = "Auditor Table: " + entry.getKey().replaceAll("[^a-zA-Z0-9_-]", " ");
-                        renderDataTable(doc, tTitle, Collections.emptyMap(), rows);
+                        renderDataTable(doc, tTitle, Collections.emptyMap(), rows, attachmentLookup, publicBaseUrl);
                     }
                 }
             }
@@ -521,12 +623,21 @@ public class ReportExportService {
     // =========================================================================
 
     public void generateExcelReport(Submission submission, HttpServletResponse response) throws Exception {
+        generateExcelReport(submission, response, defaultPublicBaseUrl);
+    }
+
+    public void generateExcelReport(Submission submission, HttpServletResponse response, String publicBaseUrl) throws Exception {
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            publicBaseUrl = defaultPublicBaseUrl;
+        }
         Map<String, Object> schema = loadSchema(submission);
         Map<String, Object> values = parseJsonMap(submission.getValuesData());
         Map<String, Object> tables = parseJsonMap(submission.getTablesData());
         List<SubmissionAuditorAssignment> auditorAssignments = auditorAssignmentRepository != null
                 ? auditorAssignmentRepository.findBySubmissionId(submission.getId())
                 : List.of();
+
+        Map<String, String> attachmentLookup = buildAttachmentLookup(submission, auditorAssignments, publicBaseUrl);
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             // Style setup
@@ -535,10 +646,13 @@ public class ReportExportService {
             XSSFCellStyle titleStyle = createTitleStyle(workbook);
             XSSFCellStyle dataStyle = createDataStyle(workbook);
             XSSFCellStyle altDataStyle = createAltDataStyle(workbook);
+            XSSFCellStyle hyperlinkStyle = createHyperlinkStyle(workbook);
+            XSSFCellStyle altHyperlinkStyle = createAltHyperlinkStyle(workbook);
+            CreationHelper helper = workbook.getCreationHelper();
 
             // Sheet 1: Overview & Sign-Offs
             XSSFSheet overviewSheet = workbook.createSheet("Summary");
-            createOverviewSheet(overviewSheet, submission, schema, values, titleStyle, headerStyle, dataStyle);
+            createOverviewSheet(overviewSheet, submission, schema, values, titleStyle, headerStyle, dataStyle, hyperlinkStyle, helper, attachmentLookup, publicBaseUrl);
 
             // Sheets 2..N: Dynamic Sections & Parts
             List<Map<String, Object>> sections = extractSections(schema, tables, values);
@@ -547,14 +661,14 @@ public class ReportExportService {
                 String secTitle = sec.get("title") != null ? sec.get("title").toString() : "Part " + secIdx;
                 String sheetName = sanitizeSheetName("Part " + secIdx + " - " + secTitle);
                 XSSFSheet secSheet = workbook.createSheet(sheetName);
-                populateSectionSheet(secSheet, sec, values, tables, submission, headerStyle, subHeaderStyle, dataStyle, altDataStyle);
+                populateSectionSheet(secSheet, sec, values, tables, submission, headerStyle, subHeaderStyle, dataStyle, altDataStyle, hyperlinkStyle, altHyperlinkStyle, helper, attachmentLookup, publicBaseUrl);
                 secIdx++;
             }
 
             // Sheet: Auditor Reviews
             if (auditorAssignments != null && !auditorAssignments.isEmpty()) {
                 XSSFSheet audSheet = workbook.createSheet("Auditor Reviews");
-                populateAuditorSheet(audSheet, auditorAssignments, headerStyle, subHeaderStyle, dataStyle, altDataStyle);
+                populateAuditorSheet(audSheet, auditorAssignments, headerStyle, subHeaderStyle, dataStyle, altDataStyle, hyperlinkStyle, altHyperlinkStyle, helper, attachmentLookup, publicBaseUrl);
             }
 
             OutputStream out = response.getOutputStream();
@@ -565,7 +679,9 @@ public class ReportExportService {
 
     private void createOverviewSheet(XSSFSheet sheet, Submission submission, Map<String, Object> schema,
                                      Map<String, Object> values, XSSFCellStyle titleStyle,
-                                     XSSFCellStyle headerStyle, XSSFCellStyle dataStyle) {
+                                     XSSFCellStyle headerStyle, XSSFCellStyle dataStyle,
+                                     XSSFCellStyle hyperlinkStyle, CreationHelper helper,
+                                     Map<String, String> attachmentLookup, String publicBaseUrl) {
         int r = 0;
         Row rowTitle = sheet.createRow(r++);
         Cell cTitle = rowTitle.createCell(0);
@@ -597,6 +713,21 @@ public class ReportExportService {
         addExcelMetaRow(sheet, r++, "Approved At", submission.getApprovedAt() != null ? submission.getApprovedAt().format(DATE_FORMATTER) : "-", dataStyle);
         addExcelMetaRow(sheet, r++, "Remarks", submission.getRemarks() != null ? submission.getRemarks() : "-", dataStyle);
 
+        if (attachmentLookup != null && !attachmentLookup.isEmpty() && publicBaseUrl != null && !publicBaseUrl.isBlank()) {
+            Row attRow = sheet.createRow(r++);
+            Cell cAttLabel = attRow.createCell(0);
+            cAttLabel.setCellValue("Attachments Archive");
+            cAttLabel.setCellStyle(dataStyle);
+
+            Cell cAttVal = attRow.createCell(1);
+            cAttVal.setCellValue("Download All Attachments (.zip archive)");
+            Hyperlink zipLink = helper.createHyperlink(HyperlinkType.URL);
+            String zipUrl = toCleanBase(publicBaseUrl) + "/api/submissions/" + submission.getId() + "/attachments/download";
+            zipLink.setAddress(zipUrl);
+            cAttVal.setHyperlink(zipLink);
+            cAttVal.setCellStyle(hyperlinkStyle);
+        }
+
         sheet.setColumnWidth(0, 25 * 256);
         sheet.setColumnWidth(1, 50 * 256);
     }
@@ -604,7 +735,10 @@ public class ReportExportService {
     private void populateSectionSheet(XSSFSheet sheet, Map<String, Object> sec, Map<String, Object> values,
                                       Map<String, Object> tablesData, Submission submission,
                                       XSSFCellStyle headerStyle, XSSFCellStyle subHeaderStyle,
-                                      XSSFCellStyle dataStyle, XSSFCellStyle altDataStyle) {
+                                      XSSFCellStyle dataStyle, XSSFCellStyle altDataStyle,
+                                      XSSFCellStyle hyperlinkStyle, XSSFCellStyle altHyperlinkStyle,
+                                      CreationHelper helper, Map<String, String> attachmentLookup,
+                                      String publicBaseUrl) {
         int r = 0;
         String title = sec.get("title") != null ? sec.get("title").toString() : "Section";
         Row titleRow = sheet.createRow(r++);
@@ -626,7 +760,8 @@ public class ReportExportService {
             for (Map<String, Object> f : fields) {
                 String label = f.get("label") != null ? f.get("label").toString() : "Field";
                 String key = f.get("fieldKey") != null ? f.get("fieldKey").toString() : (f.get("id") != null ? f.get("id").toString() : label);
-                String val = formatValue(resolveFieldValue(key, label, values));
+                Object rawVal = resolveFieldValue(key, label, values);
+                List<AttachmentInfo> cellAttachments = extractAttachments(rawVal, attachmentLookup, publicBaseUrl);
 
                 Row fRow = sheet.createRow(r++);
                 Cell c0 = fRow.createCell(0);
@@ -634,8 +769,31 @@ public class ReportExportService {
                 c0.setCellStyle(dataStyle);
 
                 Cell c1 = fRow.createCell(1);
-                c1.setCellValue(val);
-                c1.setCellStyle(dataStyle);
+                if (cellAttachments != null && !cellAttachments.isEmpty()) {
+                    if (cellAttachments.size() == 1) {
+                        AttachmentInfo att = cellAttachments.get(0);
+                        c1.setCellValue(att.getFileName());
+                        Hyperlink link = helper.createHyperlink(HyperlinkType.URL);
+                        link.setAddress(att.getFullUrl());
+                        c1.setHyperlink(link);
+                        c1.setCellStyle(hyperlinkStyle);
+                    } else {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < cellAttachments.size(); i++) {
+                            if (i > 0) sb.append(", ");
+                            sb.append(cellAttachments.get(i).getFileName());
+                        }
+                        c1.setCellValue(sb.toString());
+                        Hyperlink link = helper.createHyperlink(HyperlinkType.URL);
+                        link.setAddress(cellAttachments.get(0).getFullUrl());
+                        c1.setHyperlink(link);
+                        c1.setCellStyle(hyperlinkStyle);
+                    }
+                } else {
+                    String val = formatValue(rawVal);
+                    c1.setCellValue(val);
+                    c1.setCellStyle(dataStyle);
+                }
             }
             r++; // blank row after fields
         }
@@ -650,11 +808,11 @@ public class ReportExportService {
                 Map<String, List<Map<String, Object>>> instancesMap = findTableRowsAcrossInstances(tKey, tbl, sec, tablesData);
                 if (instancesMap.isEmpty()) {
                     List<Map<String, Object>> rows = resolveTableRows(tKey, tbl, tablesData);
-                    r = renderExcelTable(sheet, r, tTitle, tbl, rows, subHeaderStyle, dataStyle, altDataStyle);
+                    r = renderExcelTable(sheet, r, tTitle, tbl, rows, subHeaderStyle, dataStyle, altDataStyle, hyperlinkStyle, altHyperlinkStyle, helper, attachmentLookup, publicBaseUrl);
                 } else {
                     for (Map.Entry<String, List<Map<String, Object>>> entry : instancesMap.entrySet()) {
                         String tName = tTitle + (entry.getKey().isBlank() ? "" : " (" + entry.getKey() + ")");
-                        r = renderExcelTable(sheet, r, tName, tbl, entry.getValue(), subHeaderStyle, dataStyle, altDataStyle);
+                        r = renderExcelTable(sheet, r, tName, tbl, entry.getValue(), subHeaderStyle, dataStyle, altDataStyle, hyperlinkStyle, altHyperlinkStyle, helper, attachmentLookup, publicBaseUrl);
                     }
                 }
                 r++; // blank line between tables
@@ -667,7 +825,10 @@ public class ReportExportService {
 
     private int renderExcelTable(XSSFSheet sheet, int startRow, String title, Map<String, Object> tblDef,
                                  List<Map<String, Object>> rows, XSSFCellStyle subHeaderStyle,
-                                 XSSFCellStyle dataStyle, XSSFCellStyle altDataStyle) {
+                                 XSSFCellStyle dataStyle, XSSFCellStyle altDataStyle,
+                                 XSSFCellStyle hyperlinkStyle, XSSFCellStyle altHyperlinkStyle,
+                                 CreationHelper helper, Map<String, String> attachmentLookup,
+                                 String publicBaseUrl) {
         int r = startRow;
         Row titleRow = sheet.createRow(r++);
         Cell tc = titleRow.createCell(0);
@@ -701,8 +862,33 @@ public class ReportExportService {
                 for (int c = 0; c < columnLabels.size(); c++) {
                     Object val = resolveCellFromRow(row, columnLabels.get(c), tblDef);
                     Cell dc = dRow.createCell(c + 1);
-                    dc.setCellValue(formatValue(val));
-                    dc.setCellStyle(style);
+                    List<AttachmentInfo> cellAttachments = extractAttachments(val, attachmentLookup, publicBaseUrl);
+
+                    if (cellAttachments != null && !cellAttachments.isEmpty()) {
+                        XSSFCellStyle linkStyle = (sno % 2 == 0) ? altHyperlinkStyle : hyperlinkStyle;
+                        if (cellAttachments.size() == 1) {
+                            AttachmentInfo att = cellAttachments.get(0);
+                            dc.setCellValue(att.getFileName());
+                            Hyperlink link = helper.createHyperlink(HyperlinkType.URL);
+                            link.setAddress(att.getFullUrl());
+                            dc.setHyperlink(link);
+                            dc.setCellStyle(linkStyle);
+                        } else {
+                            StringBuilder names = new StringBuilder();
+                            for (int i = 0; i < cellAttachments.size(); i++) {
+                                if (i > 0) names.append(", ");
+                                names.append(cellAttachments.get(i).getFileName());
+                            }
+                            dc.setCellValue(names.toString());
+                            Hyperlink link = helper.createHyperlink(HyperlinkType.URL);
+                            link.setAddress(cellAttachments.get(0).getFullUrl());
+                            dc.setHyperlink(link);
+                            dc.setCellStyle(linkStyle);
+                        }
+                    } else {
+                        dc.setCellValue(formatValue(val));
+                        dc.setCellStyle(style);
+                    }
                 }
                 sno++;
             }
@@ -712,7 +898,10 @@ public class ReportExportService {
 
     private void populateAuditorSheet(XSSFSheet sheet, List<SubmissionAuditorAssignment> assignments,
                                       XSSFCellStyle headerStyle, XSSFCellStyle subHeaderStyle,
-                                      XSSFCellStyle dataStyle, XSSFCellStyle altDataStyle) {
+                                      XSSFCellStyle dataStyle, XSSFCellStyle altDataStyle,
+                                      XSSFCellStyle hyperlinkStyle, XSSFCellStyle altHyperlinkStyle,
+                                      CreationHelper helper, Map<String, String> attachmentLookup,
+                                      String publicBaseUrl) {
         int r = 0;
         Row titleRow = sheet.createRow(r++);
         Cell tCell = titleRow.createCell(0);
@@ -745,7 +934,7 @@ public class ReportExportService {
                 for (Map.Entry<String, Object> entry : aTables.entrySet()) {
                     List<Map<String, Object>> rows = safeListOfMaps(entry.getValue());
                     if (rows != null && !rows.isEmpty()) {
-                        r = renderExcelTable(sheet, r + 1, "Auditor Table: " + entry.getKey(), Collections.emptyMap(), rows, subHeaderStyle, dataStyle, altDataStyle);
+                        r = renderExcelTable(sheet, r + 1, "Auditor Table: " + entry.getKey(), Collections.emptyMap(), rows, subHeaderStyle, dataStyle, altDataStyle, hyperlinkStyle, altHyperlinkStyle, helper, attachmentLookup, publicBaseUrl);
                     }
                 }
             }
@@ -824,6 +1013,28 @@ public class ReportExportService {
 
     private XSSFCellStyle createAltDataStyle(XSSFWorkbook wb) {
         XSSFCellStyle s = createDataStyle(wb);
+        s.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return s;
+    }
+
+    private XSSFCellStyle createHyperlinkStyle(XSSFWorkbook wb) {
+        XSSFCellStyle s = wb.createCellStyle();
+        XSSFFont f = wb.createFont();
+        f.setFontHeightInPoints((short) 10);
+        f.setColor(IndexedColors.BLUE.getIndex());
+        f.setUnderline(FontUnderline.SINGLE);
+        s.setFont(f);
+        s.setBorderBottom(BorderStyle.THIN);
+        s.setBorderTop(BorderStyle.THIN);
+        s.setBorderLeft(BorderStyle.THIN);
+        s.setBorderRight(BorderStyle.THIN);
+        s.setWrapText(true);
+        return s;
+    }
+
+    private XSSFCellStyle createAltHyperlinkStyle(XSSFWorkbook wb) {
+        XSSFCellStyle s = createHyperlinkStyle(wb);
         s.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         s.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         return s;
@@ -966,13 +1177,59 @@ public class ReportExportService {
     }
 
     private Object resolveCellFromRow(Map<String, Object> row, String colLabel, Map<String, Object> tblDef) {
-        if (row == null) return "";
+        if (row == null || colLabel == null) return "";
         if (row.containsKey(colLabel)) return row.get(colLabel);
 
+        // 1. Check if tblDef provides a column definition matching colLabel
+        if (tblDef != null) {
+            List<Map<String, Object>> defCols = safeListOfMaps(tblDef.get("columns"));
+            if (defCols == null || defCols.isEmpty()) {
+                defCols = safeListOfMaps(tblDef.get("fields"));
+            }
+            if (defCols != null) {
+                String targetSlug = colLabel.toLowerCase().replaceAll("[^a-z0-9]", "");
+                for (Map<String, Object> c : defCols) {
+                    String label = c.get("label") != null ? c.get("label").toString() : "";
+                    String key = c.get("key") != null ? c.get("key").toString()
+                            : (c.get("name") != null ? c.get("name").toString()
+                            : (c.get("field") != null ? c.get("field").toString()
+                            : (c.get("dataIndex") != null ? c.get("dataIndex").toString()
+                            : (c.get("id") != null ? c.get("id").toString() : ""))));
+
+                    String labelSlug = label.toLowerCase().replaceAll("[^a-z0-9]", "");
+                    String keySlug = key.toLowerCase().replaceAll("[^a-z0-9]", "");
+
+                    boolean matchesCol = colLabel.equalsIgnoreCase(label)
+                            || colLabel.equalsIgnoreCase(key)
+                            || (!targetSlug.isEmpty() && (targetSlug.equals(labelSlug) || targetSlug.equals(keySlug)));
+
+                    if (matchesCol) {
+                        if (!key.isEmpty() && row.containsKey(key)) return row.get(key);
+                        if (!label.isEmpty() && row.containsKey(label)) return row.get(label);
+
+                        // Try matching row keys against key or label slug
+                        for (Map.Entry<String, Object> e : row.entrySet()) {
+                            String rSlug = e.getKey().toLowerCase().replaceAll("[^a-z0-9]", "");
+                            if (!keySlug.isEmpty() && rSlug.equals(keySlug)) {
+                                return e.getValue();
+                            }
+                            if (!labelSlug.isEmpty() && rSlug.equals(labelSlug)) {
+                                return e.getValue();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Direct slug matching with row keys
         String colSlug = colLabel.toLowerCase().replaceAll("[^a-z0-9]", "");
         for (Map.Entry<String, Object> e : row.entrySet()) {
             String kSlug = e.getKey().toLowerCase().replaceAll("[^a-z0-9]", "");
             if (kSlug.equals(colSlug)) {
+                return e.getValue();
+            }
+            if (formatCleanTitle(e.getKey()).equalsIgnoreCase(colLabel)) {
                 return e.getValue();
             }
         }
@@ -981,12 +1238,18 @@ public class ReportExportService {
 
     private Object resolveFieldValue(String key, String label, Map<String, Object> values) {
         if (values == null) return "";
-        if (values.containsKey(key)) return values.get(key);
-        if (values.containsKey(label)) return values.get(label);
+        if (key != null && values.containsKey(key)) return values.get(key);
+        if (label != null && values.containsKey(label)) return values.get(label);
 
-        String slug = key.toLowerCase().replaceAll("[^a-z0-9]", "");
+        String keySlug = key != null ? key.toLowerCase().replaceAll("[^a-z0-9]", "") : "";
+        String labelSlug = label != null ? label.toLowerCase().replaceAll("[^a-z0-9]", "") : "";
+
         for (Map.Entry<String, Object> e : values.entrySet()) {
-            if (e.getKey().toLowerCase().replaceAll("[^a-z0-9]", "").equals(slug)) {
+            String entrySlug = e.getKey().toLowerCase().replaceAll("[^a-z0-9]", "");
+            if (!keySlug.isEmpty() && entrySlug.equals(keySlug)) {
+                return e.getValue();
+            }
+            if (!labelSlug.isEmpty() && entrySlug.equals(labelSlug)) {
                 return e.getValue();
             }
         }
@@ -1132,7 +1395,363 @@ public class ReportExportService {
     }
 
     // =========================================================================
-    // 5. PDF PAGE EVENT HELPER (Header & Footer)
+    // 5. ATTACHMENT EXTRACTION & HYPERLINK HELPERS
+    // =========================================================================
+
+    private Map<String, String> buildAttachmentLookup(Submission submission,
+                                                     List<SubmissionAuditorAssignment> assignments,
+                                                     String publicBaseUrl) {
+        Map<String, String> lookup = new HashMap<>();
+        if (submission == null) return lookup;
+
+        crawlJsonForAttachments(submission.getAttachments(), lookup, publicBaseUrl);
+        crawlJsonForAttachments(submission.getTablesData(), lookup, publicBaseUrl);
+        crawlJsonForAttachments(submission.getValuesData(), lookup, publicBaseUrl);
+
+        if (assignments != null) {
+            for (SubmissionAuditorAssignment a : assignments) {
+                crawlJsonForAttachments(a.getAttachments(), lookup, publicBaseUrl);
+                crawlJsonForAttachments(a.getTablesData(), lookup, publicBaseUrl);
+                crawlJsonForAttachments(a.getValuesData(), lookup, publicBaseUrl);
+            }
+        }
+        return lookup;
+    }
+
+    private void crawlJsonForAttachments(String json, Map<String, String> lookup, String publicBaseUrl) {
+        if (json == null || json.isBlank()) return;
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            crawlNodeForAttachments(root, lookup, publicBaseUrl);
+        } catch (Exception ignored) {}
+    }
+
+    private void crawlNodeForAttachments(JsonNode node, Map<String, String> lookup, String publicBaseUrl) {
+        if (node == null || node.isNull()) return;
+
+        if (node.isObject()) {
+            AttachmentInfo info = parseAttachmentJsonNode(node, publicBaseUrl);
+            if (info != null && info.getFileName() != null && info.getFullUrl() != null) {
+                indexAttachment(info.getFileName(), info.getFullUrl(), lookup);
+            }
+            node.fields().forEachRemaining(entry -> crawlNodeForAttachments(entry.getValue(), lookup, publicBaseUrl));
+        } else if (node.isArray()) {
+            for (JsonNode item : node) {
+                crawlNodeForAttachments(item, lookup, publicBaseUrl);
+            }
+        } else if (node.isTextual()) {
+            String text = node.asText().trim();
+            if (isAttachmentUrlOrPath(text)) {
+                String fn = extractFileNameFromUrl(text, null);
+                String fullUrl = toFullDownloadUrl(text, fn, publicBaseUrl);
+                indexAttachment(fn, fullUrl, lookup);
+                indexAttachment(text, fullUrl, lookup);
+            }
+        }
+    }
+
+    private void indexAttachment(String key, String fullUrl, Map<String, String> lookup) {
+        if (key == null || key.isBlank() || fullUrl == null || fullUrl.isBlank()) return;
+        String trimmed = key.trim();
+        lookup.put(trimmed, fullUrl);
+        lookup.put(trimmed.toLowerCase(), fullUrl);
+        String clean = cleanFilenameForMatching(trimmed);
+        if (!clean.isBlank()) {
+            lookup.put(clean, fullUrl);
+        }
+    }
+
+    private List<AttachmentInfo> extractAttachments(Object val, Map<String, String> lookup, String publicBaseUrl) {
+        if (val == null) return Collections.emptyList();
+        List<AttachmentInfo> result = new ArrayList<>();
+
+        if (val instanceof List<?> list) {
+            for (Object item : list) {
+                result.addAll(extractAttachments(item, lookup, publicBaseUrl));
+            }
+            return result;
+        }
+
+        if (val instanceof Map<?, ?> m) {
+            String url = extractUrlFromMap(m);
+            if (url != null && !url.isBlank()) {
+                String fn = extractFileNameFromMap(m);
+                String cleanFn = (fn != null && !fn.isBlank()) ? fn : extractFileNameFromUrl(url, "attachment.pdf");
+                String fullUrl = toFullDownloadUrl(url, cleanFn, publicBaseUrl);
+                result.add(new AttachmentInfo(cleanFn, fullUrl));
+                return result;
+            }
+        }
+
+        if (val instanceof String s) {
+            String trimmed = s.trim();
+            if (trimmed.isEmpty() || "-".equals(trimmed)) return Collections.emptyList();
+
+            if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+                try {
+                    JsonNode node = objectMapper.readTree(trimmed);
+                    if (node.isArray()) {
+                        for (JsonNode item : node) {
+                            AttachmentInfo info = parseAttachmentJsonNode(item, publicBaseUrl);
+                            if (info != null) result.add(info);
+                        }
+                        if (!result.isEmpty()) return result;
+                    } else if (node.isObject()) {
+                        AttachmentInfo info = parseAttachmentJsonNode(node, publicBaseUrl);
+                        if (info != null) {
+                            result.add(info);
+                            return result;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (isAttachmentUrlOrPath(trimmed)) {
+                String fn = extractFileNameFromUrl(trimmed, null);
+                String fullUrl = toFullDownloadUrl(trimmed, fn, publicBaseUrl);
+                result.add(new AttachmentInfo(fn, fullUrl));
+                return result;
+            }
+
+            if (lookup != null && !lookup.isEmpty()) {
+                if (lookup.containsKey(trimmed)) {
+                    result.add(new AttachmentInfo(trimmed, lookup.get(trimmed)));
+                    return result;
+                }
+                String lower = trimmed.toLowerCase();
+                if (lookup.containsKey(lower)) {
+                    result.add(new AttachmentInfo(trimmed, lookup.get(lower)));
+                    return result;
+                }
+                String cleanTrimmed = cleanFilenameForMatching(trimmed);
+                if (lookup.containsKey(cleanTrimmed)) {
+                    result.add(new AttachmentInfo(trimmed, lookup.get(cleanTrimmed)));
+                    return result;
+                }
+
+                if (trimmed.contains(",")) {
+                    String[] parts = trimmed.split(",");
+                    boolean anyMatched = false;
+                    for (String part : parts) {
+                        String pTrim = part.trim();
+                        if (lookup.containsKey(pTrim)) {
+                            result.add(new AttachmentInfo(pTrim, lookup.get(pTrim)));
+                            anyMatched = true;
+                        } else if (lookup.containsKey(pTrim.toLowerCase())) {
+                            result.add(new AttachmentInfo(pTrim, lookup.get(pTrim.toLowerCase())));
+                            anyMatched = true;
+                        }
+                    }
+                    if (anyMatched) return result;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private String extractUrlFromMap(Map<?, ?> m) {
+        String[] keys = {"url", "publicUrl", "downloadUrl", "fileUrl", "path", "filePath", "storagePath",
+                "key", "objectKey", "storageObjectKey", "file_url", "download_url", "public_url"};
+        for (String k : keys) {
+            Object v = m.get(k);
+            if (v != null && !v.toString().isBlank()) {
+                return v.toString().trim();
+            }
+        }
+        return null;
+    }
+
+    private String extractFileNameFromMap(Map<?, ?> m) {
+        String[] keys = {"fileName", "name", "filename", "originalFilename", "originalName", "file_name", "title"};
+        for (String k : keys) {
+            Object v = m.get(k);
+            if (v != null && !v.toString().isBlank()) {
+                return v.toString().trim();
+            }
+        }
+        return null;
+    }
+
+    private AttachmentInfo parseAttachmentJsonNode(JsonNode node, String publicBaseUrl) {
+        if (node == null || node.isNull()) return null;
+        if (node.isTextual()) {
+            String text = node.asText().trim();
+            if (isAttachmentUrlOrPath(text)) {
+                String fn = extractFileNameFromUrl(text, null);
+                return new AttachmentInfo(fn, toFullDownloadUrl(text, fn, publicBaseUrl));
+            }
+            return null;
+        }
+        if (node.isObject()) {
+            String[] urlKeys = {"url", "publicUrl", "downloadUrl", "fileUrl", "path", "filePath", "storagePath",
+                    "key", "objectKey", "storageObjectKey", "file_url", "download_url", "public_url"};
+            String url = null;
+            for (String k : urlKeys) {
+                if (node.has(k) && node.get(k).isTextual() && !node.get(k).asText().isBlank()) {
+                    url = node.get(k).asText().trim();
+                    break;
+                }
+            }
+            if (url != null && !url.isBlank()) {
+                String[] nameKeys = {"fileName", "name", "filename", "originalFilename", "originalName", "file_name"};
+                String fn = null;
+                for (String k : nameKeys) {
+                    if (node.has(k) && node.get(k).isTextual() && !node.get(k).asText().isBlank()) {
+                        fn = node.get(k).asText().trim();
+                        break;
+                    }
+                }
+                if (fn == null || fn.isBlank()) {
+                    fn = extractFileNameFromUrl(url, "attachment.pdf");
+                }
+                return new AttachmentInfo(fn, toFullDownloadUrl(url, fn, publicBaseUrl));
+            }
+        }
+        return null;
+    }
+
+    private boolean isAttachmentUrlOrPath(String str) {
+        if (str == null || str.isBlank()) return false;
+        String clean = str.trim();
+        String lower = clean.toLowerCase();
+        if (lower.contains("/uploads/") || lower.contains("/attachments/") || lower.contains("users/")
+                || lower.contains("storage.googleapis.com") || lower.startsWith("http://") || lower.startsWith("https://")) {
+            return true;
+        }
+        if (clean.contains("/") || clean.contains("\\")) {
+            return lower.endsWith(".pdf") || lower.endsWith(".docx") || lower.endsWith(".doc")
+                    || lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".csv")
+                    || lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                    || lower.endsWith(".webp") || lower.endsWith(".zip") || lower.endsWith(".txt");
+        }
+        return false;
+    }
+
+    private String extractFileNameFromUrl(String url, String candidate) {
+        if (candidate != null && !candidate.isBlank()
+                && !"attachment.pdf".equalsIgnoreCase(candidate)
+                && !"file.pdf".equalsIgnoreCase(candidate)) {
+            return candidate.trim();
+        }
+        if (url == null || url.isBlank()) return "attachment.pdf";
+        String clean = url.trim();
+        if (clean.contains("fileName=") || clean.contains("filename=")) {
+            int idx = clean.toLowerCase().indexOf("filename=");
+            String val = clean.substring(idx + 9);
+            int amp = val.indexOf('&');
+            if (amp >= 0) val = val.substring(0, amp);
+            try {
+                return URLDecoder.decode(val, StandardCharsets.UTF_8).trim();
+            } catch (Exception ignored) {}
+        }
+        int qMark = clean.indexOf('?');
+        if (qMark >= 0) clean = clean.substring(0, qMark);
+        int lastSlash = Math.max(clean.lastIndexOf('/'), clean.lastIndexOf('\\'));
+        String base = lastSlash >= 0 ? clean.substring(lastSlash + 1) : clean;
+        base = base.replaceAll("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}-", "");
+        return base.isBlank() ? "attachment.pdf" : base;
+    }
+
+    private String cleanFilenameForMatching(String name) {
+        if (name == null) return "";
+        return name.toLowerCase().replaceAll("[^a-z0-9.]", "");
+    }
+
+    private String toFullDownloadUrl(String rawUrl, String filename, String publicBaseUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) return "";
+        String cleanUrl = rawUrl.trim();
+
+        // If it's already an external non-uploads HTTP/HTTPS link, return it
+        if ((cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://"))
+                && !cleanUrl.contains("/uploads/") && !cleanUrl.contains("/api/attachments/")) {
+            return cleanUrl;
+        }
+
+        // Normalize GCP storage URLs or relative users/ paths
+        if (cleanUrl.startsWith("https://storage.googleapis.com/")) {
+            cleanUrl = cleanUrl.replaceFirst("^https://storage\\.googleapis\\.com/[^/]+/", "/uploads/");
+        } else if (cleanUrl.startsWith("users/")) {
+            cleanUrl = "/uploads/" + cleanUrl;
+        } else if (cleanUrl.startsWith("/users/")) {
+            cleanUrl = "/uploads" + cleanUrl;
+        }
+
+        String base = toCleanBase(publicBaseUrl);
+
+        if (cleanUrl.contains("/api/attachments/download")) {
+            String urlParam = null;
+            String fnParam = filename;
+            try {
+                int qIdx = cleanUrl.indexOf('?');
+                if (qIdx >= 0) {
+                    String query = cleanUrl.substring(qIdx + 1);
+                    String[] pairs = query.split("&");
+                    for (String pair : pairs) {
+                        int eq = pair.indexOf('=');
+                        if (eq > 0) {
+                            String k = pair.substring(0, eq).trim();
+                            String v = URLDecoder.decode(pair.substring(eq + 1).trim(), StandardCharsets.UTF_8);
+                            if ("url".equalsIgnoreCase(k)) urlParam = v;
+                            if ("filename".equalsIgnoreCase(k) && (fnParam == null || fnParam.isBlank())) fnParam = v;
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+            if (urlParam != null && !urlParam.isBlank()) {
+                return toFullDownloadUrl(urlParam, fnParam, publicBaseUrl);
+            }
+            String path = cleanUrl.startsWith("/") ? cleanUrl : "/" + cleanUrl;
+            if (!path.contains("inline=")) {
+                path += (path.contains("?") ? "&" : "?") + "inline=true";
+            }
+            return (path.startsWith("http://") || path.startsWith("https://")) ? path : (base + path);
+        }
+
+        String pathOnly = cleanUrl;
+        if (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")) {
+            try {
+                java.net.URI uri = java.net.URI.create(cleanUrl);
+                pathOnly = uri.getRawPath();
+                if (uri.getRawQuery() != null) {
+                    pathOnly += "?" + uri.getRawQuery();
+                }
+            } catch (Exception ignored) {}
+        }
+        if (!pathOnly.startsWith("/")) {
+            pathOnly = "/" + pathOnly;
+        }
+
+        try {
+            if (pathOnly.contains("%")) {
+                try {
+                    pathOnly = URLDecoder.decode(pathOnly, StandardCharsets.UTF_8);
+                } catch (Exception ignored) {}
+            }
+            String encodedPath = URLEncoder.encode(pathOnly, StandardCharsets.UTF_8);
+            String cleanName = filename;
+            if (cleanName != null && cleanName.contains("%")) {
+                try {
+                    cleanName = URLDecoder.decode(cleanName, StandardCharsets.UTF_8);
+                } catch (Exception ignored) {}
+            }
+            String nameParam = (cleanName != null && !cleanName.isBlank())
+                    ? "&filename=" + URLEncoder.encode(cleanName, StandardCharsets.UTF_8)
+                    : "";
+            return base + "/api/attachments/download?url=" + encodedPath + nameParam + "&inline=true";
+        } catch (Exception e) {
+            return base + pathOnly;
+        }
+    }
+
+    private String toCleanBase(String publicBaseUrl) {
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) return "";
+        String b = publicBaseUrl.trim();
+        return b.endsWith("/") ? b.substring(0, b.length() - 1) : b;
+    }
+
+    // =========================================================================
+    // 6. PDF PAGE EVENT HELPER (Header & Footer)
     // =========================================================================
 
     private static class PdfPageHeaderFooter extends PdfPageEventHelper {

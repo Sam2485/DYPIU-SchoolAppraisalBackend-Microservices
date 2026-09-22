@@ -21,6 +21,7 @@ spring:
 
 app:
   storage-service-url: ${STORAGE_SERVICE_URL:http://localhost:9004}
+  public-base-url: ${PUBLIC_BASE_URL:}
   upload:
     local-path: ${UPLOAD_LOCAL_PATH:${UPLOAD_DIR:./uploads}}
 

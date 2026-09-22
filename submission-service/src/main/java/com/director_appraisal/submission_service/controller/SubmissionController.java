@@ -49,6 +49,9 @@ public class SubmissionController {
     @Value("${app.storage-service-url:${STORAGE_SERVICE_URL:http://storage-service:9004}}")
     private String storageServiceUrl;
 
+    @Value("${app.public-base-url:${PUBLIC_BASE_URL:}}")
+    private String configuredPublicBaseUrl;
+
     private String getCurrentUserEmail() {
         if (httpRequest != null) {
             String headerEmail = httpRequest.getHeader("X-User-Email");
@@ -798,7 +801,9 @@ public ResponseEntity<Submission> createNextCycle(
     }
 
     @GetMapping("/{id}/report/pdf")
-    public void downloadPdfReport(@PathVariable Long id, jakarta.servlet.http.HttpServletResponse response) throws Exception {
+    public void downloadPdfReport(@PathVariable Long id,
+                                  jakarta.servlet.http.HttpServletRequest request,
+                                  jakarta.servlet.http.HttpServletResponse response) throws Exception {
         UserDto user = getCurrentUserDetails();
         Submission submission = submissionService.getSubmissionById(id)
                 .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
@@ -822,11 +827,14 @@ public ResponseEntity<Submission> createNextCycle(
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
-        reportExportService.generatePdfReport(submission, response);
+        String publicBaseUrl = resolvePublicBaseUrl(request);
+        reportExportService.generatePdfReport(submission, response, publicBaseUrl);
     }
 
     @GetMapping("/{id}/report/excel")
-    public void downloadExcelReport(@PathVariable Long id, jakarta.servlet.http.HttpServletResponse response) throws Exception {
+    public void downloadExcelReport(@PathVariable Long id,
+                                    jakarta.servlet.http.HttpServletRequest request,
+                                    jakarta.servlet.http.HttpServletResponse response) throws Exception {
         UserDto user = getCurrentUserDetails();
         Submission submission = submissionService.getSubmissionById(id)
                 .orElseThrow(() -> new com.director_appraisal.submission_service.exception.NotFoundException("Submission not found with ID: " + id));
@@ -850,7 +858,8 @@ public ResponseEntity<Submission> createNextCycle(
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
-        reportExportService.generateExcelReport(submission, response);
+        String publicBaseUrl = resolvePublicBaseUrl(request);
+        reportExportService.generateExcelReport(submission, response, publicBaseUrl);
     }
 
     private String getReportFileName(Submission submission, String extension) {
@@ -879,6 +888,78 @@ public ResponseEntity<Submission> createNextCycle(
 
         String suffix = "pdf".equalsIgnoreCase(extension) ? "_Official_Report.pdf" : "_Report.xlsx";
         return uniPrefix + type + "_" + entityName + "_" + cycle + suffix;
+    }
+
+    public String resolvePublicBaseUrl(jakarta.servlet.http.HttpServletRequest request) {
+        if (configuredPublicBaseUrl != null && !configuredPublicBaseUrl.isBlank()) {
+            String base = configuredPublicBaseUrl.trim();
+            return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        }
+        jakarta.servlet.http.HttpServletRequest req = request != null ? request : httpRequest;
+        if (req == null) {
+            return "";
+        }
+
+        String xForwardedProto = req.getHeader("X-Forwarded-Proto");
+        String xForwardedHost = req.getHeader("X-Forwarded-Host");
+        String xForwardedPort = req.getHeader("X-Forwarded-Port");
+
+        if (xForwardedHost != null && !xForwardedHost.isBlank()) {
+            String proto = (xForwardedProto != null && !xForwardedProto.isBlank()) ? xForwardedProto.trim() : "http";
+            String host = xForwardedHost.trim();
+            if (xForwardedPort != null && !xForwardedPort.isBlank() && !host.contains(":")) {
+                if (!("http".equalsIgnoreCase(proto) && "80".equals(xForwardedPort))
+                        && !("https".equalsIgnoreCase(proto) && "443".equals(xForwardedPort))) {
+                    host = host + ":" + xForwardedPort.trim();
+                }
+            }
+            return proto + "://" + host;
+        }
+
+        String origin = req.getHeader("Origin");
+        if (origin != null && !origin.isBlank() && (origin.startsWith("http://") || origin.startsWith("https://"))) {
+            return origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
+        }
+
+        String referer = req.getHeader("Referer");
+        if (referer != null && !referer.isBlank() && (referer.startsWith("http://") || referer.startsWith("https://"))) {
+            try {
+                java.net.URI refUri = java.net.URI.create(referer.trim());
+                String scheme = refUri.getScheme();
+                String host = refUri.getHost();
+                int port = refUri.getPort();
+                if (host != null) {
+                    if (port > 0 && !(("http".equalsIgnoreCase(scheme) && port == 80) || ("https".equalsIgnoreCase(scheme) && port == 443))) {
+                        return scheme + "://" + host + ":" + port;
+                    }
+                    return scheme + "://" + host;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        String host = req.getHeader("Host");
+        if (host != null && !host.isBlank()) {
+            String scheme = req.getScheme() != null ? req.getScheme() : "http";
+            return scheme + "://" + host.trim();
+        }
+
+        try {
+            StringBuffer reqUrl = req.getRequestURL();
+            if (reqUrl != null) {
+                java.net.URI uri = java.net.URI.create(reqUrl.toString());
+                String scheme = uri.getScheme();
+                String h = uri.getHost();
+                int port = uri.getPort();
+                if (h != null) {
+                    if (port > 0 && !(("http".equalsIgnoreCase(scheme) && port == 80) || ("https".equalsIgnoreCase(scheme) && port == 443))) {
+                        return scheme + "://" + h + ":" + port;
+                    }
+                    return scheme + "://" + h;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return "";
     }
 
     private InputStream openAttachmentInputStream(String fileUrl, String originalFileName) {
