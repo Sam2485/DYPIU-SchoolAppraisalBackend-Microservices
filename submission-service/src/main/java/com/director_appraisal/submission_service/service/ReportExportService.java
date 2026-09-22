@@ -1747,6 +1747,30 @@ public class ReportExportService {
     private String toCleanBase(String publicBaseUrl) {
         if (publicBaseUrl == null || publicBaseUrl.isBlank()) return "";
         String b = publicBaseUrl.trim();
+        if (b.contains(",")) {
+            // Pick first valid http(s) token if multi-proxy chaining occurred
+            for (String part : b.split(",")) {
+                String p = part.trim();
+                if (p.startsWith("http://") || p.startsWith("https://")) {
+                    b = p;
+                    break;
+                }
+            }
+        }
+        try {
+            if (b.startsWith("http://") || b.startsWith("https://")) {
+                java.net.URI uri = java.net.URI.create(b);
+                String scheme = uri.getScheme();
+                String host = uri.getHost();
+                int port = uri.getPort();
+                if (host != null && !host.isBlank()) {
+                    if (port > 0 && !(("http".equalsIgnoreCase(scheme) && port == 80) || ("https".equalsIgnoreCase(scheme) && port == 443))) {
+                        return scheme.toLowerCase() + "://" + host + ":" + port;
+                    }
+                    return scheme.toLowerCase() + "://" + host;
+                }
+            }
+        } catch (Exception ignored) {}
         return b.endsWith("/") ? b.substring(0, b.length() - 1) : b;
     }
 

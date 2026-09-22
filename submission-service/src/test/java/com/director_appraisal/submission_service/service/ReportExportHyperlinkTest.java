@@ -263,5 +263,21 @@ class ReportExportHyperlinkTest {
         req4.setScheme("http");
         req4.addHeader("Host", "150.129.156.37:3003");
         assertEquals("http://150.129.156.37:3003", controller.resolvePublicBaseUrl(req4));
+
+        // 5. Test multi-proxy chaining (X-Forwarded-Proto: http,http and X-Forwarded-Host with commas)
+        MockHttpServletRequest req5 = new MockHttpServletRequest();
+        req5.addHeader("X-Forwarded-Proto", "http,http");
+        req5.addHeader("X-Forwarded-Host", "150.129.156.37, 150.129.156.37:8080, 80");
+        req5.addHeader("X-Forwarded-Port", "8080, 80");
+        // Should sanitize without commas and pick valid host/port
+        assertFalse(controller.resolvePublicBaseUrl(req5).contains(","));
+        assertTrue(controller.resolvePublicBaseUrl(req5).startsWith("http://"));
+
+        // 6. Test Referer precedence over multi-proxy headers
+        MockHttpServletRequest req6 = new MockHttpServletRequest();
+        req6.addHeader("Referer", "http://150.129.156.37:3003/dashboard/reports");
+        req6.addHeader("X-Forwarded-Proto", "http,http");
+        req6.addHeader("X-Forwarded-Host", "150.129.156.37, 150.129.156.37:8080, 80");
+        assertEquals("http://150.129.156.37:3003", controller.resolvePublicBaseUrl(req6));
     }
 }

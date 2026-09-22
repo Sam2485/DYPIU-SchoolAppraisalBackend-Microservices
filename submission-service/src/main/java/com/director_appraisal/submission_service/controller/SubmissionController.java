@@ -891,58 +891,57 @@ public ResponseEntity<Submission> createNextCycle(
     }
 
     public String resolvePublicBaseUrl(jakarta.servlet.http.HttpServletRequest request) {
+        jakarta.servlet.http.HttpServletRequest req = request != null ? request : httpRequest;
+
+        // 1. Check Origin header (sent by browsers on CORS / API calls)
+        if (req != null) {
+            String origin = req.getHeader("Origin");
+            if (origin != null && !origin.isBlank()) {
+                String cleanOrigin = cleanOriginOrReferer(origin);
+                if (cleanOrigin != null) return cleanOrigin;
+            }
+
+            // 2. Check Referer header (sent by browsers on navigation and file downloads)
+            String referer = req.getHeader("Referer");
+            if (referer != null && !referer.isBlank()) {
+                String cleanReferer = cleanOriginOrReferer(referer);
+                if (cleanReferer != null) return cleanReferer;
+            }
+        }
+
+        // 3. If explicitly configured in application.yaml / env, use it
         if (configuredPublicBaseUrl != null && !configuredPublicBaseUrl.isBlank()) {
+            String cleanConfig = cleanOriginOrReferer(configuredPublicBaseUrl.trim());
+            if (cleanConfig != null) return cleanConfig;
             String base = configuredPublicBaseUrl.trim();
             return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         }
-        jakarta.servlet.http.HttpServletRequest req = request != null ? request : httpRequest;
+
         if (req == null) {
-            return "";
+            return "http://150.129.156.37:3003";
         }
 
+        // 4. Check X-Forwarded-* headers (sanitized for comma-separated multi-proxy chains)
         String xForwardedProto = req.getHeader("X-Forwarded-Proto");
         String xForwardedHost = req.getHeader("X-Forwarded-Host");
         String xForwardedPort = req.getHeader("X-Forwarded-Port");
 
-        if (xForwardedHost != null && !xForwardedHost.isBlank()) {
-            String proto = (xForwardedProto != null && !xForwardedProto.isBlank()) ? xForwardedProto.trim() : "http";
-            String host = xForwardedHost.trim();
-            if (xForwardedPort != null && !xForwardedPort.isBlank() && !host.contains(":")) {
-                if (!("http".equalsIgnoreCase(proto) && "80".equals(xForwardedPort))
-                        && !("https".equalsIgnoreCase(proto) && "443".equals(xForwardedPort))) {
-                    host = host + ":" + xForwardedPort.trim();
-                }
-            }
+        String proto = sanitizeProto(xForwardedProto, req.getScheme());
+        String host = sanitizeHostAndPort(xForwardedHost, xForwardedPort, proto);
+        if (host != null && !host.isBlank()) {
             return proto + "://" + host;
         }
 
-        String origin = req.getHeader("Origin");
-        if (origin != null && !origin.isBlank() && (origin.startsWith("http://") || origin.startsWith("https://"))) {
-            return origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
+        // 5. Check standard Host header
+        String hostHeader = req.getHeader("Host");
+        if (hostHeader != null && !hostHeader.isBlank()) {
+            String cleanHost = sanitizeHostAndPort(hostHeader, null, proto);
+            if (cleanHost != null && !cleanHost.isBlank()) {
+                return proto + "://" + cleanHost;
+            }
         }
 
-        String referer = req.getHeader("Referer");
-        if (referer != null && !referer.isBlank() && (referer.startsWith("http://") || referer.startsWith("https://"))) {
-            try {
-                java.net.URI refUri = java.net.URI.create(referer.trim());
-                String scheme = refUri.getScheme();
-                String host = refUri.getHost();
-                int port = refUri.getPort();
-                if (host != null) {
-                    if (port > 0 && !(("http".equalsIgnoreCase(scheme) && port == 80) || ("https".equalsIgnoreCase(scheme) && port == 443))) {
-                        return scheme + "://" + host + ":" + port;
-                    }
-                    return scheme + "://" + host;
-                }
-            } catch (Exception ignored) {}
-        }
-
-        String host = req.getHeader("Host");
-        if (host != null && !host.isBlank()) {
-            String scheme = req.getScheme() != null ? req.getScheme() : "http";
-            return scheme + "://" + host.trim();
-        }
-
+        // 6. Inspect request URL
         try {
             StringBuffer reqUrl = req.getRequestURL();
             if (reqUrl != null) {
@@ -950,16 +949,105 @@ public ResponseEntity<Submission> createNextCycle(
                 String scheme = uri.getScheme();
                 String h = uri.getHost();
                 int port = uri.getPort();
-                if (h != null) {
+                if (h != null && !h.isBlank()) {
                     if (port > 0 && !(("http".equalsIgnoreCase(scheme) && port == 80) || ("https".equalsIgnoreCase(scheme) && port == 443))) {
-                        return scheme + "://" + h + ":" + port;
+                        return scheme.toLowerCase() + "://" + h + ":" + port;
                     }
-                    return scheme + "://" + h;
+                    return scheme.toLowerCase() + "://" + h;
                 }
             }
         } catch (Exception ignored) {}
 
-        return "";
+        // 7. Fallback to production address
+        return "http://150.129.156.37:3003";
+    }
+
+    private String cleanOriginOrReferer(String urlStr) {
+        if (urlStr == null || urlStr.isBlank()) return null;
+        try {
+            String first = urlStr.contains(",") ? urlStr.split(",")[0].trim() : urlStr.trim();
+            if (!first.startsWith("http://") && !first.startsWith("https://")) {
+                return null;
+            }
+            java.net.URI uri = java.net.URI.create(first);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            int port = uri.getPort();
+            if (host == null || host.isBlank()) return null;
+
+            if (port > 0 && !(("http".equalsIgnoreCase(scheme) && port == 80) || ("https".equalsIgnoreCase(scheme) && port == 443))) {
+                return scheme.toLowerCase() + "://" + host + ":" + port;
+            }
+            return scheme.toLowerCase() + "://" + host;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String sanitizeProto(String protoHeader, String fallback) {
+        if (protoHeader != null && !protoHeader.isBlank()) {
+            for (String p : protoHeader.split(",")) {
+                String clean = p.trim().toLowerCase();
+                if ("http".equals(clean) || "https".equals(clean)) {
+                    return clean;
+                }
+            }
+        }
+        if (fallback != null && ("https".equalsIgnoreCase(fallback) || "http".equalsIgnoreCase(fallback))) {
+            return fallback.toLowerCase();
+        }
+        return "http";
+    }
+
+    private String sanitizeHostAndPort(String hostHeader, String portHeader, String proto) {
+        if (hostHeader == null || hostHeader.isBlank()) return null;
+
+        String[] parts = hostHeader.split(",");
+        String candidateHost = null;
+        for (String p : parts) {
+            String trimmed = p.trim();
+            if (trimmed.isEmpty() || trimmed.matches("^\\d+$")) {
+                continue;
+            }
+            if (candidateHost == null) {
+                candidateHost = trimmed;
+            }
+            // Prefer parts with explicit non-standard ports (e.g. :3003)
+            if (trimmed.contains(":") && !trimmed.endsWith(":80") && !trimmed.endsWith(":443")) {
+                candidateHost = trimmed;
+                break;
+            }
+        }
+
+        if (candidateHost == null || candidateHost.isBlank()) {
+            return null;
+        }
+
+        if (candidateHost.contains("://")) {
+            candidateHost = candidateHost.substring(candidateHost.indexOf("://") + 3);
+        }
+        if (candidateHost.contains("/")) {
+            candidateHost = candidateHost.substring(0, candidateHost.indexOf('/'));
+        }
+
+        if (candidateHost.contains(":")) {
+            return candidateHost;
+        }
+
+        if (portHeader != null && !portHeader.isBlank()) {
+            for (String prt : portHeader.split(",")) {
+                String cleanPort = prt.trim();
+                if (cleanPort.matches("^\\d+$")) {
+                    if (!("http".equalsIgnoreCase(proto) && "80".equals(cleanPort))
+                            && !("https".equalsIgnoreCase(proto) && "443".equals(cleanPort))) {
+                        return candidateHost + ":" + cleanPort;
+                    }
+                    break;
+                }
+            }
+        }
+
+        return candidateHost;
     }
 
     private InputStream openAttachmentInputStream(String fileUrl, String originalFileName) {
