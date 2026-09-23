@@ -1350,6 +1350,18 @@ public class SubmissionService {
                         return isAuditorAssigned(user, sub) || isAuditorFallbackMatch(user, sub);
                     })
                     .toList();
+        } else if ("administrative".equalsIgnoreCase(role)) {
+            list = allInDb.stream()
+                    .filter(sub -> "administrative".equalsIgnoreCase(sub.getAuditType()) || SHARED_ADMINISTRATIVE_EMAIL.equalsIgnoreCase(sub.getEmail()))
+                    .filter(this::hasRealContent)
+                    .toList();
+        } else if (role.contains("director")) {
+            String userSchool = SchoolUtils.canonicalizeSchool(user.getSchool());
+            list = allInDb.stream()
+                    .filter(sub -> "academic".equalsIgnoreCase(sub.getAuditType()))
+                    .filter(sub -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sub.getSchool())))
+                    .filter(this::hasRealContent)
+                    .toList();
         } else {
             list = List.of();
         }
