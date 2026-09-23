@@ -176,7 +176,21 @@ public class Submission {
         return reportCategory != null ? reportCategory.toUpperCase() : null;
     }
 
+    @Transient
+    private Boolean hasData;
+
+    @com.fasterxml.jackson.annotation.JsonGetter("hasData")
+    public Boolean getHasDataForJson() {
+        if (hasData != null) {
+            return hasData;
+        }
+        return id != null;
+    }
+
     public String getStatus() {
+        if (id == null && status == null) {
+            return null;
+        }
         return status != null ? status : "DRAFT";
     }
 
@@ -212,6 +226,9 @@ public class Submission {
 
     @com.fasterxml.jackson.annotation.JsonGetter("overallStatus")
     public String getOverallStatusForJson() {
+        if (id == null && status == null) {
+            return null;
+        }
         if (!"administrative".equalsIgnoreCase(auditType)) {
             return status;
         }

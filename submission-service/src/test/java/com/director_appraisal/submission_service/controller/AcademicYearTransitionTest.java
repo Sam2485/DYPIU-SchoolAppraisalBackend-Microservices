@@ -209,4 +209,62 @@ class AcademicYearTransitionTest {
         assertTrue(((Set<?>) body.get("years")).contains("2025-2026"));
         assertTrue(((Set<?>) body.get("years")).contains("2025-26"));
     }
+
+    @Test
+    @DisplayName("Empty cycles should have hasData=false and be excluded from availableYears when onlyWithData=true")
+    void testEmptyYearExcludedWhenOnlyWithDataTrue() {
+        // Active year: 2028-2029
+        when(submissionService.getCurrentAcademicYearLabel()).thenReturn("2028-2029");
+        when(academicYearRepository.findAll()).thenReturn(List.of(
+                AcademicYear.builder().id(1L).yearLabel("2026-2027").active(false).build(),
+                AcademicYear.builder().id(2L).yearLabel("2027-2028").active(false).build(),
+                AcademicYear.builder().id(3L).yearLabel("2028-2029").active(true).build()
+        ));
+        when(submissionRepository.findDistinctAcademicYears()).thenReturn(List.of("2026-27", "2027-28", "2028-29"));
+        when(submissionRepository.findDistinctAuditCycles()).thenReturn(List.of("2026-27", "2027-28", "2028-29"));
+
+        when(submissionService.isSameAcademicYear(eq("2028-29"), eq("2028-2029"))).thenReturn(true);
+        when(submissionService.isSameAcademicYear(eq("2026-27"), eq("2028-2029"))).thenReturn(false);
+        when(submissionService.isSameAcademicYear(eq("2027-28"), eq("2028-2029"))).thenReturn(false);
+
+        // 2026-27 has real data; 2027-28 has zero real data
+        when(submissionService.hasDataForYear(any(), any(), eq("2026-27"))).thenReturn(true);
+        when(submissionService.hasDataForYear(any(), any(), eq("2027-28"))).thenReturn(false);
+
+        ResponseEntity<Map<String, Object>> response = auditCycleController.getCurrentAcademicYear("academic", true);
+        assertNotNull(response);
+        Map<String, Object> body = response.getBody();
+        assertNotNull(body);
+
+        @SuppressWarnings("unchecked")
+        Set<String> availableYears = (Set<String>) body.get("availableYears");
+        assertNotNull(availableYears);
+
+        // 2028-29 (active) and 2026-27 (has data) must be present
+        assertTrue(availableYears.contains("2028-29"));
+        assertTrue(availableYears.contains("2026-27"));
+
+        // 2027-28 (empty cycle) must NOT be present in availableYears!
+        assertFalse(availableYears.contains("2027-28"));
+        assertFalse(availableYears.contains("2027-2028"));
+
+        // Verify yearDetails accurately reports hasData per year
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> yearDetails = (List<Map<String, Object>>) body.get("yearDetails");
+        assertNotNull(yearDetails);
+
+        Map<String, Object> y2027 = yearDetails.stream()
+                .filter(d -> "2027-28".equals(d.get("year")))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(y2027);
+        assertEquals(false, y2027.get("hasData"));
+
+        Map<String, Object> y2026 = yearDetails.stream()
+                .filter(d -> "2026-27".equals(d.get("year")))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(y2026);
+        assertEquals(true, y2026.get("hasData"));
+    }
 }

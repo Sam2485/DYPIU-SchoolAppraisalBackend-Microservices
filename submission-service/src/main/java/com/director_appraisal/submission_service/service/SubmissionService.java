@@ -3769,17 +3769,351 @@ public class SubmissionService {
         return s != null && user != null;
     }
 
+    public Submission findSharedAdministrativeSubmissionForCycle(String cycleId) {
+        if (cycleId == null || cycleId.isBlank()) {
+            cycleId = getCurrentAcademicYearLabel();
+        }
+
+        String academicYear;
+        String auditCycle;
+        if (cycleId.length() == 9 && cycleId.contains("-")) {
+            academicYear = cycleId;
+            String[] parts = cycleId.split("-");
+            auditCycle = parts[0] + "-" + parts[1].substring(2);
+        } else if (cycleId.length() == 7 && cycleId.contains("-")) {
+            auditCycle = cycleId;
+            String[] parts = cycleId.split("-");
+            academicYear = parts[0] + "-20" + parts[1];
+        } else {
+            academicYear = cycleId;
+            auditCycle = cycleId;
+        }
+
+        return submissionRepository.findFirstByEmailAndAuditTypeAndAcademicYearOrderByIdDesc(
+                SHARED_ADMINISTRATIVE_EMAIL, "administrative", academicYear)
+            .or(() -> submissionRepository.findFirstByEmailAndAuditTypeAndAuditCycleOrderByIdDesc(
+                SHARED_ADMINISTRATIVE_EMAIL, "administrative", auditCycle))
+            .orElse(null);
+    }
+
+    public boolean hasRealContent(Submission s) {
+        if (s == null) {
+            return false;
+        }
+        String status = s.getStatus() != null ? s.getStatus().trim().toUpperCase() : "";
+        if (List.of("SUBMITTED", "UNDER_REVIEW", "FORWARDED_TO_INTERNAL_AUDITOR", 
+                    "INTERNAL_AUDITOR_COMPLETED", "FORWARDED_TO_EXTERNAL_AUDITOR", 
+                    "AUDITOR_COMPLETED", "EXTERNAL_AUDITOR_COMPLETED", "APPROVED", "FINAL").contains(status)) {
+            return true;
+        }
+
+        if (hasNonEmptyAttachments(s.getAttachments())) {
+            return true;
+        }
+
+        if (hasNonEmptyTablesData(s.getTablesData())) {
+            return true;
+        }
+
+        if (hasNonEmptyValuesData(s.getValuesData())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean hasNonEmptyAttachments(String attachmentsJson) {
+        if (attachmentsJson == null || attachmentsJson.isBlank() 
+                || "[]".equals(attachmentsJson.trim()) 
+                || "{}".equals(attachmentsJson.trim()) 
+                || "null".equalsIgnoreCase(attachmentsJson.trim())) {
+            return false;
+        }
+        try {
+            JsonNode node = new ObjectMapper().readTree(attachmentsJson);
+            if (node.isArray() && node.size() > 0) {
+                for (JsonNode item : node) {
+                    if (item.isObject()) {
+                        String url = item.path("url").asText("");
+                        String fileName = item.path("fileName").asText("");
+                        if (!url.isBlank() || !fileName.isBlank()) {
+                            return true;
+                        }
+                    } else if (!item.asText("").isBlank()) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private boolean hasNonEmptyTablesData(String tablesJson) {
+        if (tablesJson == null || tablesJson.isBlank() 
+                || "{}".equals(tablesJson.trim()) 
+                || "[]".equals(tablesJson.trim()) 
+                || "null".equalsIgnoreCase(tablesJson.trim())) {
+            return false;
+        }
+        try {
+            JsonNode node = new ObjectMapper().readTree(tablesJson);
+            if (node.isObject()) {
+                java.util.Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+                while (fields.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fields.next();
+                    JsonNode rows = entry.getValue();
+                    if (rows.isArray() && rows.size() > 0) {
+                        for (JsonNode row : rows) {
+                            if (row.isObject()) {
+                                java.util.Iterator<Map.Entry<String, JsonNode>> cols = row.fields();
+                                while (cols.hasNext()) {
+                                    Map.Entry<String, JsonNode> col = cols.next();
+                                    String colName = col.getKey().toLowerCase();
+                                    if (colName.equals("srno") || colName.equals("sr_no") 
+                                            || colName.equals("slno") || colName.equals("serial")
+                                            || colName.equals("id")) {
+                                        continue;
+                                    }
+                                    JsonNode val = col.getValue();
+                                    if (val != null && !val.isNull()) {
+                                        if (val.isTextual() && !val.asText().trim().isEmpty()) {
+                                            return true;
+                                        } else if (val.isNumber() || val.isBoolean()) {
+                                            return true;
+                                        } else if ((val.isArray() || val.isObject()) && val.size() > 0) {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private boolean hasNonEmptyValuesData(String valuesJson) {
+        if (valuesJson == null || valuesJson.isBlank() 
+                || "{}".equals(valuesJson.trim()) 
+                || "null".equalsIgnoreCase(valuesJson.trim())) {
+            return false;
+        }
+        try {
+            JsonNode node = new ObjectMapper().readTree(valuesJson);
+            if (node.isObject()) {
+                java.util.Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+                while (fields.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fields.next();
+                    String key = entry.getKey();
+                    if ("administrativeProgress".equalsIgnoreCase(key)
+                            || "administrativeApprovals".equalsIgnoreCase(key)
+                            || "__administrativeSubmissionStatus".equalsIgnoreCase(key)
+                            || "__auditSignOff".equalsIgnoreCase(key)
+                            || "auditorSignOff".equalsIgnoreCase(key)) {
+                        continue;
+                    }
+                    JsonNode val = entry.getValue();
+                    if (val != null && !val.isNull()) {
+                        if (val.isTextual() && !val.asText().trim().isEmpty()) {
+                            return true;
+                        } else if (val.isNumber() || val.isBoolean()) {
+                            return true;
+                        } else if (val.isArray() && val.size() > 0) {
+                            return true;
+                        } else if (val.isObject() && val.size() > 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    public boolean hasDataForYear(UserDto user, String auditType, String year) {
+        if (year == null || year.isBlank()) return false;
+        String activeYear = getCurrentAcademicYearLabel();
+        if (isSameAcademicYear(year, activeYear)) {
+            return true;
+        }
+
+        String resolvedAuditType = resolveAuditTypeForCaller(user, auditType);
+        List<String> yearVariants = getYearVariants(year);
+
+        if ("administrative".equalsIgnoreCase(resolvedAuditType)) {
+            List<Submission> adminSubs = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("administrative", yearVariants);
+            for (Submission s : adminSubs) {
+                if (hasRealContent(s)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        String role = (user != null && user.getRole() != null) ? user.getRole().toLowerCase() : "";
+        if (role.contains("director") || "academic".equalsIgnoreCase(resolvedAuditType)) {
+            String userSchool = (user != null && user.getSchool() != null) ? SchoolUtils.canonicalizeSchool(user.getSchool()) : null;
+            List<Submission> candidates = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("academic", yearVariants);
+            for (Submission s : candidates) {
+                if (userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(s.getSchool()))) {
+                    if (hasRealContent(s)) {
+                        return true;
+                    }
+                } else if (user != null && user.getEmail() != null && user.getEmail().equalsIgnoreCase(s.getEmail())) {
+                    if (hasRealContent(s)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        if (user != null && user.getEmail() != null) {
+            List<Submission> userSubs = submissionRepository.findSubmissionsByEmailAndAuditTypeAndYearLabels(user.getEmail(), resolvedAuditType, yearVariants);
+            for (Submission s : userSubs) {
+                if (hasRealContent(s)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public String resolveAuditTypeForCaller(UserDto user, String requestAuditType) {
+        if (requestAuditType != null && !requestAuditType.isBlank() && !"null".equalsIgnoreCase(requestAuditType.trim()) && !"undefined".equalsIgnoreCase(requestAuditType.trim())) {
+            return requestAuditType.trim().toLowerCase();
+        }
+        if (user != null) {
+            String role = user.getRole() != null ? user.getRole().trim().toLowerCase() : "";
+            if ("director".equals(role)) {
+                return "academic";
+            }
+            if ("administrative".equals(role)) {
+                return "administrative";
+            }
+            if (user.getCategory() != null && !user.getCategory().isBlank()) {
+                return user.getCategory().trim().toLowerCase();
+            }
+        }
+        return "academic";
+    }
+
+    public UserDto getCurrentUserDetails(jakarta.servlet.http.HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String headerEmail = request.getHeader("X-User-Email");
+        String roleFromContext = request.getHeader("X-User-Role");
+        String schoolFromContext = request.getHeader("X-User-School");
+        String nameFromContext = request.getHeader("X-User-Name");
+        String postFromContext = null;
+        String categoryFromContext = null;
+
+        String email = (headerEmail != null && !headerEmail.isBlank()) ? headerEmail.trim().toLowerCase() : null;
+
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                String token = authHeader.substring(7).trim();
+                int firstDot = token.indexOf('.');
+                int secondDot = token.indexOf('.', firstDot + 1);
+                if (firstDot > 0 && secondDot > firstDot) {
+                    String payload = new String(java.util.Base64.getUrlDecoder().decode(token.substring(firstDot + 1, secondDot)), java.nio.charset.StandardCharsets.UTF_8);
+                    com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
+                    if (email == null && jsonNode.has("sub")) {
+                        email = jsonNode.get("sub").asText().trim().toLowerCase();
+                    }
+                    if (jsonNode.has("role") && (roleFromContext == null || roleFromContext.isBlank())) {
+                        roleFromContext = jsonNode.get("role").asText();
+                    }
+                    if (jsonNode.has("school") && (schoolFromContext == null || schoolFromContext.isBlank())) {
+                        schoolFromContext = jsonNode.get("school").asText();
+                    }
+                    if (jsonNode.has("name") && (nameFromContext == null || nameFromContext.isBlank())) {
+                        nameFromContext = jsonNode.get("name").asText();
+                    }
+                    if (jsonNode.has("post")) {
+                        postFromContext = jsonNode.get("post").asText();
+                    }
+                    if (jsonNode.has("category")) {
+                        categoryFromContext = jsonNode.get("category").asText();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (email != null && !email.isBlank()) {
+            UserDto u = safeGetUserByEmail(email);
+            if (u != null) {
+                if ((u.getRole() == null || u.getRole().isBlank()) && roleFromContext != null) {
+                    u.setRole(roleFromContext);
+                }
+                if ((u.getSchool() == null || u.getSchool().isBlank()) && schoolFromContext != null) {
+                    u.setSchool(schoolFromContext);
+                }
+                if ((u.getName() == null || u.getName().isBlank()) && nameFromContext != null) {
+                    u.setName(nameFromContext);
+                }
+                if ((u.getPost() == null || u.getPost().isBlank()) && postFromContext != null) {
+                    u.setPost(postFromContext);
+                }
+                if ((u.getCategory() == null || u.getCategory().isBlank()) && categoryFromContext != null) {
+                    u.setCategory(categoryFromContext);
+                }
+                return u;
+            }
+        }
+
+        if (email == null && roleFromContext == null && schoolFromContext == null) {
+            return null;
+        }
+
+        return UserDto.builder()
+                .email(email != null ? email : "iqac@dypiu.ac.in")
+                .name(nameFromContext != null ? nameFromContext : "User")
+                .role(roleFromContext != null ? roleFromContext : "director")
+                .school(schoolFromContext)
+                .post(postFromContext)
+                .category(categoryFromContext)
+                .build();
+    }
+
     public Submission getDraftForUser(UserDto user, String auditType, String requestedYear, boolean includeHistorical, boolean shared) {
+        String activeYear = getCurrentAcademicYearLabel();
+        boolean isYearRequested = requestedYear != null && !requestedYear.isBlank() && !"null".equalsIgnoreCase(requestedYear.trim());
+        boolean isHistoricalRequest = isYearRequested && !isSameAcademicYear(requestedYear, activeYear);
+
         if (shared && "administrative".equalsIgnoreCase(auditType)) {
+            if (isHistoricalRequest || includeHistorical) {
+                String targetYear = isYearRequested ? requestedYear : activeYear;
+                Submission existing = findSharedAdministrativeSubmissionForCycle(targetYear);
+                if (existing != null && hasRealContent(existing)) {
+                    return existing;
+                }
+                Submission empty = new Submission();
+                empty.setId(null);
+                empty.setEmail(SHARED_ADMINISTRATIVE_EMAIL);
+                empty.setAuditType("administrative");
+                empty.setSchool("Administrative Office");
+                empty.setAcademicYear(targetYear);
+                empty.setAuditCycle(toAuditCycle(targetYear));
+                empty.setStatus(null);
+                empty.setVersion(1);
+                empty.setValuesData("{}");
+                empty.setTablesData("{}");
+                empty.setAttachments("[]");
+                empty.setHasData(false);
+                return empty;
+            }
+
             if (requestedYear != null && !requestedYear.isBlank()) {
                 return getOrCreateSharedAdministrativeDraftForCycle(requestedYear, null, null);
             }
             return getOrCreateSharedAdministrativeDraft(user);
         }
-
-        String activeYear = getCurrentAcademicYearLabel();
-        boolean isYearRequested = requestedYear != null && !requestedYear.isBlank() && !"null".equalsIgnoreCase(requestedYear.trim());
-        boolean isHistoricalRequest = isYearRequested && !isSameAcademicYear(requestedYear, activeYear);
 
         String role = user.getRole() != null ? user.getRole().toLowerCase() : "";
 
@@ -3789,8 +4123,10 @@ public class SubmissionService {
             // 1. Try to find user's own submission for this historical cycle
             List<Submission> userSubmissions = submissionRepository.findSubmissionsByEmailAndAuditTypeAndYearLabels(
                     user.getEmail(), auditType, yearVariants);
-            if (!userSubmissions.isEmpty()) {
-                return userSubmissions.get(0);
+            for (Submission s : userSubmissions) {
+                if (hasRealContent(s)) {
+                    return s;
+                }
             }
 
             // 2. For directors, try to find the school's historical submission
@@ -3799,6 +4135,7 @@ public class SubmissionService {
                 List<Submission> candidates = submissionRepository.findSubmissionsByAuditTypeAndYearLabels("academic", yearVariants);
                 Submission schoolMatch = candidates.stream()
                         .filter(s -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(s.getSchool())))
+                        .filter(this::hasRealContent)
                         .findFirst()
                         .orElse(null);
                 if (schoolMatch != null) {
@@ -3806,18 +4143,20 @@ public class SubmissionService {
                 }
             }
 
-            // 3. If historical and not found, return an empty historical placeholder
+            // 3. If historical and not found or has no real content, return an empty historical placeholder with id=null, status=null, hasData=false
             Submission emptyHist = new Submission();
+            emptyHist.setId(null);
             emptyHist.setEmail(user.getEmail());
             emptyHist.setAuditType(auditType);
             emptyHist.setSchool(SchoolUtils.canonicalizeSchool(user.getSchool()));
             emptyHist.setAcademicYear(requestedYear != null ? requestedYear : activeYear);
-            emptyHist.setAuditCycle(requestedYear != null ? requestedYear : activeYear);
-            emptyHist.setStatus("DRAFT");
+            emptyHist.setAuditCycle(toAuditCycle(requestedYear != null ? requestedYear : activeYear));
+            emptyHist.setStatus(null);
             emptyHist.setVersion(1);
             emptyHist.setValuesData("{}");
             emptyHist.setTablesData("{}");
             emptyHist.setAttachments("[]");
+            emptyHist.setHasData(false);
             return emptyHist;
         }
 

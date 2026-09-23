@@ -25,14 +25,29 @@ public class AuditCycleController {
     private final SubmissionRepository submissionRepository;
     private final AcademicYearRepository academicYearRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private jakarta.servlet.http.HttpServletRequest httpRequest;
+
     @GetMapping("/current")
+    public ResponseEntity<Map<String, Object>> getCurrentAcademicYear(
+            @RequestParam(required = false) String auditType,
+            @RequestParam(required = false) Boolean onlyWithData) {
+        return ResponseEntity.ok(buildAcademicYearInfo(auditType, onlyWithData));
+    }
+
     public ResponseEntity<Map<String, Object>> getCurrentAcademicYear() {
-        return ResponseEntity.ok(buildAcademicYearInfo());
+        return getCurrentAcademicYear(null, null);
     }
 
     @GetMapping
+    public ResponseEntity<Map<String, Object>> getAllAcademicYears(
+            @RequestParam(required = false) String auditType,
+            @RequestParam(required = false) Boolean onlyWithData) {
+        return ResponseEntity.ok(buildAcademicYearInfo(auditType, onlyWithData));
+    }
+
     public ResponseEntity<Map<String, Object>> getAllAcademicYears() {
-        return ResponseEntity.ok(buildAcademicYearInfo());
+        return getAllAcademicYears(null, null);
     }
 
     @Transactional
@@ -97,19 +112,96 @@ public class AuditCycleController {
         data.put("activeYear", nextYearLong);
         response.put("data", data);
 
-        Set<String> allYears = collectAllYears(nextYearLong);
-        response.put("years", allYears);
-        response.put("availableYears", allYears);
-        response.put("academicYears", allYears);
+        Map<String, Object> yearInfo = buildAcademicYearInfo(null, false);
+        response.put("years", yearInfo.get("years"));
+        response.put("availableYears", yearInfo.get("availableYears"));
+        response.put("academicYears", yearInfo.get("academicYears"));
+        response.put("yearsWithData", yearInfo.get("yearsWithData"));
+        response.put("yearDetails", yearInfo.get("yearDetails"));
 
         return ResponseEntity.ok(response);
     }
 
-    private Map<String, Object> buildAcademicYearInfo() {
+    public Map<String, Object> buildAcademicYearInfo() {
+        return buildAcademicYearInfo(null, null);
+    }
+
+    public Map<String, Object> buildAcademicYearInfo(String requestAuditType, Boolean onlyWithData) {
         try {
             String active = submissionService.getCurrentAcademicYearLabel();
             String compactActive = toShortYearFormat(active);
-            Set<String> allYears = collectAllYears(active);
+            Set<String> allSystemYears = collectAllYears(active);
+
+            com.director_appraisal.submission_service.dto.UserDto user = null;
+            if (httpRequest != null) {
+                user = submissionService.getCurrentUserDetails(httpRequest);
+            }
+
+            String auditType = requestAuditType;
+            if (auditType == null || auditType.isBlank()) {
+                if (user != null) {
+                    auditType = submissionService.resolveAuditTypeForCaller(user, null);
+                }
+            }
+
+            Set<String> yearsWithData = new LinkedHashSet<>();
+            List<Map<String, Object>> yearDetails = new ArrayList<>();
+
+            // Build normalized distinct list of years
+            Set<String> distinctNormalizedYears = new LinkedHashSet<>();
+            if (compactActive != null && !compactActive.isBlank()) {
+                distinctNormalizedYears.add(compactActive);
+            }
+            for (String y : allSystemYears) {
+                if (y != null && !y.isBlank()) {
+                    distinctNormalizedYears.add(toShortYearFormat(y));
+                }
+            }
+
+            for (String compactY : distinctNormalizedYears) {
+                String longY = toLongYearFormat(compactY);
+                boolean isActive = submissionService.isSameAcademicYear(compactY, active);
+                boolean hasData;
+
+                if (isActive) {
+                    hasData = true;
+                } else if (user != null) {
+                    hasData = submissionService.hasDataForYear(user, auditType, compactY);
+                } else {
+                    hasData = submissionService.hasDataForYear(null, auditType, compactY);
+                }
+
+                if (hasData) {
+                    yearsWithData.add(compactY);
+                    yearsWithData.add(longY);
+                }
+
+                Map<String, Object> detail = new LinkedHashMap<>();
+                detail.put("year", compactY);
+                detail.put("academicYear", longY);
+                detail.put("auditCycle", compactY);
+                detail.put("hasData", hasData);
+                detail.put("isActive", isActive);
+                yearDetails.add(detail);
+            }
+
+            // Decide which set of years to return in availableYears
+            Set<String> availableYears = new LinkedHashSet<>();
+            String role = (user != null && user.getRole() != null) ? user.getRole().trim().toLowerCase() : "";
+            boolean isRestrictedRole = "director".equals(role) || "administrative".equals(role) 
+                    || "academic".equalsIgnoreCase(auditType) || "administrative".equalsIgnoreCase(auditType);
+
+            if (Boolean.TRUE.equals(onlyWithData) || (isRestrictedRole && !Boolean.FALSE.equals(onlyWithData))) {
+                availableYears.addAll(yearsWithData);
+            } else {
+                availableYears.addAll(allSystemYears);
+            }
+
+            // Always ensure the active year is included in availableYears
+            if (compactActive != null && !compactActive.isBlank()) {
+                availableYears.add(compactActive);
+                availableYears.add(toLongYearFormat(compactActive));
+            }
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("activeYear", active);
@@ -117,9 +209,11 @@ public class AuditCycleController {
             response.put("currentYear", active);
             response.put("compactActiveYear", compactActive);
             response.put("auditCycle", compactActive);
-            response.put("years", allYears);
-            response.put("availableYears", allYears);
-            response.put("academicYears", allYears);
+            response.put("years", allSystemYears);
+            response.put("availableYears", availableYears);
+            response.put("academicYears", availableYears);
+            response.put("yearsWithData", yearsWithData);
+            response.put("yearDetails", yearDetails);
             return response;
         } catch (Exception e) {
             log.error("Error building academic year info: {}", e.getMessage(), e);
@@ -134,6 +228,10 @@ public class AuditCycleController {
             fallback.put("years", List.of(defShort, defLong));
             fallback.put("availableYears", List.of(defShort, defLong));
             fallback.put("academicYears", List.of(defShort, defLong));
+            fallback.put("yearsWithData", List.of(defShort, defLong));
+            fallback.put("yearDetails", List.of(
+                    Map.of("year", defShort, "academicYear", defLong, "hasData", true, "isActive", true)
+            ));
             return fallback;
         }
     }
