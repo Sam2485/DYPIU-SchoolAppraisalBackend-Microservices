@@ -252,7 +252,9 @@ public class FormConfigService {
                 .schemaId(schema.getId())
                 .versionNumber(nextVersionNumber)
                 .status("DRAFT")
-                .academicYear(sourceVersion != null ? sourceVersion.getAcademicYear() : resolveDefaultAcademicYear())
+                .academicYear(sourceVersion != null && sourceVersion.getAcademicYear() != null && !sourceVersion.getAcademicYear().isBlank()
+                        ? sourceVersion.getAcademicYear()
+                        : resolveDefaultAcademicYear())
                 .title(sourceVersion != null ? sourceVersion.getTitle() : schema.getName())
                 .ownerRole(sourceVersion != null ? sourceVersion.getOwnerRole() : ("administrative".equalsIgnoreCase(schema.getAuditType()) ? "administrative" : "director-schools"))
                 .publishedBy(createdBy)
@@ -634,7 +636,9 @@ public class FormConfigService {
                 .schemaId(savedSchema.getId())
                 .versionNumber(1)
                 .status("DRAFT")
-                .academicYear(sourceVersions.isEmpty() ? resolveDefaultAcademicYear() : sourceVersions.get(0).getAcademicYear())
+                .academicYear(sourceVersions.isEmpty() || sourceVersions.get(0).getAcademicYear() == null || sourceVersions.get(0).getAcademicYear().isBlank()
+                        ? resolveDefaultAcademicYear()
+                        : sourceVersions.get(0).getAcademicYear())
                 .title(targetName)
                 .ownerRole("administrative".equalsIgnoreCase(targetType) ? "administrative" : "director-schools")
                 .publishedBy(createdBy != null ? createdBy : "admin")
@@ -951,9 +955,45 @@ public class FormConfigService {
     }
 
     private String resolveDefaultAcademicYear() {
+        if (submissionServiceClient != null) {
+            try {
+                Map<String, Object> cycle = submissionServiceClient.getCurrentAuditCycle();
+                if (cycle != null) {
+                    Object active = cycle.get("activeYear");
+                    if (active == null) active = cycle.get("compactActiveYear");
+                    if (active == null) active = cycle.get("auditCycle");
+                    if (active == null) active = cycle.get("academicYear");
+                    if (active == null && cycle.get("data") instanceof Map<?, ?> dataMap) {
+                        active = dataMap.get("activeYear");
+                        if (active == null) active = dataMap.get("academicYear");
+                        if (active == null) active = dataMap.get("auditCycle");
+                    }
+                    if (active != null) {
+                        String activeStr = toShortYearFormat(String.valueOf(active).trim());
+                        if (activeStr != null && !activeStr.isBlank()) {
+                            return activeStr;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch active academic year from submission-service, falling back to calendar date: {}", e.getMessage());
+            }
+        }
         int year = java.time.LocalDate.now().getYear();
         int month = java.time.LocalDate.now().getMonthValue();
         int startYear = month >= 6 ? year : year - 1;
         return startYear + "-" + String.valueOf(startYear + 1).substring(2);
+    }
+
+    private String toShortYearFormat(String value) {
+        if (value == null || value.isBlank()) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{4})\\D+(\\d{2,4})").matcher(value.trim());
+        if (m.find()) {
+            int start = Integer.parseInt(m.group(1));
+            int end = Integer.parseInt(m.group(2));
+            if (end > 99) end = end % 100;
+            return String.format("%04d-%02d", start, end);
+        }
+        return value.trim();
     }
 }

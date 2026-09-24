@@ -339,4 +339,33 @@ class FormConfigServiceTest {
         assertTrue(ex.getReason().contains("This schema has 5 submissions and cannot be deleted."));
         verify(formSchemaRepository, never()).deleteById(any());
     }
+
+    @Test
+    @DisplayName("Should stamp new schema version with active academic year from submission-service")
+    void shouldStampNewSchemaVersionWithActiveYearFromSubmissionService() {
+        FormSchema schema = FormSchema.builder().id(99L).name("New Schema").auditType("academic").build();
+        when(formSchemaRepository.findById(99L)).thenReturn(Optional.of(schema));
+        when(schemaVersionRepository.findBySchemaIdOrderByVersionNumberDesc(99L)).thenReturn(List.of());
+        when(submissionServiceClient.getCurrentAuditCycle()).thenReturn(Map.of("activeYear", "2030-2031", "auditCycle", "2030-31"));
+        when(schemaVersionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        SchemaVersion created = formConfigService.createDraftVersion(99L, "iqac");
+        assertNotNull(created);
+        assertEquals("2030-31", created.getAcademicYear());
+    }
+
+    @Test
+    @DisplayName("Should fallback to calendar academic year when submission-service fails")
+    void shouldFallbackToCalendarAcademicYearWhenSubmissionServiceFails() {
+        FormSchema schema = FormSchema.builder().id(100L).name("New Schema 2").auditType("administrative").build();
+        when(formSchemaRepository.findById(100L)).thenReturn(Optional.of(schema));
+        when(schemaVersionRepository.findBySchemaIdOrderByVersionNumberDesc(100L)).thenReturn(List.of());
+        when(submissionServiceClient.getCurrentAuditCycle()).thenThrow(new RuntimeException("Connection refused"));
+        when(schemaVersionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        SchemaVersion created = formConfigService.createDraftVersion(100L, "iqac");
+        assertNotNull(created);
+        assertNotNull(created.getAcademicYear());
+        assertTrue(created.getAcademicYear().matches("\\d{4}-\\d{2}"));
+    }
 }

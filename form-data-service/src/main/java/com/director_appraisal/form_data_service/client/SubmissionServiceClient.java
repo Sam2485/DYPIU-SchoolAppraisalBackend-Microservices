@@ -12,4 +12,7 @@ public interface SubmissionServiceClient {
 
     @GetMapping("/api/internal/submissions/count-by-schema-version")
     Map<String, Long> countBySchemaVersion(@RequestParam(value = "versionIds", required = false) List<Long> versionIds);
+
+    @GetMapping("/api/audit-cycles/current")
+    Map<String, Object> getCurrentAuditCycle();
 }
