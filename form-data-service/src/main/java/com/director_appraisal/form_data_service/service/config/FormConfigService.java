@@ -356,7 +356,13 @@ public class FormConfigService {
 
         validateVersionIntegrity(versionId);
 
+        String activeYear = resolveDefaultAcademicYear();
+        version.setAcademicYear(activeYear);
+
         CompiledSchemaDto compiled = schemaCompilerService.compile(versionId);
+        if (compiled != null && compiled.getAcademicYear() == null) {
+            compiled.setAcademicYear(activeYear);
+        }
         try {
             version.setCompiledSchema(objectMapper.writeValueAsString(compiled));
         } catch (Exception e) {
@@ -366,6 +372,7 @@ public class FormConfigService {
         version.setStatus("PUBLISHED");
         version.setPublishedBy(publisher);
         version.setPublishedAt(LocalDateTime.now());
+        version.setAcademicYear(activeYear);
         schemaVersionRepository.save(version);
 
         schema.setActiveVersionId(version.getId());

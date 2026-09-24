@@ -368,4 +368,45 @@ class FormConfigServiceTest {
         assertNotNull(created.getAcademicYear());
         assertTrue(created.getAcademicYear().matches("\\d{4}-\\d{2}"));
     }
+
+    @Test
+    @DisplayName("Should stamp active academic year upon publishing even if draft had older academic year")
+    void shouldStampActiveAcademicYearWhenPublishingEvenIfDraftHadOlderYear() {
+        FormSchema schema = FormSchema.builder().id(1L).name("Existing Schema").auditType("academic").build();
+        SchemaVersion draft = SchemaVersion.builder()
+                .id(50L)
+                .schemaId(1L)
+                .versionNumber(3)
+                .status("DRAFT")
+                .academicYear("2026-27") // Old year inherited from earlier version
+                .build();
+
+        FormSection sec = FormSection.builder().id(500L).versionId(50L).sectionKey("part-a").title("Part A").ownerRole("auditor").build();
+        FormTable tbl = FormTable.builder().id(600L).sectionId(500L).tableKey("t1").title("T1").build();
+        FormField col = FormField.builder().id(700L).sectionId(500L).tableId(600L).fieldKey("c1").label("C1").build();
+
+        when(schemaVersionRepository.findById(50L)).thenReturn(Optional.of(draft));
+        when(formSchemaRepository.findById(1L)).thenReturn(Optional.of(schema));
+        when(formSectionRepository.findByVersionIdOrderByDisplayOrderAscIdAsc(50L)).thenReturn(List.of(sec));
+        when(formTableRepository.findBySectionIdOrderByDisplayOrderAscIdAsc(500L)).thenReturn(List.of(tbl));
+        when(formFieldRepository.findByTableIdOrderByDisplayOrderAscIdAsc(600L)).thenReturn(List.of(col));
+
+        when(submissionServiceClient.getCurrentAuditCycle()).thenReturn(Map.of("activeYear", "2030-2031", "auditCycle", "2030-31"));
+
+        CompiledSchemaDto compiledDto = CompiledSchemaDto.builder()
+                .schemaId(1L)
+                .versionId(50L)
+                .versionNumber(3)
+                .sections(List.of(SectionDto.builder().id(500L).sectionKey("part-a").build()))
+                .build();
+        when(schemaCompilerService.compile(50L)).thenReturn(compiledDto);
+
+        CompiledSchemaDto result = formConfigService.publishVersion(50L, "iqac");
+
+        assertNotNull(result);
+        assertEquals("PUBLISHED", draft.getStatus());
+        assertEquals("2030-31", draft.getAcademicYear(), "Draft academic year must be updated to the active year when published");
+        assertEquals("2030-31", result.getAcademicYear(), "Compiled schema academic year must match the active year");
+        verify(schemaVersionRepository).save(draft);
+    }
 }
