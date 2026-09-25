@@ -202,9 +202,9 @@ public class FormConfigService {
             return false;
         }
         List<String> assignedList = parseAssignedSchools(assignedSchools);
-        String q = schoolQuery.trim().toUpperCase();
+        String q = schoolQuery.trim();
         for (String code : assignedList) {
-            if (code.equalsIgnoreCase(q) || q.contains(code) || code.contains(q)) {
+            if (code != null && code.trim().equalsIgnoreCase(q)) {
                 return true;
             }
         }

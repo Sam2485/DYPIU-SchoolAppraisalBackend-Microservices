@@ -409,4 +409,48 @@ class FormConfigServiceTest {
         assertEquals("2030-31", result.getAcademicYear(), "Compiled schema academic year must match the active year");
         verify(schemaVersionRepository).save(draft);
     }
+
+    @Test
+    @DisplayName("Should match school exactly and reject substring matches")
+    void shouldMatchSchoolExactlyAndRejectSubstrings() {
+        FormSchema schemaSOA = FormSchema.builder()
+                .id(1L)
+                .name("SOA Form")
+                .auditType("academic")
+                .status("ACTIVE")
+                .assignedSchools("[\"SOA\"]")
+                .activeVersionId(10L)
+                .build();
+
+        FormSchema schemaSOAA = FormSchema.builder()
+                .id(2L)
+                .name("SOAA Form")
+                .auditType("academic")
+                .status("ACTIVE")
+                .assignedSchools("[\"SOAA\"]")
+                .activeVersionId(20L)
+                .build();
+
+        when(formSchemaRepository.findAll()).thenReturn(List.of(schemaSOA, schemaSOAA));
+
+        CompiledSchemaDto compiledSOA = CompiledSchemaDto.builder().schemaId(1L).versionId(10L).title("SOA Form").build();
+        CompiledSchemaDto compiledSOAA = CompiledSchemaDto.builder().schemaId(2L).versionId(20L).title("SOAA Form").build();
+
+        when(schemaVersionRepository.findById(10L)).thenReturn(Optional.of(SchemaVersion.builder().id(10L).schemaId(1L).build()));
+        when(schemaVersionRepository.findById(20L)).thenReturn(Optional.of(SchemaVersion.builder().id(20L).schemaId(2L).build()));
+        when(schemaCompilerService.compile(10L)).thenReturn(compiledSOA);
+        when(schemaCompilerService.compile(20L)).thenReturn(compiledSOAA);
+
+        // Querying for "SOAA" must match schemaSOAA (id=2), NOT schemaSOA (id=1) even though "SOAA".contains("SOA")
+        CompiledSchemaDto result = formConfigService.getActiveCompiledSchema("academic", "SOAA");
+        assertNotNull(result);
+        assertEquals(2L, result.getSchemaId());
+        assertEquals("SOAA Form", result.getTitle());
+
+        // Querying for "SOA" must match schemaSOA (id=1)
+        CompiledSchemaDto resultSOA = formConfigService.getActiveCompiledSchema("academic", "SOA");
+        assertNotNull(resultSOA);
+        assertEquals(1L, resultSOA.getSchemaId());
+        assertEquals("SOA Form", resultSOA.getTitle());
+    }
 }
