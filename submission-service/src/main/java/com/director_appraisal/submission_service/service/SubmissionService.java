@@ -731,7 +731,10 @@ public class SubmissionService {
 
         Long schemaVersionId = null;
         try {
-            Map<String, Object> cfg = formDataClient.getActiveConfig(auditType);
+            String schoolParam = (caller != null && caller.getSchool() != null)
+                    ? SchoolUtils.canonicalizeSchool(caller.getSchool())
+                    : null;
+            Map<String, Object> cfg = formDataClient.getActiveConfig(auditType, schoolParam);
             if (cfg != null && cfg.get("versionId") != null) {
                 schemaVersionId = Long.valueOf(cfg.get("versionId").toString());
             }

@@ -16,7 +16,12 @@ public interface FormDataClient {
 
     @GetMapping("/api/config/active")
     Map<String, Object> getActiveConfig(
-            @RequestParam("auditType") String auditType);
+            @RequestParam("auditType") String auditType,
+            @RequestParam(value = "school", required = false) String school);
+
+    default Map<String, Object> getActiveConfig(String auditType) {
+        return getActiveConfig(auditType, null);
+    }
 
     @GetMapping("/api/config/version/{versionId}")
     Map<String, Object> getConfigByVersion(@PathVariable("versionId") Long versionId);

@@ -1056,7 +1056,10 @@ public class ReportExportService {
         }
 
         try {
-            Map<String, Object> active = formDataClient.getActiveConfig(submission.getAuditType());
+            String schoolParam = "academic".equalsIgnoreCase(submission.getAuditType())
+                    ? (submission.getSchool() != null ? SchoolUtils.canonicalizeSchool(submission.getSchool()) : null)
+                    : null;
+            Map<String, Object> active = formDataClient.getActiveConfig(submission.getAuditType(), schoolParam);
             if (active != null && active.get("sections") != null) return active;
         } catch (Exception e) {
             log.warn("Failed to load active schema for auditType {}: {}", submission.getAuditType(), e.getMessage());

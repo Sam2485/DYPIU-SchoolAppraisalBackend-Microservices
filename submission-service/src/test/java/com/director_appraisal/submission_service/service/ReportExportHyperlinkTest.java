@@ -29,6 +29,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 class ReportExportHyperlinkTest {
@@ -115,7 +116,7 @@ class ReportExportHyperlinkTest {
     void testPdfReportGeneratesClickableHyperlinks() throws Exception {
         Submission submission = createTestSubmissionWithAttachments();
         Map<String, Object> schema = createTestSchema();
-        when(formDataClient.getActiveConfig("academic")).thenReturn(schema);
+        when(formDataClient.getActiveConfig(eq("academic"), any())).thenReturn(schema);
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         String publicBaseUrl = "http://150.129.156.37:3003";
@@ -176,7 +177,7 @@ class ReportExportHyperlinkTest {
     void testExcelReportGeneratesClickableHyperlinks() throws Exception {
         Submission submission = createTestSubmissionWithAttachments();
         Map<String, Object> schema = createTestSchema();
-        when(formDataClient.getActiveConfig("academic")).thenReturn(schema);
+        when(formDataClient.getActiveConfig(eq("academic"), any())).thenReturn(schema);
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         String publicBaseUrl = "http://150.129.156.37:3003";

@@ -116,4 +116,15 @@ class SubmissionWorkflowTest {
         assertNotEquals(subSchoolA.getSchool(), subSchoolB.getSchool());
         assertNotEquals(subSchoolA.getId(), subSchoolB.getId());
     }
+
+    @Test
+    @DisplayName("Should pass canonical school when resolving active config for academic submission")
+    void testActiveConfigWithSchoolScoping() {
+        when(formDataClient.getActiveConfig("academic", "SOAA"))
+                .thenReturn(Map.of("versionId", 3L, "title", "SoAA & SoCE ACADEMIC FORM"));
+
+        Map<String, Object> cfg = formDataClient.getActiveConfig("academic", "SOAA");
+        assertNotNull(cfg);
+        assertEquals(3L, cfg.get("versionId"));
+    }
 }
