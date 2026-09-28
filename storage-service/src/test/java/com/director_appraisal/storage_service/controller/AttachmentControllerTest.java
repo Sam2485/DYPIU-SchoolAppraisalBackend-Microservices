@@ -68,4 +68,19 @@ class AttachmentControllerTest {
         ResponseEntity<?> response = attachmentController.uploadFile(emptyFile, "partA", "director@dypiu.ac.in", null);
         assertEquals(400, response.getStatusCode().value());
     }
+
+    @Test
+    @DisplayName("Security: Reject upload from read-only Dean role")
+    void testUploadRejectedForDean() {
+        MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", "content".getBytes());
+        ResponseEntity<?> response = attachmentController.uploadFile(file, "partA", "dean@dypiu.ac.in", "dean", null);
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN.value(), response.getStatusCode().value());
+    }
+
+    @Test
+    @DisplayName("Security: Reject delete from read-only Dean role")
+    void testDeleteRejectedForDean() {
+        ResponseEntity<?> response = attachmentController.deleteFile("/uploads/file.pdf", "partA", "dean@dypiu.ac.in", "dean", null);
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN.value(), response.getStatusCode().value());
+    }
 }

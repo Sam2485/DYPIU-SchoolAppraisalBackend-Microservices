@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -1363,6 +1364,20 @@ public class SubmissionService {
             list = allInDb.stream()
                     .filter(sub -> "academic".equalsIgnoreCase(sub.getAuditType()))
                     .filter(sub -> userSchool != null && userSchool.equalsIgnoreCase(SchoolUtils.canonicalizeSchool(sub.getSchool())))
+                    .filter(this::hasRealContent)
+                    .toList();
+        } else if ("dean".equalsIgnoreCase(role) || "dean".equalsIgnoreCase(user.getAccountType())) {
+            List<String> deanSchools = user.getSchoolsList() != null ? user.getSchoolsList().stream()
+                    .map(SchoolUtils::canonicalizeSchool)
+                    .filter(Objects::nonNull)
+                    .toList() : List.of();
+            list = allInDb.stream()
+                    .filter(sub -> "academic".equalsIgnoreCase(sub.getAuditType()))
+                    .filter(sub -> {
+                        if (deanSchools.isEmpty()) return true;
+                        String subSchool = sub.getSchool() != null ? SchoolUtils.canonicalizeSchool(sub.getSchool()) : null;
+                        return subSchool != null && deanSchools.contains(subSchool);
+                    })
                     .filter(this::hasRealContent)
                     .toList();
         } else {
@@ -4022,8 +4037,10 @@ public class SubmissionService {
         }
         String headerEmail = request.getHeader("X-User-Email");
         String roleFromContext = request.getHeader("X-User-Role");
+        String headerAccountType = request.getHeader("X-User-Account-Type");
         String schoolFromContext = request.getHeader("X-User-School");
         String nameFromContext = request.getHeader("X-User-Name");
+        String accountTypeFromContext = (headerAccountType != null && !headerAccountType.isBlank()) ? headerAccountType.trim() : null;
         String postFromContext = null;
         String categoryFromContext = null;
 
@@ -4043,6 +4060,9 @@ public class SubmissionService {
                     }
                     if (jsonNode.has("role") && (roleFromContext == null || roleFromContext.isBlank())) {
                         roleFromContext = jsonNode.get("role").asText();
+                    }
+                    if (jsonNode.has("accountType") && (accountTypeFromContext == null || accountTypeFromContext.isBlank())) {
+                        accountTypeFromContext = jsonNode.get("accountType").asText();
                     }
                     if (jsonNode.has("school") && (schoolFromContext == null || schoolFromContext.isBlank())) {
                         schoolFromContext = jsonNode.get("school").asText();
@@ -4065,6 +4085,9 @@ public class SubmissionService {
             if (u != null) {
                 if ((u.getRole() == null || u.getRole().isBlank()) && roleFromContext != null) {
                     u.setRole(roleFromContext);
+                }
+                if ((u.getAccountType() == null || u.getAccountType().isBlank()) && accountTypeFromContext != null) {
+                    u.setAccountType(accountTypeFromContext);
                 }
                 if ((u.getSchool() == null || u.getSchool().isBlank()) && schoolFromContext != null) {
                     u.setSchool(schoolFromContext);
@@ -4090,6 +4113,7 @@ public class SubmissionService {
                 .email(email != null ? email : "iqac@dypiu.ac.in")
                 .name(nameFromContext != null ? nameFromContext : "User")
                 .role(roleFromContext != null ? roleFromContext : "director")
+                .accountType(accountTypeFromContext)
                 .school(schoolFromContext)
                 .post(postFromContext)
                 .category(categoryFromContext)
@@ -4380,6 +4404,13 @@ public class SubmissionService {
             permissionMap.put("isHistorical", true);
         }
 
+        boolean isDean = "dean".equalsIgnoreCase(user.getRole()) || "dean".equalsIgnoreCase(user.getAccountType());
+        if (isDean) {
+            permissionMap.put("canEditContribution", false);
+            permissionMap.put("canEdit", false);
+            permissionMap.put("canForwardToAuditor", false);
+            permissionMap.put("editablePosts", java.util.Collections.emptyList());
+        }
 
         submission.setPermissions(permissionMap);
     }

@@ -53,6 +53,16 @@ public class AuditCycleController {
     @Transactional
     @PostMapping("/start-next")
     public ResponseEntity<Map<String, Object>> startNextAcademicYear(@RequestBody(required = false) StartNextAcademicYearRequest request) {
+        if (httpRequest != null) {
+            com.director_appraisal.submission_service.dto.UserDto caller = submissionService.getCurrentUserDetails(httpRequest);
+            if (caller != null) {
+                String role = caller.getRole() != null ? caller.getRole().trim().toLowerCase() : "";
+                String accountType = caller.getAccountType() != null ? caller.getAccountType().trim().toLowerCase() : "";
+                if ("dean".equals(role) || "dean".equals(accountType)) {
+                    throw new SecurityException("Deans have read-only access and are not authorized to start next academic year.");
+                }
+            }
+        }
         String activeYear = submissionService.getCurrentAcademicYearLabel();
         String currentYearInput = (request != null && request.getCurrentAcademicYear() != null && !request.getCurrentAcademicYear().isBlank())
                 ? request.getCurrentAcademicYear().trim()

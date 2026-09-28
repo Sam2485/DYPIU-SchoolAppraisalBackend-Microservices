@@ -96,6 +96,11 @@ public class UserController {
     private final UserService userService;
     private final UserAdministrativePostRepository userAdministrativePostRepository;
 
+    @GetMapping("/roles")
+    public ResponseEntity<?> getRoles() {
+        return ResponseEntity.ok(List.of("director", "iqac", "vice-chancellor", "administrative", "auditor", "dean"));
+    }
+
     @GetMapping
     public ResponseEntity<?> getUsers(
             Authentication authentication,
@@ -368,6 +373,60 @@ public class UserController {
             throw new IllegalArgumentException("Password must be at least 6 characters.");
         }
 
+        List<String> rawSchools = request.getSchools();
+        if (rawSchools == null || rawSchools.isEmpty()) rawSchools = request.getAssignedSchools();
+        if (rawSchools == null || rawSchools.isEmpty()) rawSchools = request.getAcademicSchools();
+        if (rawSchools == null || rawSchools.isEmpty()) rawSchools = request.getSchoolCodes();
+        if (rawSchools == null || rawSchools.isEmpty()) rawSchools = request.getAssignedSchoolCodes();
+        if (rawSchools == null || rawSchools.isEmpty()) rawSchools = request.getAcademicSchoolCodes();
+
+        boolean isDean = "dean".equals(accountType) || "dean".equals(role) || "dean".equals(normalize(request.getUserType()));
+        if (isDean) {
+            accountType = "dean";
+            role = "dean";
+            category = "academic";
+            auditorType = null;
+            auditorRole = null;
+            post = null;
+            administrativePosts = List.of();
+            if (isBlank(designation)) {
+                designation = "Dean";
+            }
+
+            List<String> validatedSchools = new java.util.ArrayList<>();
+            if (rawSchools != null) {
+                for (String sch : rawSchools) {
+                    if (sch != null && !sch.isBlank()) {
+                        if (!SchoolUtils.isValidSchool(sch)) {
+                            throw new IllegalArgumentException("Invalid academic school: " + sch);
+                        }
+                        String canonical = SchoolUtils.canonicalizeSchool(sch);
+                        if (!validatedSchools.contains(canonical)) {
+                            validatedSchools.add(canonical);
+                        }
+                    }
+                }
+            }
+            if (validatedSchools.isEmpty() && !isBlank(school)) {
+                if (!SchoolUtils.isValidSchool(school)) {
+                    throw new IllegalArgumentException("Invalid academic school: " + school);
+                }
+                validatedSchools.add(SchoolUtils.canonicalizeSchool(school));
+            }
+            if (validatedSchools.isEmpty() && !isBlank(request.getSchoolName())) {
+                if (!SchoolUtils.isValidSchool(request.getSchoolName())) {
+                    throw new IllegalArgumentException("Invalid academic school: " + request.getSchoolName());
+                }
+                validatedSchools.add(SchoolUtils.canonicalizeSchool(request.getSchoolName()));
+            }
+            if (validatedSchools.isEmpty()) {
+                throw new IllegalArgumentException("At least one school is required for Dean.");
+            }
+            school = validatedSchools.get(0);
+
+            return new ValidatedUser(name, email, cleanPassword(password), role, school, designation, accountType, category, null, null, null, List.of(), validatedSchools);
+        }
+
         boolean isAuditor = "auditor".equals(accountType) || (auditorRole != null && auditorRole.contains("auditor")) || (role != null && role.contains("auditor"));
 
         if (isAuditor) {
@@ -518,6 +577,10 @@ public class UserController {
         if ("auditor".equalsIgnoreCase(accountType) || (role != null && role.toLowerCase().contains("auditor"))) {
             accountType = "auditor";
         }
+        if ("dean".equalsIgnoreCase(role) || "dean".equalsIgnoreCase(accountType)) {
+            accountType = "dean";
+            role = "dean";
+        }
         
         String category = user.getCategory();
         if (isBlank(category)) {
@@ -528,6 +591,8 @@ public class UserController {
             } else if (checkRole.contains("administrative")) {
                 category = "administrative";
             } else if ("director".equals(role)) {
+                category = "academic";
+            } else if ("dean".equals(role)) {
                 category = "academic";
             } else if ("administrative".equals(role)) {
                 category = "administrative";
@@ -565,6 +630,11 @@ public class UserController {
         response.put("school", schoolVal);
         response.put("schoolName", schoolVal);
         response.put("schools", schoolsList);
+        response.put("assignedSchools", schoolsList);
+        response.put("academicSchools", schoolsList);
+        response.put("schoolCodes", schoolsList);
+        response.put("assignedSchoolCodes", schoolsList);
+        response.put("academicSchoolCodes", schoolsList);
         response.put("designation", user.getDesignation());
         response.put("post", canonicalAdministrativePost(user.getPost() != null ? user.getPost() : getPostForDesignation(user.getDesignation())));
         response.put("administrativePosts", adminPosts);
@@ -837,6 +907,10 @@ public class UserController {
         if (isBlank(accountType)) {
             accountType = (role != null && role.toLowerCase().contains("auditor")) ? "auditor" : "user";
         }
+        if ("dean".equalsIgnoreCase(role) || "dean".equalsIgnoreCase(accountType)) {
+            accountType = "dean";
+            role = "dean";
+        }
         String schoolVal = isReviewerRole(role) ? null : user.getSchool();
         List<String> adminPosts = getAdministrativePosts(user);
         List<String> schoolsList = user.getSchoolsList();
@@ -853,6 +927,11 @@ public class UserController {
         response.put("school", schoolVal);
         response.put("schoolName", schoolVal);
         response.put("schools", schoolsList);
+        response.put("assignedSchools", schoolsList);
+        response.put("academicSchools", schoolsList);
+        response.put("schoolCodes", schoolsList);
+        response.put("assignedSchoolCodes", schoolsList);
+        response.put("academicSchoolCodes", schoolsList);
         response.put("role", role);
         response.put("accountType", accountType);
         response.put("category", user.getCategory());
@@ -925,6 +1004,7 @@ public class UserController {
         private String category;
         private String role;
         private String school;
+        private String schoolName;
         private String designation;
         private String post;
         private String name;
@@ -937,5 +1017,10 @@ public class UserController {
         private String auditorRole;
         private List<String> administrativePosts;
         private List<String> schools;
+        private List<String> assignedSchools;
+        private List<String> academicSchools;
+        private List<String> schoolCodes;
+        private List<String> assignedSchoolCodes;
+        private List<String> academicSchoolCodes;
     }
 }

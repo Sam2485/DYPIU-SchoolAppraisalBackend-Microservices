@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -89,6 +90,7 @@ public class SubmissionController {
     private UserDto getCurrentUserDetails() {
         String email = getCurrentUserEmail();
         String roleFromContext = null;
+        String accountTypeFromContext = null;
         String schoolFromContext = null;
         String nameFromContext = null;
         String postFromContext = null;
@@ -97,6 +99,8 @@ public class SubmissionController {
         if (httpRequest != null) {
             String headerRole = httpRequest.getHeader("X-User-Role");
             if (headerRole != null && !headerRole.isBlank()) roleFromContext = headerRole.trim();
+            String headerAccountType = httpRequest.getHeader("X-User-Account-Type");
+            if (headerAccountType != null && !headerAccountType.isBlank()) accountTypeFromContext = headerAccountType.trim();
             String headerSchool = httpRequest.getHeader("X-User-School");
             if (headerSchool != null && !headerSchool.isBlank()) schoolFromContext = headerSchool.trim();
             String headerName = httpRequest.getHeader("X-User-Name");
@@ -113,6 +117,9 @@ public class SubmissionController {
                         com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
                         if (jsonNode.has("role") && (roleFromContext == null || roleFromContext.isBlank())) {
                             roleFromContext = jsonNode.get("role").asText();
+                        }
+                        if (jsonNode.has("accountType") && (accountTypeFromContext == null || accountTypeFromContext.isBlank())) {
+                            accountTypeFromContext = jsonNode.get("accountType").asText();
                         }
                         if (jsonNode.has("school") && (schoolFromContext == null || schoolFromContext.isBlank())) {
                             schoolFromContext = jsonNode.get("school").asText();
@@ -137,6 +144,9 @@ public class SubmissionController {
                 if ((u.getRole() == null || u.getRole().isBlank()) && roleFromContext != null) {
                     u.setRole(roleFromContext);
                 }
+                if ((u.getAccountType() == null || u.getAccountType().isBlank()) && accountTypeFromContext != null) {
+                    u.setAccountType(accountTypeFromContext);
+                }
                 if ((u.getSchool() == null || u.getSchool().isBlank()) && schoolFromContext != null) {
                     u.setSchool(schoolFromContext);
                 }
@@ -157,10 +167,42 @@ public class SubmissionController {
                 .email(email)
                 .name(nameFromContext != null ? nameFromContext : "User")
                 .role(roleFromContext != null ? roleFromContext : "director")
+                .accountType(accountTypeFromContext)
                 .school(schoolFromContext)
                 .post(postFromContext)
                 .category(categoryFromContext)
                 .build();
+    }
+
+    private boolean isDean(UserDto user) {
+        if (user == null) return false;
+        String role = user.getRole() != null ? user.getRole().trim().toLowerCase() : "";
+        String accountType = user.getAccountType() != null ? user.getAccountType().trim().toLowerCase() : "";
+        return "dean".equals(role) || "dean".equals(accountType);
+    }
+
+    private void enforceNotDean(UserDto user) {
+        if (isDean(user)) {
+            throw new SecurityException("Deans have read-only access and are not authorized to perform modifications.");
+        }
+    }
+
+    private boolean isAssignedDean(UserDto user, Submission submission) {
+        if (!isDean(user) || submission == null) {
+            return false;
+        }
+        if (!"academic".equalsIgnoreCase(submission.getAuditType())) {
+            return false;
+        }
+        List<String> deanSchools = user.getSchoolsList() != null ? user.getSchoolsList().stream()
+                .map(SchoolUtils::canonicalizeSchool)
+                .filter(Objects::nonNull)
+                .toList() : List.of();
+        if (deanSchools.isEmpty()) {
+            return true;
+        }
+        String subSchool = submission.getSchool() != null ? SchoolUtils.canonicalizeSchool(submission.getSchool()) : null;
+        return subSchool != null && deanSchools.contains(subSchool);
     }
 
 
@@ -223,6 +265,7 @@ public class SubmissionController {
     @PostMapping("/administrative/{cycleId}/submit")
     public ResponseEntity<Submission> submitAdministrativePart(@PathVariable String cycleId) {
         UserDto caller = getCurrentUserDetails();
+        enforceNotDean(caller);
         Submission submitted = submissionService.submitAdministrativePart(cycleId, caller);
         return ResponseEntity.ok(submitted);
     }
@@ -252,6 +295,10 @@ public class SubmissionController {
         }
         String roleLower = role.trim().toLowerCase();
         String typeLower = auditType.trim().toLowerCase();
+
+        if ("dean".equals(roleLower)) {
+            throw new SecurityException("Deans have read-only access and cannot create or submit audits");
+        }
         
         if (roleLower.contains("auditor")) {
             if (roleLower.contains("academic") && !"academic".equals(typeLower)) {
@@ -278,6 +325,7 @@ public class SubmissionController {
     public ResponseEntity<Submission> saveDraft(@RequestBody(required = false) FormSubmissionRequest request) {
         String email = getCurrentUserEmail();
         UserDto user = getCurrentUserDetails();
+        enforceNotDean(user);
         String auditType = resolveAuditTypeForCaller(user, request != null ? request.getAuditType() : null);
         validateAuditTypeForRole(user.getRole(), auditType);
         if ("administrative".equalsIgnoreCase(auditType)) {
@@ -300,6 +348,7 @@ public class SubmissionController {
     public ResponseEntity<Submission> submitForm(@RequestBody(required = false) FormSubmissionRequest request) {
         String email = getCurrentUserEmail();
         UserDto user = getCurrentUserDetails();
+        enforceNotDean(user);
         String auditType = resolveAuditTypeForCaller(user, request != null ? request.getAuditType() : null);
         validateAuditTypeForRole(user.getRole(), auditType);
         if ("administrative".equalsIgnoreCase(auditType)) {
@@ -332,6 +381,7 @@ public class SubmissionController {
     @PutMapping("/{id}")
     public ResponseEntity<Submission> updateSubmission(@PathVariable Long id, @RequestBody FormSubmissionRequest request) {
         UserDto user = getCurrentUserDetails();
+        enforceNotDean(user);
         if (request.getAuditType() != null && !List.of("vice-chancellor", "iqac").contains(user.getRole().toLowerCase())) {
             validateAuditTypeForRole(user.getRole(), request.getAuditType());
         }
@@ -392,8 +442,9 @@ public class SubmissionController {
 
 
     @PostMapping("/{id}/auditor-submit")
-public ResponseEntity<?> submitAuditorReview(@PathVariable Long id, @RequestBody AuditorSubmitRequest request) {
+    public ResponseEntity<?> submitAuditorReview(@PathVariable Long id, @RequestBody AuditorSubmitRequest request) {
         UserDto user = getCurrentUserDetails();
+        enforceNotDean(user);
         Object response = submissionService.submitAuditorReview(id, user, request);
         return ResponseEntity.ok(response);
     }
@@ -443,6 +494,7 @@ public ResponseEntity<List<Submission>> getPreviousReports(@RequestParam(require
                 && "administrative".equalsIgnoreCase(submission.getAuditType());
         
         boolean isAssignedAuditor = isAuditor && (submissionService.isAuditorAssigned(user, submission) || submissionService.isAuditorFallbackMatch(user, submission));
+        boolean isAssignedDean = isAssignedDean(user, submission);
 
         if (isVc) {
             boolean statusAllowed = List.of("AUDITOR_COMPLETED", "APPROVED", "FINAL").contains(submission.getStatus().toUpperCase());
@@ -451,7 +503,7 @@ public ResponseEntity<List<Submission>> getPreviousReports(@RequestParam(require
             }
         }
 
-        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor) {
+        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor && !isAssignedDean) {
             return ResponseEntity.status(403).build();
         }
 
@@ -460,10 +512,11 @@ public ResponseEntity<List<Submission>> getPreviousReports(@RequestParam(require
     }
 
     @PostMapping("/{id}/review")
-public ResponseEntity<Submission> reviewSubmission(
+    public ResponseEntity<Submission> reviewSubmission(
             @PathVariable Long id,
             @RequestBody ReviewRequest request) {
         UserDto reviewer = getCurrentUserDetails();
+        enforceNotDean(reviewer);
         Submission updated = submissionService.reviewSubmission(
                 id,
                 request.getStatus(),
@@ -479,11 +532,54 @@ public ResponseEntity<Submission> reviewSubmission(
         return ResponseEntity.ok(updated);
     }
 
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<Submission> approveSubmission(@PathVariable Long id, @RequestBody(required = false) ReviewRequest request) {
+        UserDto caller = getCurrentUserDetails();
+        enforceNotDean(caller);
+        ReviewRequest req = request != null ? request : new ReviewRequest();
+        req.setStatus("APPROVED");
+        return reviewSubmission(id, req);
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<Submission> rejectSubmission(@PathVariable Long id, @RequestBody(required = false) ReviewRequest request) {
+        UserDto caller = getCurrentUserDetails();
+        enforceNotDean(caller);
+        ReviewRequest req = request != null ? request : new ReviewRequest();
+        req.setStatus("UNDER_REVIEW");
+        return reviewSubmission(id, req);
+    }
+
+    @PostMapping("/{id}/unlock")
+    public ResponseEntity<Submission> unlockSubmission(@PathVariable Long id) {
+        UserDto caller = getCurrentUserDetails();
+        enforceNotDean(caller);
+        if (!"iqac".equalsIgnoreCase(caller.getRole()) && !"vice-chancellor".equalsIgnoreCase(caller.getRole())) {
+            throw new SecurityException("Only IQAC or VC can unlock submissions.");
+        }
+        Submission submission = submissionService.getSubmissionById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Submission not found with ID: " + id));
+        Submission updated = submissionService.reviewSubmission(
+                id,
+                "DRAFT",
+                "Unlocked by " + caller.getName(),
+                submission.getReportCategory(),
+                submission.getAuditCycle(),
+                submission.getVersion(),
+                submission.getValuesData(),
+                submission.getTablesData(),
+                submission.getAttachments(),
+                caller
+        );
+        return ResponseEntity.ok(updated);
+    }
+
     @PostMapping("/{id}/next-cycle")
-public ResponseEntity<Submission> createNextCycle(
+    public ResponseEntity<Submission> createNextCycle(
             @PathVariable Long id,
             @RequestBody NextCycleRequest request) {
         UserDto caller = getCurrentUserDetails();
+        enforceNotDean(caller);
         Submission nextSubmission = submissionService.createNextCycle(
                 id,
                 caller,
@@ -510,8 +606,9 @@ public ResponseEntity<Submission> createNextCycle(
                 && "administrative".equalsIgnoreCase(submission.getAuditType());
         
         boolean isAssignedAuditor = isAuditor && (submissionService.isAuditorAssigned(user, submission) || submissionService.isAuditorFallbackMatch(user, submission));
+        boolean isAssignedDean = isAssignedDean(user, submission);
 
-        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor) {
+        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor && !isAssignedDean) {
             return ResponseEntity.status(403).build();
         }
 
@@ -641,8 +738,9 @@ public ResponseEntity<Submission> createNextCycle(
 
         boolean isIqac = "iqac".equalsIgnoreCase(user.getRole());
         boolean isVc = "vice-chancellor".equalsIgnoreCase(user.getRole());
-        if (!isIqac && !isVc) {
-            throw new SecurityException("Only IQAC or VC may download attachments");
+        boolean isAssignedDean = isAssignedDean(user, submission);
+        if (!isIqac && !isVc && !isAssignedDean) {
+            throw new SecurityException("Only IQAC, VC, or assigned Dean may download attachments");
         }
 
         String subStatus = submission.getStatus() != null ? submission.getStatus().toUpperCase() : "SUBMITTED";
@@ -816,8 +914,9 @@ public ResponseEntity<Submission> createNextCycle(
         boolean isAdministrativeContributor = "administrative".equalsIgnoreCase(user.getRole())
                 && "administrative".equalsIgnoreCase(submission.getAuditType());
         boolean isAssignedAuditor = isAuditor && (submissionService.isAuditorAssigned(user, submission) || submissionService.isAuditorFallbackMatch(user, submission));
+        boolean isAssignedDean = isAssignedDean(user, submission);
 
-        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor) {
+        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor && !isAssignedDean) {
             throw new SecurityException("Access denied: You do not have permission to download this report");
         }
 
@@ -847,8 +946,9 @@ public ResponseEntity<Submission> createNextCycle(
         boolean isAdministrativeContributor = "administrative".equalsIgnoreCase(user.getRole())
                 && "administrative".equalsIgnoreCase(submission.getAuditType());
         boolean isAssignedAuditor = isAuditor && (submissionService.isAuditorAssigned(user, submission) || submissionService.isAuditorFallbackMatch(user, submission));
+        boolean isAssignedDean = isAssignedDean(user, submission);
 
-        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor) {
+        if (!isOwner && !isIqac && !isVc && !isAssignedAuditor && !isAdministrativeContributor && !isAssignedDean) {
             throw new SecurityException("Access denied: You do not have permission to download this report");
         }
 

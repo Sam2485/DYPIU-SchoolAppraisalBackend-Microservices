@@ -22,12 +22,25 @@ public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
+    public ResponseEntity<?> uploadFile(
+            MultipartFile file,
+            String section,
+            String headerUserEmail,
+            String paramUserEmail) {
+        return uploadFile(file, section, headerUserEmail, null, paramUserEmail);
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<?> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "section", required = false) String section,
             @RequestHeader(value = "X-User-Email", required = false) String headerUserEmail,
+            @RequestHeader(value = "X-User-Role", required = false) String headerUserRole,
             @RequestParam(value = "userEmail", required = false) String paramUserEmail) {
+        if (headerUserRole != null && "dean".equalsIgnoreCase(headerUserRole.trim())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Dean role is read-only and cannot upload attachments."));
+        }
         try {
             String userEmail = headerUserEmail != null && !headerUserEmail.isBlank() ? headerUserEmail : paramUserEmail;
             AttachmentService.AttachmentResponse response = attachmentService.uploadFile(file, userEmail);
@@ -41,13 +54,27 @@ public class AttachmentController {
         }
     }
 
+    public ResponseEntity<?> uploadFiles(
+            MultipartFile[] files,
+            MultipartFile[] fallbackFiles,
+            String section,
+            String headerUserEmail,
+            String paramUserEmail) {
+        return uploadFiles(files, fallbackFiles, section, headerUserEmail, null, paramUserEmail);
+    }
+
     @PostMapping("/upload-multiple")
     public ResponseEntity<?> uploadFiles(
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "file", required = false) MultipartFile[] fallbackFiles,
             @RequestParam(value = "section", required = false) String section,
             @RequestHeader(value = "X-User-Email", required = false) String headerUserEmail,
+            @RequestHeader(value = "X-User-Role", required = false) String headerUserRole,
             @RequestParam(value = "userEmail", required = false) String paramUserEmail) {
+        if (headerUserRole != null && "dean".equalsIgnoreCase(headerUserRole.trim())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Dean role is read-only and cannot upload attachments."));
+        }
         try {
             String userEmail = headerUserEmail != null && !headerUserEmail.isBlank() ? headerUserEmail : paramUserEmail;
             MultipartFile[] uploadFiles = files != null && files.length > 0 ? files : fallbackFiles;
@@ -61,12 +88,25 @@ public class AttachmentController {
         }
     }
 
+    public ResponseEntity<?> deleteFile(
+            String url,
+            String section,
+            String headerUserEmail,
+            Map<String, String> request) {
+        return deleteFile(url, section, headerUserEmail, null, request);
+    }
+
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteFile(
             @RequestParam(value = "url", required = false) String url,
             @RequestParam(value = "section", required = false) String section,
             @RequestHeader(value = "X-User-Email", required = false) String headerUserEmail,
+            @RequestHeader(value = "X-User-Role", required = false) String headerUserRole,
             @RequestBody(required = false) Map<String, String> request) {
+        if (headerUserRole != null && "dean".equalsIgnoreCase(headerUserRole.trim())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Dean role is read-only and cannot delete attachments."));
+        }
         try {
             String fileUrl = url != null && !url.isBlank()
                     ? url
