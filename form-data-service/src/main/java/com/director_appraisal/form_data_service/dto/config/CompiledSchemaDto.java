@@ -1,5 +1,6 @@
 package com.director_appraisal.form_data_service.dto.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CompiledSchemaDto {
     private String id; // e.g. "academic-audit-2025-26"
     private Long schemaId;

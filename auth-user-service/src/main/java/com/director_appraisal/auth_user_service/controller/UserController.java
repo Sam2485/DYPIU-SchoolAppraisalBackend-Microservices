@@ -7,12 +7,21 @@ import com.director_appraisal.auth_user_service.service.UserService;
 import com.director_appraisal.auth_user_service.util.SchoolUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -95,6 +104,9 @@ public class UserController {
 
     private final UserService userService;
     private final UserAdministrativePostRepository userAdministrativePostRepository;
+
+    @Value("${app.upload.local-path:./uploads}")
+    private String localUploadPath;
 
     @GetMapping("/roles")
     public ResponseEntity<?> getRoles() {
@@ -817,24 +829,71 @@ public class UserController {
             user.setEmail(email);
         }
 
+        String avatarUrl = clean(request.getAvatarUrl());
+        if (avatarUrl != null) {
+            user.setAvatarUrl(avatarUrl.isBlank() ? null : avatarUrl);
+        }
+
         User updatedUser = userService.updateUser(user, null);
         return ResponseEntity.ok(Map.of("data", toSelfUserProfileResponse(updatedUser)));
     }
 
-    @PostMapping("/me/avatar")
-    public ResponseEntity<?> uploadAvatar(
+    @PostMapping(value = "/me/avatar", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> setAvatarJson(
             Authentication authentication,
-            @RequestParam(value = "avatar", required = false) MultipartFile avatarFile,
-            @RequestParam(value = "file", required = false) MultipartFile fallbackFile) {
-        
+            @RequestBody(required = false) Map<String, Object> body) {
         User currentUser = getCurrentUser(authentication);
         if (currentUser == null) {
             return error(HttpStatus.UNAUTHORIZED, "Authentication is required.");
         }
-        
+        Optional<User> userOpt = userService.findByEmail(currentUser.getEmail());
+        if (userOpt.isEmpty()) {
+            return error(HttpStatus.NOT_FOUND, "User not found.");
+        }
+        User user = userOpt.get();
+
+        String avatarUrl = body != null && body.get("avatarUrl") != null
+                ? String.valueOf(body.get("avatarUrl")).trim()
+                : "";
+        if (avatarUrl.isBlank()) {
+            return error(HttpStatus.BAD_REQUEST, "Avatar URL is required.");
+        }
+
+        user.setAvatarUrl(avatarUrl);
+        userService.updateUser(user, null);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("avatarUrl", avatarUrl);
+        return ResponseEntity.ok(Map.of("data", data));
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE})
+    public ResponseEntity<?> uploadAvatarMultipart(
+            Authentication authentication,
+            @RequestParam(value = "avatar", required = false) MultipartFile avatarFile,
+            @RequestParam(value = "file", required = false) MultipartFile fallbackFile,
+            @RequestParam(value = "avatarUrl", required = false) String avatarUrlParam) {
+        User currentUser = getCurrentUser(authentication);
+        if (currentUser == null) {
+            return error(HttpStatus.UNAUTHORIZED, "Authentication is required.");
+        }
+        Optional<User> userOpt = userService.findByEmail(currentUser.getEmail());
+        if (userOpt.isEmpty()) {
+            return error(HttpStatus.NOT_FOUND, "User not found.");
+        }
+        User user = userOpt.get();
+
+        if (avatarUrlParam != null && !avatarUrlParam.isBlank()) {
+            user.setAvatarUrl(avatarUrlParam.trim());
+            userService.updateUser(user, null);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("avatarUrl", avatarUrlParam.trim());
+            return ResponseEntity.ok(Map.of("data", data));
+        }
+
         MultipartFile file = avatarFile != null ? avatarFile : fallbackFile;
         if (file == null || file.isEmpty()) {
-            return error(HttpStatus.BAD_REQUEST, "Avatar image file is required.");
+            return error(HttpStatus.BAD_REQUEST, "Avatar image file or avatarUrl is required.");
         }
 
         long maxSize = 5L * 1024L * 1024L;
@@ -847,20 +906,56 @@ public class UserController {
         boolean isImage = (contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("image/"))
                 || isImageFilename(originalFilename);
         if (!isImage) {
-            return error(HttpStatus.BAD_REQUEST, "Only image files (JPG, PNG, WebP, GIF) are allowed for avatar.");
+            return error(HttpStatus.BAD_REQUEST, "Only image files (JPG, PNG, WebP, GIF, SVG) are allowed for avatar.");
         }
 
-        Optional<User> userOpt = userService.findByEmail(currentUser.getEmail());
-        if (userOpt.isEmpty()) {
-            return error(HttpStatus.NOT_FOUND, "User not found.");
+        try {
+            Path uploadDir = Paths.get(localUploadPath != null ? localUploadPath : "./uploads").toAbsolutePath().normalize();
+            Files.createDirectories(uploadDir);
+            String userKey = getUserKey(user.getEmail());
+            Path userDir = uploadDir.resolve("users/" + userKey + "/attachments").normalize();
+            Files.createDirectories(userDir);
+
+            String safeFilename = UUID.randomUUID() + "-" + sanitizeFilename(originalFilename);
+            Path targetFile = userDir.resolve(safeFilename).normalize();
+            if (!targetFile.startsWith(uploadDir)) {
+                return error(HttpStatus.BAD_REQUEST, "Invalid file path.");
+            }
+            Files.write(targetFile, file.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+            String avatarUrl = "/uploads/users/" + userKey + "/attachments/" + safeFilename;
+            user.setAvatarUrl(avatarUrl);
+            userService.updateUser(user, null);
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("avatarUrl", avatarUrl);
+            return ResponseEntity.ok(Map.of("data", data));
+        } catch (IOException e) {
+            return error(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store avatar: " + e.getMessage());
         }
-        User user = userOpt.get();
+    }
 
-        String avatarUrl = "/uploads/avatar_" + user.getId() + "_" + System.currentTimeMillis() + "_" + (originalFilename != null ? originalFilename : "avatar.png");
-        user.setAvatarUrl(avatarUrl);
-        userService.updateUser(user, null);
-
-        return ResponseEntity.ok(Map.of("data", Map.of("avatarUrl", avatarUrl)));
+    @PostMapping("/me/avatar")
+    public ResponseEntity<?> defaultAvatar(
+            Authentication authentication,
+            @RequestParam(value = "avatarUrl", required = false) String avatarUrlParam) {
+        if (avatarUrlParam != null && !avatarUrlParam.isBlank()) {
+            User currentUser = getCurrentUser(authentication);
+            if (currentUser == null) {
+                return error(HttpStatus.UNAUTHORIZED, "Authentication is required.");
+            }
+            Optional<User> userOpt = userService.findByEmail(currentUser.getEmail());
+            if (userOpt.isEmpty()) {
+                return error(HttpStatus.NOT_FOUND, "User not found.");
+            }
+            User user = userOpt.get();
+            user.setAvatarUrl(avatarUrlParam.trim());
+            userService.updateUser(user, null);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("avatarUrl", avatarUrlParam.trim());
+            return ResponseEntity.ok(Map.of("data", data));
+        }
+        return error(HttpStatus.BAD_REQUEST, "Avatar image file or avatarUrl is required.");
     }
 
     @DeleteMapping("/me/avatar")
@@ -899,6 +994,40 @@ public class UserController {
         String lower = filename.toLowerCase(Locale.ROOT);
         return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")
                 || lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".svg");
+    }
+
+    private String getUserKey(String email) {
+        if (email == null || email.isBlank()) {
+            return "anonymous";
+        }
+        return hashSha256(email.trim().toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8)).substring(0, 16);
+    }
+
+    private String hashSha256(byte[] input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return Integer.toHexString(Arrays.hashCode(input));
+        }
+    }
+
+    private String sanitizeFilename(String filename) {
+        if (filename == null || filename.isBlank()) return "avatar.png";
+        String normalizedFilename = filename.replace("\\", "/");
+        int lastSlashIndex = normalizedFilename.lastIndexOf('/');
+        String baseFilename = lastSlashIndex >= 0 ? normalizedFilename.substring(lastSlashIndex + 1) : normalizedFilename;
+        String safeFilename = baseFilename.replaceAll("[^A-Za-z0-9._-]", "_");
+        return safeFilename.isBlank() ? "avatar.png" : safeFilename;
     }
 
     private Map<String, Object> toSelfUserProfileResponse(User user) {
@@ -997,6 +1126,7 @@ public class UserController {
     public static class UpdateSelfProfileRequest {
         private String name;
         private String email;
+        private String avatarUrl;
     }
 
     @Data

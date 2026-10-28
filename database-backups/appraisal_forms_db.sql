@@ -1,7 +1,8 @@
 -- =============================================================================
 -- PostgreSQL Database Dump: appraisal_forms_db
--- Target Microservice: form-data-service (Port 9002)
--- Source: school_appraisal_backup_2026-08-13.sql
+-- Target Microservice: form-data-service (Port 8082)
+-- Extracted from: school_appraisal_backup_2026-08-13.sql
+-- System: DYPIU Director & Faculty Appraisal System
 -- =============================================================================
 
 SET statement_timeout = 0;
@@ -16,51 +17,1416 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 SET search_path = public, pg_catalog;
 
 -- -----------------------------------------------------------------------------
--- 1. TABLE & SEQUENCE SCHEMAS
+-- 1. DROP EXISTING DYNAMIC ENGINE TABLES
 -- -----------------------------------------------------------------------------
---
--- TOC entry 217 (class 1259 OID 35968)
--- Name: academic_years; Type: TABLE; Schema: public; Owner: postgres
---
+DROP TABLE IF EXISTS public.form_fields CASCADE;
+DROP TABLE IF EXISTS public.form_tables CASCADE;
+DROP TABLE IF EXISTS public.form_sections CASCADE;
+DROP TABLE IF EXISTS public.schema_versions CASCADE;
+DROP TABLE IF EXISTS public.form_schemas CASCADE;
+DROP TABLE IF EXISTS public.academic_years CASCADE;
+DROP TABLE IF EXISTS public.university_posts CASCADE;
+DROP TABLE IF EXISTS public.university_schools CASCADE;
+DROP TABLE IF EXISTS public.universities CASCADE;
+
+-- -----------------------------------------------------------------------------
+-- 2. DYNAMIC FORM ENGINE SCHEMAS & TABLES
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.universities (
+    id bigint NOT NULL,
+    code character varying(50) NOT NULL,
+    slug character varying(50) DEFAULT 'dypiu'::character varying,
+    name character varying(255) NOT NULL,
+    domain character varying(100),
+    status character varying(20) DEFAULT 'ACTIVE'::character varying,
+    address text,
+    establishment_act text,
+    logo_url text,
+    iqac_logo_url text,
+    primary_color character varying(20) DEFAULT '#1e3a8a'::character varying,
+    theme_branding text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.universities_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.universities_id_seq OWNED BY public.universities.id;
+ALTER TABLE ONLY public.universities ALTER COLUMN id SET DEFAULT nextval('public.universities_id_seq'::regclass);
+ALTER TABLE ONLY public.universities ADD CONSTRAINT universities_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.universities ADD CONSTRAINT uk_universities_code UNIQUE (code);
+
+CREATE TABLE public.university_schools (
+    id bigint NOT NULL,
+    university_id bigint NOT NULL DEFAULT 1,
+    code character varying(50) NOT NULL,
+    name character varying(255) NOT NULL,
+    group_name character varying(50) DEFAULT 'general',
+    status character varying(50) DEFAULT 'ACTIVE',
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.university_schools_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.university_schools_id_seq OWNED BY public.university_schools.id;
+ALTER TABLE ONLY public.university_schools ALTER COLUMN id SET DEFAULT nextval('public.university_schools_id_seq'::regclass);
+ALTER TABLE ONLY public.university_schools ADD CONSTRAINT university_schools_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.university_posts (
+    id bigint NOT NULL,
+    university_id bigint NOT NULL DEFAULT 1,
+    code character varying(60) NOT NULL,
+    name character varying(255) NOT NULL,
+    description character varying(255),
+    status character varying(50) DEFAULT 'ACTIVE',
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.university_posts_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.university_posts_id_seq OWNED BY public.university_posts.id;
+ALTER TABLE ONLY public.university_posts ALTER COLUMN id SET DEFAULT nextval('public.university_posts_id_seq'::regclass);
+ALTER TABLE ONLY public.university_posts ADD CONSTRAINT university_posts_pkey PRIMARY KEY (id);
 
 CREATE TABLE public.academic_years (
     id bigint NOT NULL,
-    year_label character varying(20) NOT NULL,
-    active boolean DEFAULT false NOT NULL,
+    year_label character varying(255) NOT NULL,
+    active boolean DEFAULT false,
     started_at timestamp without time zone,
     closed_at timestamp without time zone
 );
 
-
-ALTER TABLE public.academic_years OWNER TO postgres;
-
---
--- TOC entry 218 (class 1259 OID 35972)
--- Name: academic_years_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.academic_years_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.academic_years_id_seq OWNER TO postgres;
-
---
--- TOC entry 4313 (class 0 OID 0)
--- Dependencies: 218
--- Name: academic_years_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
+CREATE SEQUENCE public.academic_years_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 ALTER SEQUENCE public.academic_years_id_seq OWNED BY public.academic_years.id;
+ALTER TABLE ONLY public.academic_years ALTER COLUMN id SET DEFAULT nextval('public.academic_years_id_seq'::regclass);
+ALTER TABLE ONLY public.academic_years ADD CONSTRAINT academic_years_pkey PRIMARY KEY (id);
 
+CREATE TABLE public.form_schemas (
+    id bigint NOT NULL,
+    university_id bigint DEFAULT 1 NOT NULL,
+    audit_type character varying(50) NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    assigned_schools text DEFAULT 'ALL'::text,
+    active_version_number integer,
+    active_version_id bigint,
+    status character varying(20) DEFAULT 'ACTIVE'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.form_schemas_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.form_schemas_id_seq OWNED BY public.form_schemas.id;
+ALTER TABLE ONLY public.form_schemas ALTER COLUMN id SET DEFAULT nextval('public.form_schemas_id_seq'::regclass);
+ALTER TABLE ONLY public.form_schemas ADD CONSTRAINT form_schemas_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.schema_versions (
+    id bigint NOT NULL,
+    schema_id bigint NOT NULL,
+    version_number integer NOT NULL,
+    status character varying(20) DEFAULT 'PUBLISHED'::character varying,
+    academic_year character varying(50) NOT NULL,
+    title character varying(255),
+    owner_role character varying(100),
+    compiled_schema text,
+    published_by character varying(255),
+    published_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.schema_versions_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.schema_versions_id_seq OWNED BY public.schema_versions.id;
+ALTER TABLE ONLY public.schema_versions ALTER COLUMN id SET DEFAULT nextval('public.schema_versions_id_seq'::regclass);
+ALTER TABLE ONLY public.schema_versions ADD CONSTRAINT schema_versions_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.form_sections (
+    id bigint NOT NULL,
+    version_id bigint NOT NULL,
+    section_key character varying(100) NOT NULL,
+    title character varying(255) NOT NULL,
+    section_number character varying(20),
+    owner_role character varying(100),
+    description text,
+    table_buttons text,
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.form_sections_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.form_sections_id_seq OWNED BY public.form_sections.id;
+ALTER TABLE ONLY public.form_sections ALTER COLUMN id SET DEFAULT nextval('public.form_sections_id_seq'::regclass);
+ALTER TABLE ONLY public.form_sections ADD CONSTRAINT form_sections_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.form_tables (
+    id bigint NOT NULL,
+    section_id bigint NOT NULL,
+    table_key character varying(100) NOT NULL,
+    title character varying(255) NOT NULL,
+    show_title boolean DEFAULT true,
+    is_repeatable boolean DEFAULT true,
+    display_order integer DEFAULT 0,
+    initial_rows text,
+    select_options text,
+    date_columns text,
+    number_columns text,
+    textarea_columns text,
+    textarea_max_lengths text,
+    validation_rules text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.form_tables_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.form_tables_id_seq OWNED BY public.form_tables.id;
+ALTER TABLE ONLY public.form_tables ALTER COLUMN id SET DEFAULT nextval('public.form_tables_id_seq'::regclass);
+ALTER TABLE ONLY public.form_tables ADD CONSTRAINT form_tables_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.form_fields (
+    id bigint NOT NULL,
+    section_id bigint NOT NULL,
+    table_id bigint,
+    field_key character varying(100) NOT NULL,
+    label character varying(500) NOT NULL,
+    field_type character varying(50) DEFAULT 'TEXT'::character varying,
+    kind character varying(50) DEFAULT 'field'::character varying,
+    is_required boolean DEFAULT false,
+    placeholder character varying(255),
+    default_value character varying(255),
+    validation_rules text,
+    options text,
+    attachment_rules text,
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.form_fields_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.form_fields_id_seq OWNED BY public.form_fields.id;
+ALTER TABLE ONLY public.form_fields ALTER COLUMN id SET DEFAULT nextval('public.form_fields_id_seq'::regclass);
+ALTER TABLE ONLY public.form_fields ADD CONSTRAINT form_fields_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_form_schemas_audit_type ON public.form_schemas(audit_type);
+CREATE INDEX idx_schema_versions_schema_id ON public.schema_versions(schema_id);
+CREATE INDEX idx_form_sections_version_id ON public.form_sections(version_id);
+CREATE INDEX idx_form_tables_section_id ON public.form_tables(section_id);
+CREATE INDEX idx_form_fields_section_id ON public.form_fields(section_id);
+CREATE INDEX idx_form_fields_table_id ON public.form_fields(table_id);
+
+-- 3. SEED UNIVERSITIES & CORE ENTITIES
+INSERT INTO public.universities (id, code, slug, name, domain, address, establishment_act, logo_url, iqac_logo_url, primary_color, status)
+VALUES (1, 'dypiu', 'dypiu', 'D Y Patil International University, Akurdi, Pune', 'dypiu.ac.in', 'Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044', 'Maharashtra State Act No. VI of 2019', '/uploads/branding/dypiu_logo.png', '/uploads/branding/iqac_logo.png', '#1e3a8a', 'ACTIVE')
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, code = EXCLUDED.code;
+
+INSERT INTO public.form_schemas (id, university_id, audit_type, name, description, assigned_schools, active_version_number, active_version_id, status)
+VALUES (1, 1, 'academic', 'External Academic Audit', 'Annual Academic Audit Form for Schools', 'ALL', 1, 1, 'ACTIVE')
+ON CONFLICT (id) DO UPDATE SET active_version_id = EXCLUDED.active_version_id, active_version_number = EXCLUDED.active_version_number, status = EXCLUDED.status;
+
+INSERT INTO public.form_schemas (id, university_id, audit_type, name, description, assigned_schools, active_version_number, active_version_id, status)
+VALUES (2, 1, 'administrative', 'Internal Administrative Audit', 'Annual Administrative Audit Form for Offices', 'ALL', 1, 2, 'ACTIVE')
+ON CONFLICT (id) DO UPDATE SET active_version_id = EXCLUDED.active_version_id, active_version_number = EXCLUDED.active_version_number, status = EXCLUDED.status;
+
+INSERT INTO public.university_schools (id, university_id, code, name, group_name, status, display_order) VALUES
+(1, 1, 'SoCSEA', 'School of Computer Science & Applications', 'engineering', 'ACTIVE', 1),
+(2, 1, 'SoBB', 'School of Bio-Engineering & Bio Science', 'engineering', 'ACTIVE', 2),
+(3, 1, 'SoCE', 'School of Continual Education', 'engineering', 'ACTIVE', 3),
+(4, 1, 'SoEMR', 'School of Engineering, Management & Research', 'engineering', 'ACTIVE', 4),
+(5, 1, 'SoCM', 'School of Commerce & Management', 'nonEngineering', 'ACTIVE', 5),
+(6, 1, 'SoMCS', 'School of Media & Communication Studies', 'nonEngineering', 'ACTIVE', 6),
+(7, 1, 'SoD', 'School of Design', 'nonEngineering', 'ACTIVE', 7),
+(8, 1, 'SoAA', 'School of Applied Arts', 'nonEngineering', 'ACTIVE', 8)
+ON CONFLICT (id) DO NOTHING;
+SELECT pg_catalog.setval('public.university_schools_id_seq', 8, true);
+
+INSERT INTO public.university_posts (id, university_id, code, name, description, status, display_order) VALUES
+(1, 1, 'registrar', 'Registrar', 'Registrar Office', 'ACTIVE', 1),
+(2, 1, 'hr', 'HR', 'Human Resources', 'ACTIVE', 2),
+(3, 1, 'dean-student-welfare', 'Dean Student Welfare', 'Student Affairs & Welfare', 'ACTIVE', 3),
+(4, 1, 'dean-placement', 'Dean Placement', 'Training and Placement Cell', 'ACTIVE', 4)
+ON CONFLICT (id) DO NOTHING;
+SELECT pg_catalog.setval('public.university_posts_id_seq', 4, true);
+COPY public.academic_years (id, year_label, active, started_at, closed_at) FROM stdin;
+3	2025-2026	t	2026-06-29 07:15:48.018905	\N
+\.
+
+SELECT pg_catalog.setval('public.academic_years_id_seq', (SELECT COALESCE(max(id), 1) FROM public.academic_years), true);
+
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (1, 1, 'school-department-information', 'School / Department Information', '1', 'director-schools', 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (1, 1, NULL, 'schoolName', 'Name of the School / Department', 'TEXT', true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (2, 1, NULL, 'establishmentYear', 'Year of Establishment', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (3, 1, NULL, 'address', 'Address', 'TEXTAREA', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (4, 1, NULL, 'directorName', 'Director''s Name', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (5, 1, NULL, 'directorEmail', 'Director''s Mail Id', 'EMAIL', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (6, 1, NULL, 'ugIntake', 'UG Intake', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (7, 1, NULL, 'pgIntake', 'PG Intake', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (8, 1, NULL, 'academicCalendar', 'Academic Calendar', 'TEXT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (1, 1, 'studentStrength', 'Student''s Strength', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (9, 1, 1, 'class', 'Class', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (10, 1, 1, 'no_of_student', 'No. of Student', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (11, 1, 1, 'total', 'Total', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (2, 1, 'facultyStrength', 'Faculty Strength', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (12, 1, 2, 'required', 'Required', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (13, 1, 2, 'available', 'Available', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (2, 1, 'part-a-academic-activities', 'Part A - Academic Activities', 'A', 'director-schools', 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (14, 2, NULL, 'bosMeetingsCount', 'No. of meetings conducted', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (15, 2, NULL, 'stakeholderFeedback', 'a. Stakeholder feedback', 'TEXTAREA', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (16, 2, NULL, 'feedbackAnalysis', 'b. Analysis of the feedback', 'TEXTAREA', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (17, 2, NULL, 'actionTakenReport', 'c. Action taken Report', 'TEXTAREA', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (3, 2, 'boardOfStudies', '1. Board of Studies meetings conducted', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (18, 2, 3, 'date_of_the_meeting', 'Date of the meeting', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (19, 2, 3, 'link_for_mom', 'Link for MoM', 'ATTACHMENT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (4, 2, 'syllabusRevision', '2. Syllabus revision feedback, analysis and ATR', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (20, 2, 4, 'category_of_feedback', 'Category of Feedback', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (21, 2, 4, 'link_for_analysis_and_atr', 'Link for Analysis and ATR', 'ATTACHMENT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (5, 2, 'obeImplementation', '3. Outcome based education implementation', true, false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (22, 2, 5, 'particular', 'Particular', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (23, 2, 5, 'link_for_the_document', 'Link for the Document', 'ATTACHMENT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (6, 2, 'nepStatus', '4. NEP 2020 implementation status', true, false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (24, 2, 6, 'check_points', 'Check Points', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (25, 2, 6, 'availability', 'Availability', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (26, 2, 6, 'link_for_the_document', 'Link for the Document', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (7, 2, 'bestPractices', '5. Best Practices at School level', true, false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (27, 2, 7, 'check_points', 'Check Points', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (28, 2, 7, 'availability', 'Availability', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (29, 2, 7, 'link_for_the_document', 'Link for the Document', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (3, 1, 'part-b-student-development', 'Part B - Student Development & Progression', 'B', 'director-schools', 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (8, 3, 'studentMentoring', '1. Student Mentoring (mentor-wise list with mentee)', true, false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (30, 3, 8, 'name_of_mentor', 'Name of Mentor', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (31, 3, 8, 'no_of_mentees', 'No. of Mentees', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (32, 3, 8, 'link_to_document', 'Link to Document', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (9, 3, 'graduatingStudents', '2. No. of students graduating (Program wise)', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (33, 3, 9, 'program', 'Program', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (34, 3, 9, 'female', 'Female', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (35, 3, 9, 'male', 'Male', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (36, 3, 9, 'total', 'Total', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (10, 3, 'successRate', '3. Success Rate of Students (Program wise)', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (37, 3, 10, 'program', 'Program', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (38, 3, 10, 'no_of_students_appeared_for_final_semester_exam', 'No of Students Appeared for Final Semester Exam', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (39, 3, 10, 'number_of_students_cleared_program_in_stipulated_duration_of_the_program', 'Number of Students cleared Program in stipulated duration of the program', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (40, 3, 10, 'success_rate', 'Success Rate %', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (11, 3, 'qualifyingExams', '4. Students Qualifying in State/National/International level examinations', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (41, 3, 11, 'name_of_the_student', 'Name of the Student', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (42, 3, 11, 'examination_details', 'Examination Details', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (43, 3, 11, 'proof_as_attachment', 'Proof as attachment', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (12, 3, 'studentAwards', '5. Awards/Medals won by students for outstanding performance in sports/cultural activities', true, true, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (44, 3, 12, 'name_of_the_student', 'Name of the Student', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (45, 3, 12, 'details_of_the_award', 'Details of the Award', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (46, 3, 12, 'proof_as_an_attachment', 'Proof as an attachment', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (13, 3, 'studentPlacements', '6. Placement of outgoing students', true, true, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (47, 3, 13, 'program', 'Program', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (48, 3, 13, 'no_of_students_appeared_for_final_year_exam', 'No of Students Appeared for Final Year Exam', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (49, 3, 13, 'no_of_students_placed', 'No of Students Placed', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (50, 3, 13, 'placement', '% Placement', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (51, 3, 13, 'proof_as_attachment', 'Proof as attachment', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (14, 3, 'higherStudies', '7. Percentage of outgoing students progressing to higher education', true, true, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (52, 3, 14, 'program', 'Program', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (53, 3, 14, 'no_of_students_appeared_for_final_year_exam', 'No of Students Appeared for Final Year Exam', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (54, 3, 14, 'no_of_students_selected_for_higher_studies', 'No of Students selected for Higher studies', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (55, 3, 14, 'students', '% Students', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (15, 3, 'studentStartups', '8. Details of Start-ups incubated by students', true, true, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (56, 3, 15, 'name_of_the_student', 'Name of the Student', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (57, 3, 15, 'name_of_the_venture_start_up', 'Name of the Venture / Start-up', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (58, 3, 15, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (16, 3, 'studentCourses', '9. Online/value-added courses completed by students', true, true, 9)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (59, 3, 16, 'name_of_student', 'Name of Student', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (60, 3, 16, 'year_of_study', 'Year of Study', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (61, 3, 16, 'name_of_course', 'Name of course', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (62, 3, 16, 'duration', 'Duration', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (63, 3, 16, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (17, 3, 'alumniInteractions', '10. Details of Alumni interactions organized', true, true, 10)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (64, 3, 17, 'name_of_alumni', 'Name of Alumni', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (65, 3, 17, 'designation', 'Designation', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (66, 3, 17, 'present_employer', 'Present employer', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (67, 3, 17, 'date_on_interaction', 'Date on interaction', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (68, 3, 17, 'topic', 'Topic', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (69, 3, 17, 'no_of_beneficiaries', 'No of beneficiaries', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (70, 3, 17, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (18, 3, 'guestLectures', '11. Guest lectures organized', true, true, 11)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (71, 3, 18, 'name_of_the_resource_person', 'Name of the Resource person', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (72, 3, 18, 'designation_and_organization', 'Designation and organization', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (73, 3, 18, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (74, 3, 18, 'topic', 'Topic', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (75, 3, 18, 'number_of_beneficiaries', 'Number of beneficiaries', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (76, 3, 18, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (19, 3, 'professionalBodies', '12. Student chapters of professional bodies', true, true, 12)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (77, 3, 19, 'sr_no', 'Sr no', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (78, 3, 19, 'name_of_the_professional_body_chapter_student_club', 'Name of the Professional body / chapter / student club', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (79, 3, 19, 'no_of_student_members', 'No of student members', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (80, 3, 19, 'date_of_event_conduction', 'Date of event conduction', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (81, 3, 19, 'title_of_the_event', 'Title of the event', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (82, 3, 19, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (20, 3, 'valueAddedCourses', '13. Value added courses imparting transferable and life skills', true, true, 13)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (83, 3, 20, 'sr_no', 'Sr no', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (84, 3, 20, 'title_of_the_course', 'Title of the Course', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (85, 3, 20, 'details_of_resource_person', 'Details of resource person', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (86, 3, 20, 'duration_and_date_of_conduction', 'Duration and date of conduction', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (87, 3, 20, 'no_of_beneficiaries', 'No of beneficiaries', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (88, 3, 20, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (21, 3, 'careerGuidance', '14. Guidance for competitive examinations and career counseling', true, true, 14)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (89, 3, 21, 'session_details', 'Session details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (90, 3, 21, 'resource_person_details', 'Resource person details', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (91, 3, 21, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (92, 3, 21, 'number_of_beneficiaries', 'Number of beneficiaries', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (93, 3, 21, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (22, 3, 'extensionActivities', '15. Extension and outreach activities conducted', true, true, 15)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (94, 3, 22, 'activity_details', 'Activity details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (95, 3, 22, 'organized_by', 'Organized by', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (96, 3, 22, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (97, 3, 22, 'number_of_beneficiaries', 'Number of beneficiaries', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (98, 3, 22, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (4, 1, 'part-c-faculty-research', 'Part C - Faculty Development & Research Activities', 'C', 'director-schools', 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (99, 4, NULL, 'foreignCollaborations', '(a) No. of foreign collaborations either in the form of publications / research', 'TEXTAREA', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (100, 4, NULL, 'nationalCollaborations', '(b) No. of collaborations with other national institutions', 'TEXTAREA', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (101, 4, NULL, 'functionalMousCount', 'No. of Functional MoUs', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (23, 4, 'facultySpecialization', '1. Profile of the Teachers with qualifications and area of specialization', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (102, 4, 23, 'name', 'Name', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (103, 4, 23, 'designation', 'Designation', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (104, 4, 23, 'qualifications', 'Qualifications', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (105, 4, 23, 'specialization', 'Specialization', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (106, 4, 23, 'no_of_ph_d_supervised', 'No. of Ph.D supervised', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (24, 4, 'researchPublications', '2. Research Publications in the Journals notified on UGC CARE list', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (107, 4, 24, 'title_of_paper', 'Title of paper', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (108, 4, 24, 'name_of_author_s', 'Name of author(s)', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (109, 4, 24, 'name_of_journal', 'Name of Journal', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (110, 4, 24, 'year_of_publication_with_volume_and_page_numbers', 'Year of Publication with Volume and Page numbers', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (111, 4, 24, 'isbn_issn', 'ISBN/ISSN', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (112, 4, 24, 'indicate_ugc_approved_journal', 'Indicate UGC Approved Journal', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (113, 4, 24, 'national_international_journal', 'National/International Journal', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (114, 4, 24, 'impact_factor', 'Impact Factor', 'TEXT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (115, 4, 24, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 9)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (25, 4, 'booksChapters', '3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (116, 4, 25, 'name_of_the_teacher', 'Name of the teacher', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (117, 4, 25, 'title_of_the_book_chapters_published', 'Title of the book/chapters published', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (118, 4, 25, 'title_of_the_paper', 'Title of the paper', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (119, 4, 25, 'title_of_the_proceedings_of_the_conference', 'Title of the proceedings of the conference', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (120, 4, 25, 'name_of_the_conference', 'Name of the conference', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (121, 4, 25, 'national_international', 'National / international', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (122, 4, 25, 'year_of_publication', 'Year of publication', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (123, 4, 25, 'isbn_issn_number', 'ISBN/ISSN number', 'TEXT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (124, 4, 25, 'name_of_the_publisher', 'Name of the publisher', 'TEXT', false, 9)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (125, 4, 25, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 10)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (26, 4, 'corporateTraining', '4. Revenue generated from corporate training by the Department', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (126, 4, 26, 'name_of_faculty', 'Name of faculty', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (127, 4, 26, 'agency_seeking_training', 'Agency seeking / training', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (128, 4, 26, 'revenue_generated', 'Revenue generated', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (129, 4, 26, 'number_of_trainees', 'Number of trainees', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (130, 4, 26, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (27, 4, 'consultancy', '5. Revenue generated from Consultancy by the Department', true, true, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (131, 4, 27, 'name_of_the_faculty', 'Name of the faculty', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (132, 4, 27, 'title_of_the_consultancy_project', 'Title of the consultancy project', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (133, 4, 27, 'consulting_sponsoring_agency', 'Consulting/Sponsoring Agency', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (134, 4, 27, 'revenue_generated', 'Revenue generated', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (135, 4, 27, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (28, 4, 'researchFunds', '6. Research funds sanctioned and received from various agencies, industry and other organizations', true, true, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (136, 4, 28, 'name_of_the_project_endowments_chairs', 'Name of the Project / Endowments / Chairs', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (137, 4, 28, 'name_of_the_principal_investigator', 'Name of the Principal Investigator', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (138, 4, 28, 'department_of_principal_investigator', 'Department of Principal Investigator', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (139, 4, 28, 'year_of_award', 'Year of Award', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (140, 4, 28, 'funds_provided', 'Funds provided', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (141, 4, 28, 'duration_of_the_project', 'Duration of the project', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (142, 4, 28, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (29, 4, 'eContents', '7. E-Contents developed', true, true, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (143, 4, 29, 'name_of_the_teacher', 'Name of the teacher', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (144, 4, 29, 'name_of_the_module', 'Name of the module', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (145, 4, 29, 'platform_on_which_module_is_developed', 'Platform on which module is developed', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (146, 4, 29, 'date_of_launching_e_content', 'Date of launching e content', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (147, 4, 29, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (30, 4, 'teacherAwards', '8. Teachers who received national / international fellowship / financial support', true, true, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (148, 4, 30, 'name_of_the_teacher', 'Name of the Teacher', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (149, 4, 30, 'national_awards', 'National Awards', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (150, 4, 30, 'international_awards', 'International Awards', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (151, 4, 30, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (31, 4, 'patentsCopyrights', 'Number of Patents / copyright filed / published / awarded', true, true, 9)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (152, 4, 31, 'sr_no', 'Sr. No', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (153, 4, 31, 'name_of_faculty_student', 'Name of Faculty / Student', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (154, 4, 31, 'application_no', 'Application No', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (155, 4, 31, 'title_of_patent_copyright', 'Title of Patent / Copyright', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (156, 4, 31, 'date_of_filing', 'Date of filing', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (157, 4, 31, 'date_of_publication', 'Date of publication', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (158, 4, 31, 'date_of_award', 'Date of award', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (159, 4, 31, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (32, 4, 'fdpOrganized', '9. Details of seminar / symposia / conference / refresher course / training programmes organized', true, true, 10)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (160, 4, 32, 'sl_no', 'Sl. No', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (161, 4, 32, 'name_of_convener_coordinator', 'Name of Convener/Coordinator', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (162, 4, 32, 'title_of_seminar_course', 'Title of seminar/course', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (163, 4, 32, 'sponsoring_agency', 'Sponsoring Agency', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (164, 4, 32, 'duration_with_dates', 'Duration with dates', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (165, 4, 32, 'no_of_internal_and_external_participants', 'No. of internal and external participants', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (166, 4, 32, 'proceedings_published_yes_no', 'Proceedings published Yes/No', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (167, 4, 32, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (33, 4, 'fdpAttended', 'Details of seminar / symposia / conference / refresher course / training programmes attended by faculty', true, true, 11)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (168, 4, 33, 'sl_no', 'Sl. No', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (169, 4, 33, 'name_of_faculty', 'Name of Faculty', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (170, 4, 33, 'title_of_seminar_course', 'Title of seminar/course', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (171, 4, 33, 'sponsoring_agency_organization', 'Sponsoring Agency / organization', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (172, 4, 33, 'duration_with_dates', 'Duration with dates', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (173, 4, 33, 'date', 'Date', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (174, 4, 33, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (34, 4, 'functionalMous', '11. Functional MoUs', true, true, 12)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (175, 4, 34, 'name_of_the_organization_institution_industry_with_whom_mou_is_signed', 'Name of the Organization / Institution / Industry with whom MoU is signed', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (176, 4, 34, 'year_of_signing_mou', 'Year of signing MoU', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (177, 4, 34, 'duration_of_mou', 'Duration of MoU', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (178, 4, 34, 'list_the_actual_activities_under_each_mou', 'List the actual activities under each MoU', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (179, 4, 34, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (5, 1, 'part-d-swoc', 'Part D - SWOC Analysis', 'D', 'director-schools', 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (35, 5, 'swocStrength', 'Strength', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (180, 5, 35, 'details', 'Details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (36, 5, 'swocWeaknesses', 'Weaknesses', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (181, 5, 36, 'details', 'Details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (37, 5, 'swocOpportunities', 'Opportunities', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (182, 5, 37, 'details', 'Details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (38, 5, 'swocChallenges', 'Challenges', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (183, 5, 38, 'details', 'Details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (39, 5, 'swocOtherInformation', 'Any other information, which is not covered above', true, true, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (184, 5, 39, 'details', 'Details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (6, 1, 'part-e-observations', 'Part E - Observations & Recommendations of the Audit', 'E', 'auditor', 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (185, 6, NULL, 'auditObservations', 'Observations of the Academic Audit Team', 'TEXTAREA', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (186, 6, NULL, 'auditRecommendations', 'Recommendations of the Audit Team', 'TEXTAREA', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (187, 6, NULL, 'auditDocumentation', 'Upload Documentation', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (7, 2, 'section-a-university-information', 'Section A - University Information', 'A', 'registrar', 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (188, 7, NULL, 'universityName', 'Name of the University', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (189, 7, NULL, 'establishmentYear', 'Year of Establishment', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (190, 7, NULL, 'address', 'Address', 'TEXTAREA', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (191, 7, NULL, 'pinCode', 'Pin Code', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (192, 7, NULL, 'website', 'Website', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (193, 7, NULL, 'viceChancellor', 'Name of the Vice Chancellor', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (194, 7, NULL, 'vcEmail', 'Vice Chancellor e-Mail Id', 'EMAIL', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (195, 7, NULL, 'registrar', 'Name of Registrar', 'TEXT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (196, 7, NULL, 'registrarEmail', 'Registrar e-Mail Id', 'EMAIL', false, 9)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (197, 7, NULL, 'accreditation', 'Accreditation status & Agency', 'TEXTAREA', false, 10)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (40, 7, 'coursesOffered', '1. Courses Offered', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (198, 7, 40, 'name_of_the_program', 'Name of the Program', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (199, 7, 40, 'level_ug_pg', 'Level (UG/PG)', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (200, 7, 40, 'intake', 'Intake', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (201, 7, 40, 'no_of_students_admitted', 'No. of Students Admitted', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (202, 7, 40, 'year_of_commencement_of_the_program', 'Year of Commencement of the program', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (203, 7, 40, 'attachment_attach_list_of_the_students', 'Attachment (Attach List of the Students)', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (41, 7, 'studentStatistics', '2. Total Number of Students in the university', true, false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (204, 7, 41, 'category', 'Category', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (205, 7, 41, 'u_g', 'U.G.', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (206, 7, 41, 'p_g', 'P.G.', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (207, 7, 41, 'ph_d', 'Ph.D.', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (208, 7, 41, 'value_added_skill_courses', 'Value added / skill Courses', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (42, 7, 'statutoryBodies', '3. Statutory Body Meetings and ATR', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (209, 7, 42, 'body_cell', 'Body / Cell', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (210, 7, 42, 'meetings_conducted', 'Meetings Conducted', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (211, 7, 42, 'atr_status', 'ATR Status', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (212, 7, 42, 'remarks_link', 'Remarks / Link', 'ATTACHMENT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (43, 7, 'auditRecords', '4. Audits Completed', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (213, 7, 43, 'audit_type', 'Audit Type', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (214, 7, 43, 'completed_yes_no', 'Completed Yes / No', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (215, 7, 43, 'date', 'Date', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (216, 7, 43, 'remarks_link', 'Remarks / Link', 'ATTACHMENT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (44, 7, 'scholarshipSummary', '5. Scholarship Details', true, false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (217, 7, 44, 'year', 'Year', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (218, 7, 44, 'title_of_scholarship', 'Title of Scholarship', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (219, 7, 44, 'number_of_the_students', 'Number of the Students', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (220, 7, 44, 'amount_received', 'Amount received', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (221, 7, 44, 'awarding_agency', 'Awarding Agency', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (222, 7, 44, 'awarding_organization', 'Awarding Organization', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (223, 7, 44, 'attachment', 'Attachment', 'ATTACHMENT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (45, 7, 'scholarshipStudents', '6. Scholarship Student Details', true, true, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (224, 7, 45, 'year', 'Year', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (225, 7, 45, 'title_of_scholarship', 'Title of Scholarship', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (226, 7, 45, 'name_of_the_students', 'Name of the Students', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (227, 7, 45, 'amount_received', 'Amount received', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (228, 7, 45, 'awarding_agency', 'Awarding Agency', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (229, 7, 45, 'attachment', 'Attachment', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (8, 2, 'section-b-faculty-staff-details', 'Section B - Faculty and Staff Details', 'B', 'hr', 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (230, 8, NULL, 'bogMomSanctionedPostsAttachment', 'BoG MoM Extract showing Sanctioned Posts', 'ATTACHMENT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (231, 8, NULL, 'phdQualification', '(a)(i) Faculty members with Ph.D qualification', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (232, 8, NULL, 'pgQualification', '(a)(ii) Post Graduation Qualification', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (233, 8, NULL, 'otherQualification', '(a)(iii) Any Other Qualification', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (234, 8, NULL, 'studentFacultyRatio', '(b) Student Faculty Ratio', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (46, 8, 'facultyInformation', 'Faculty Information', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (235, 8, 46, 'cadre', 'Cadre', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (236, 8, 46, 'required', 'Required', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (237, 8, 46, 'regular', 'Regular', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (238, 8, 46, 'contract', 'Contract', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (47, 8, 'facultyTenure', '(c) Teaching Experience of the Faculty in DYPIU', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (239, 8, 47, 'tenure', 'Tenure', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (240, 8, 47, 'no_of_faculty', 'No. of Faculty', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (48, 8, 'facultyExperience', '(d) Consolidated Experience of the teaching faculty considering outside experience', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (241, 8, 48, 's_no', 'S.No', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (242, 8, 48, 'name_of_the_faculty', 'Name of the Faculty', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (243, 8, 48, 'designation', 'Designation', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (244, 8, 48, 'highest_qualification', 'Highest Qualification', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (245, 8, 48, 'date_of_joining', 'Date of Joining', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (246, 8, 48, 'experience_in_dypiu', 'Experience in DYPIU', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (247, 8, 48, 'experience_before_joining_dypiu_teaching', 'Experience before joining DYPIU (Teaching)', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (248, 8, 48, 'total_experience', 'Total Experience', 'TEXT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (49, 8, 'supportingStaff', 'Details of Admin and Supporting Staff', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (249, 8, 49, 's_no', 'S.No', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (250, 8, 49, 'name_of_the_supporting_staff', 'Name of the Supporting Staff', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (251, 8, 49, 'designation', 'Designation', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (252, 8, 49, 'highest_qualification', 'Highest Qualification', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (253, 8, 49, 'date_of_joining_in_dypiu', 'Date of Joining in DYPIU', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (254, 8, 49, 'experience_in_dypiu', 'Experience in DYPIU', 'TEXT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (255, 8, 49, 'experience_before_joining_dypiu', 'Experience before joining DYPIU', 'TEXT', false, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (256, 8, 49, 'total_experience', 'Total Experience', 'TEXT', false, 8)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (50, 8, 'staffTraining', 'Administrative training / professional development program organized for non-teaching staff', true, true, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (257, 8, 50, 'sr_no', 'Sr no', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (258, 8, 50, 'title_of_the_course', 'Title of the Course', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (259, 8, 50, 'details_of_resource_person', 'Details of resource person', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (260, 8, 50, 'duration_and_date_of_conduction', 'Duration and date of conduction', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (261, 8, 50, 'no_of_beneficiaries', 'No of beneficiaries', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (262, 8, 50, 'attachment_report_of_the_event', 'Attachment (Report of the Event)', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (9, 2, 'section-c-infrastructure-details', 'Section C - Infrastructure Details', 'C', 'registrar', 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (51, 9, 'buildingInfrastructure', '1. Building Infrastructure', true, false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (263, 9, 51, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (264, 9, 51, 'no', 'No.', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (52, 9, 'libraryInfrastructure', '2. Library & Research Infrastructure', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (265, 9, 52, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (266, 9, 52, 'no', 'No.', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (53, 9, 'eResources', 'E-resource Availability', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (267, 9, 53, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (268, 9, 53, 'availability', 'Availability', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (269, 9, 53, 'remarks', 'Remarks', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (54, 9, 'itInfrastructure', '3. I.T. (Computer) Infrastructure', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (270, 9, 54, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (271, 9, 54, 'no', 'No.', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (55, 9, 'sportsFacilities', '4. Facilities for cultural activities, yoga, games, sports etc', true, true, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (272, 9, 55, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (273, 9, 55, 'no', 'No.', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (56, 9, 'divyangajanFacilities', '5. Facilities for Divyangajan', true, false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (274, 9, 56, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (275, 9, 56, 'available_yes_no', 'Available Yes / No', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (57, 9, 'researchResources', '6. Research Resources', true, true, 7)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (276, 9, 57, 'facilities', 'Facilities', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (277, 9, 57, 'availability', 'Availability', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (278, 9, 57, 'remarks', 'Remarks', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (10, 2, 'section-d-student-activities', 'Section D - Student Activities (Extension and Outreach Activities)', 'D', 'dean-student-welfare', 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (58, 10, 'hackathons', '1. Hackathons and Ideation workshops', true, true, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (279, 10, 58, 'activity_details', 'Activity details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (280, 10, 58, 'organized_by', 'Organized by', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (281, 10, 58, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (282, 10, 58, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (283, 10, 58, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (59, 10, 'culturalActivities', '2. Cultural Clubs and activities and festivals', true, true, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (284, 10, 59, 'activity_details', 'Activity details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (285, 10, 59, 'organized_by', 'Organized by', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (286, 10, 59, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (287, 10, 59, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (288, 10, 59, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (60, 10, 'sportsActivities', '3. Sports clubs / teams and activities', true, true, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (289, 10, 60, 'activity_details', 'Activity details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (290, 10, 60, 'organized_by', 'Organized by', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (291, 10, 60, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (292, 10, 60, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (293, 10, 60, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (61, 10, 'communityActivities', '4. Community related activities', true, true, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (294, 10, 61, 'activity_details', 'Activity details', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (295, 10, 61, 'organized_by', 'Organized by', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (296, 10, 61, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (297, 10, 61, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (298, 10, 61, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
+VALUES (62, 10, 'adminStudentAwards', '5. Awards / Prizes / Recognitions in curricular and extended curricular areas', true, true, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (299, 10, 62, 'name_of_the_award', 'Name of the award', 'TEXT', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (300, 10, 62, 'team_individual', 'Team / Individual', 'TEXT', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (301, 10, 62, 'inter_university_state_national_international', 'Inter-University / State / National / International', 'TEXT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (302, 10, 62, 'name_of_the_event', 'Name of the event', 'TEXT', false, 4)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (303, 10, 62, 'name_of_the_student_s', 'Name of the student(s)', 'TEXT', false, 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (304, 10, 62, 'attachment', 'Attachment', 'ATTACHMENT', false, 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (11, 2, 'section-e-placement-training', 'Section E - Student Progression', 'E', 'dean-placement', 5)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (305, 11, NULL, 'partESchools', 'School-wise Placement Programs & Compensation', 'TEXTAREA', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
+VALUES (12, 2, 'section-f-observations-recommendations', 'Section F - Observations & Recommendations of the Audit', 'F', 'auditor', 6)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (306, 12, NULL, 'auditObservations', 'Observations of the Academic Audit Team', 'TEXTAREA', false, 1)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (307, 12, NULL, 'auditRecommendations', 'Recommendations of the Audit Team', 'TEXTAREA', false, 2)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
+VALUES (308, 12, NULL, 'auditDocumentation', 'Upload Documentation', 'ATTACHMENT', false, 3)
+ON CONFLICT (id) DO NOTHING;
+-- 4. INSERT SCHEMA VERSIONS
+INSERT INTO public.schema_versions (id, schema_id, version_number, status, academic_year, title, owner_role, compiled_schema, published_by, published_at, created_at, updated_at)
+VALUES 
+(1, 1, 1, 'PUBLISHED', '2025-26', 'External Academic Audit', 'director-schools', '{"id": "academic-audit-2025-26", "schemaId": 1, "versionId": 1, "versionNumber": 1, "auditType": "academic", "title": "External Academic Audit", "academicYear": "2025-26", "ownerRole": "director-schools", "status": "PUBLISHED", "header": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png"}, "universityInfo": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png", "code": "dypiu", "slug": "dypiu", "domain": "dypiu.ac.in", "primaryColor": "#1e3a8a"}, "sections": [{"id": 1, "idString": "school-department-information", "sectionKey": "school-department-information", "title": "School / Department Information", "number": "1", "ownerRole": "director-schools", "displayOrder": 1, "fields": [{"id": 1, "idString": "schoolName", "fieldKey": "schoolName", "label": "Name of the School / Department", "fieldType": "TEXT", "kind": "field", "isRequired": true, "displayOrder": 1}, {"id": 2, "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 3, "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 4, "idString": "directorName", "fieldKey": "directorName", "label": "Director''s Name", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 5, "idString": "directorEmail", "fieldKey": "directorEmail", "label": "Director''s Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": 6, "idString": "ugIntake", "fieldKey": "ugIntake", "label": "UG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": 7, "idString": "pgIntake", "fieldKey": "pgIntake", "label": "PG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": 8, "idString": "academicCalendar", "fieldKey": "academicCalendar", "label": "Academic Calendar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}], "tables": [{"id": 1, "idString": "studentStrength", "tableKey": "studentStrength", "title": "Student''s Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Class", "No. of Student", "Total"], "fields": [{"id": 9, "idString": "class", "fieldKey": "class", "label": "Class", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 10, "idString": "no_of_student", "fieldKey": "no_of_student", "label": "No. of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 11, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}, {"id": 2, "idString": "facultyStrength", "tableKey": "facultyStrength", "title": "Faculty Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Required", "Available"], "fields": [{"id": 12, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 13, "idString": "available", "fieldKey": "available", "label": "Available", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}], "blocks": [{"type": "fields", "fields": [{"id": "schoolName", "idString": "schoolName", "fieldKey": "schoolName", "label": "Name of the School / Department", "fieldType": "TEXT", "kind": "field", "isRequired": true, "displayOrder": 1}, {"id": "establishmentYear", "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "address", "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "directorName", "idString": "directorName", "fieldKey": "directorName", "label": "Director''s Name", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "directorEmail", "idString": "directorEmail", "fieldKey": "directorEmail", "label": "Director''s Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": "ugIntake", "idString": "ugIntake", "fieldKey": "ugIntake", "label": "UG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": "pgIntake", "idString": "pgIntake", "fieldKey": "pgIntake", "label": "PG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": "academicCalendar", "idString": "academicCalendar", "fieldKey": "academicCalendar", "label": "Academic Calendar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}]}, {"type": "tables", "tables": [{"id": "studentStrength", "idString": "studentStrength", "tableKey": "studentStrength", "title": "Student''s Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Class", "No. of Student", "Total"], "fields": [{"id": 9, "idString": "class", "fieldKey": "class", "label": "Class", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 10, "idString": "no_of_student", "fieldKey": "no_of_student", "label": "No. of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 11, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}, {"id": "facultyStrength", "idString": "facultyStrength", "tableKey": "facultyStrength", "title": "Faculty Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Required", "Available"], "fields": [{"id": 12, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 13, "idString": "available", "fieldKey": "available", "label": "Available", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}]}]}, {"id": 2, "idString": "part-a-academic-activities", "sectionKey": "part-a-academic-activities", "title": "Part A - Academic Activities", "number": "A", "ownerRole": "director-schools", "displayOrder": 2, "fields": [{"id": 14, "idString": "bosMeetingsCount", "fieldKey": "bosMeetingsCount", "label": "No. of meetings conducted", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 15, "idString": "stakeholderFeedback", "fieldKey": "stakeholderFeedback", "label": "a. Stakeholder feedback", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 16, "idString": "feedbackAnalysis", "fieldKey": "feedbackAnalysis", "label": "b. Analysis of the feedback", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 17, "idString": "actionTakenReport", "fieldKey": "actionTakenReport", "label": "c. Action taken Report", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 4}], "tables": [{"id": 3, "idString": "boardOfStudies", "tableKey": "boardOfStudies", "title": "1. Board of Studies meetings conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Date of the meeting", "Link for MoM"], "fields": [{"id": 18, "idString": "date_of_the_meeting", "fieldKey": "date_of_the_meeting", "label": "Date of the meeting", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 19, "idString": "link_for_mom", "fieldKey": "link_for_mom", "label": "Link for MoM", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}, {"id": 4, "idString": "syllabusRevision", "tableKey": "syllabusRevision", "title": "2. Syllabus revision feedback, analysis and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Category of Feedback", "Link for Analysis and ATR"], "fields": [{"id": 20, "idString": "category_of_feedback", "fieldKey": "category_of_feedback", "label": "Category of Feedback", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 21, "idString": "link_for_analysis_and_atr", "fieldKey": "link_for_analysis_and_atr", "label": "Link for Analysis and ATR", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}, {"id": 5, "idString": "obeImplementation", "tableKey": "obeImplementation", "title": "3. Outcome based education implementation", "showTitle": true, "isRepeatable": false, "displayOrder": 3, "columns": ["Particular", "Link for the Document"], "fields": [{"id": 22, "idString": "particular", "fieldKey": "particular", "label": "Particular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 23, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Particular": "Learning outcomes"}, {"Sr No": "2", "Particular": "Concurrent assessment"}, {"Sr No": "3", "Particular": "CO Coverage in Assessment"}, {"Sr No": "4", "Particular": "Course Exit Survey"}]}, {"id": 6, "idString": "nepStatus", "tableKey": "nepStatus", "title": "4. NEP 2020 implementation status", "showTitle": true, "isRepeatable": false, "displayOrder": 4, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 24, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 25, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 26, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "NEP Governance Structure"}, {"SN": "2", "Check Points": "Curriculum Alignment with NEP"}, {"SN": "3", "Check Points": "Multidisciplinary & Interdisciplinary Learning"}, {"SN": "4", "Check Points": "Academic Bank of Credits (ABC)"}, {"SN": "5", "Check Points": "Multiple Entry & Exit"}, {"SN": "6", "Check Points": "Skill & Vocational Education"}, {"SN": "7", "Check Points": "Experiential Learning & Internships"}, {"SN": "8", "Check Points": "Outcome Based Education (OBE)"}, {"SN": "9", "Check Points": "Technology Integration & MOOCs"}, {"SN": "10", "Check Points": "Holistic Development & Student Support"}], "textareaColumns": ["SDG Address"]}, {"id": 7, "idString": "bestPractices", "tableKey": "bestPractices", "title": "5. Best Practices at School level", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 27, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 28, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 29, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "Best Practice Identification"}, {"SN": "2", "Check Points": "Detailed Implementation Plan"}, {"SN": "3", "Check Points": "Stakeholder Participation Data"}, {"SN": "4", "Check Points": "Outcome Measurement"}, {"SN": "5", "Check Points": "Impact Assessment"}, {"SN": "5(a)", "Check Points": "Quantitative Impact"}, {"SN": "5(b)", "Check Points": "Qualitative Impact"}]}], "blocks": [{"type": "tables", "tables": [{"id": "boardOfStudies", "idString": "boardOfStudies", "tableKey": "boardOfStudies", "title": "1. Board of Studies meetings conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Date of the meeting", "Link for MoM"], "fields": [{"id": 18, "idString": "date_of_the_meeting", "fieldKey": "date_of_the_meeting", "label": "Date of the meeting", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 19, "idString": "link_for_mom", "fieldKey": "link_for_mom", "label": "Link for MoM", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}]}, {"type": "fields", "fields": [{"id": "syllabusHeading", "kind": "heading", "label": "2. Syllabus revision (Major/Minor) details"}, {"id": "stakeholderFeedback", "idString": "stakeholderFeedback", "fieldKey": "stakeholderFeedback", "label": "a. Stakeholder feedback", "fieldType": "TEXTAREA"}, {"id": "feedbackAnalysis", "idString": "feedbackAnalysis", "fieldKey": "feedbackAnalysis", "label": "b. Analysis of the feedback", "fieldType": "TEXTAREA"}, {"id": "actionTakenReport", "idString": "actionTakenReport", "fieldKey": "actionTakenReport", "label": "c. Action taken Report", "fieldType": "TEXTAREA"}]}, {"type": "tables", "tables": [{"id": "syllabusRevision", "idString": "syllabusRevision", "tableKey": "syllabusRevision", "title": "2. Syllabus revision feedback, analysis and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Category of Feedback", "Link for Analysis and ATR"], "fields": [{"id": 20, "idString": "category_of_feedback", "fieldKey": "category_of_feedback", "label": "Category of Feedback", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 21, "idString": "link_for_analysis_and_atr", "fieldKey": "link_for_analysis_and_atr", "label": "Link for Analysis and ATR", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}]}, {"type": "tables", "tables": [{"id": "obeImplementation", "idString": "obeImplementation", "tableKey": "obeImplementation", "title": "3. Outcome based education implementation", "showTitle": true, "isRepeatable": false, "displayOrder": 3, "columns": ["Particular", "Link for the Document"], "fields": [{"id": 22, "idString": "particular", "fieldKey": "particular", "label": "Particular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 23, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Particular": "Learning outcomes"}, {"Sr No": "2", "Particular": "Concurrent assessment"}, {"Sr No": "3", "Particular": "CO Coverage in Assessment"}, {"Sr No": "4", "Particular": "Course Exit Survey"}]}, {"id": "nepStatus", "idString": "nepStatus", "tableKey": "nepStatus", "title": "4. NEP 2020 implementation status", "showTitle": true, "isRepeatable": false, "displayOrder": 4, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 24, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 25, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 26, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "NEP Governance Structure"}, {"SN": "2", "Check Points": "Curriculum Alignment with NEP"}, {"SN": "3", "Check Points": "Multidisciplinary & Interdisciplinary Learning"}, {"SN": "4", "Check Points": "Academic Bank of Credits (ABC)"}, {"SN": "5", "Check Points": "Multiple Entry & Exit"}, {"SN": "6", "Check Points": "Skill & Vocational Education"}, {"SN": "7", "Check Points": "Experiential Learning & Internships"}, {"SN": "8", "Check Points": "Outcome Based Education (OBE)"}, {"SN": "9", "Check Points": "Technology Integration & MOOCs"}, {"SN": "10", "Check Points": "Holistic Development & Student Support"}], "textareaColumns": ["SDG Address"]}, {"id": "bestPractices", "idString": "bestPractices", "tableKey": "bestPractices", "title": "5. Best Practices at School level", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 27, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 28, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 29, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "Best Practice Identification"}, {"SN": "2", "Check Points": "Detailed Implementation Plan"}, {"SN": "3", "Check Points": "Stakeholder Participation Data"}, {"SN": "4", "Check Points": "Outcome Measurement"}, {"SN": "5", "Check Points": "Impact Assessment"}, {"SN": "5(a)", "Check Points": "Quantitative Impact"}, {"SN": "5(b)", "Check Points": "Qualitative Impact"}]}]}]}, {"id": 3, "idString": "part-b-student-development", "sectionKey": "part-b-student-development", "title": "Part B - Student Development & Progression", "number": "B", "ownerRole": "director-schools", "displayOrder": 3, "fields": [], "tables": [{"id": 8, "idString": "studentMentoring", "tableKey": "studentMentoring", "title": "1. Student Mentoring (mentor-wise list with mentee)", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Name of Mentor", "No. of Mentees", "Link to Document"], "fields": [{"id": 30, "idString": "name_of_mentor", "fieldKey": "name_of_mentor", "label": "Name of Mentor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 31, "idString": "no_of_mentees", "fieldKey": "no_of_mentees", "label": "No. of Mentees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 32, "idString": "link_to_document", "fieldKey": "link_to_document", "label": "Link to Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 9, "idString": "graduatingStudents", "tableKey": "graduatingStudents", "title": "2. No. of students graduating (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Program", "Female", "Male", "Total"], "fields": [{"id": 33, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 34, "idString": "female", "fieldKey": "female", "label": "Female", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 35, "idString": "male", "fieldKey": "male", "label": "Male", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 36, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 10, "idString": "successRate", "tableKey": "successRate", "title": "3. Success Rate of Students (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Program", "No of Students Appeared for Final Semester Exam", "Number of Students cleared Program in stipulated duration of the program", "Success Rate %"], "fields": [{"id": 37, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 38, "idString": "no_of_students_appeared_for_final_semester_exam", "fieldKey": "no_of_students_appeared_for_final_semester_exam", "label": "No of Students Appeared for Final Semester Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 39, "idString": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "fieldKey": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "label": "Number of Students cleared Program in stipulated duration of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 40, "idString": "success_rate", "fieldKey": "success_rate", "label": "Success Rate %", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 11, "idString": "qualifyingExams", "tableKey": "qualifyingExams", "title": "4. Students Qualifying in State/National/International level examinations", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of the Student", "Examination Details", "Proof as attachment"], "fields": [{"id": 41, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 42, "idString": "examination_details", "fieldKey": "examination_details", "label": "Examination Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 43, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 12, "idString": "studentAwards", "tableKey": "studentAwards", "title": "5. Awards/Medals won by students for outstanding performance in sports/cultural activities", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the Student", "Details of the Award", "Proof as an attachment"], "fields": [{"id": 44, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 45, "idString": "details_of_the_award", "fieldKey": "details_of_the_award", "label": "Details of the Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 46, "idString": "proof_as_an_attachment", "fieldKey": "proof_as_an_attachment", "label": "Proof as an attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 13, "idString": "studentPlacements", "tableKey": "studentPlacements", "title": "6. Placement of outgoing students", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students Placed", "% Placement", "Proof as attachment"], "fields": [{"id": 47, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 48, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 49, "idString": "no_of_students_placed", "fieldKey": "no_of_students_placed", "label": "No of Students Placed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 50, "idString": "placement", "fieldKey": "placement", "label": "% Placement", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 51, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 14, "idString": "higherStudies", "tableKey": "higherStudies", "title": "7. Percentage of outgoing students progressing to higher education", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students selected for Higher studies", "% Students"], "fields": [{"id": 52, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 53, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 54, "idString": "no_of_students_selected_for_higher_studies", "fieldKey": "no_of_students_selected_for_higher_studies", "label": "No of Students selected for Higher studies", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 55, "idString": "students", "fieldKey": "students", "label": "% Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 15, "idString": "studentStartups", "tableKey": "studentStartups", "title": "8. Details of Start-ups incubated by students", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Student", "Name of the Venture / Start-up", "Link to relevant Proof"], "fields": [{"id": 56, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 57, "idString": "name_of_the_venture_start_up", "fieldKey": "name_of_the_venture_start_up", "label": "Name of the Venture / Start-up", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 58, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 16, "idString": "studentCourses", "tableKey": "studentCourses", "title": "9. Online/value-added courses completed by students", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Name of Student", "Year of Study", "Name of course", "Duration", "Link to relevant Proof"], "fields": [{"id": 59, "idString": "name_of_student", "fieldKey": "name_of_student", "label": "Name of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 60, "idString": "year_of_study", "fieldKey": "year_of_study", "label": "Year of Study", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 61, "idString": "name_of_course", "fieldKey": "name_of_course", "label": "Name of course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 62, "idString": "duration", "fieldKey": "duration", "label": "Duration", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 63, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 17, "idString": "alumniInteractions", "tableKey": "alumniInteractions", "title": "10. Details of Alumni interactions organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Name of Alumni", "Designation", "Present employer", "Date on interaction", "Topic", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 64, "idString": "name_of_alumni", "fieldKey": "name_of_alumni", "label": "Name of Alumni", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 65, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 66, "idString": "present_employer", "fieldKey": "present_employer", "label": "Present employer", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 67, "idString": "date_on_interaction", "fieldKey": "date_on_interaction", "label": "Date on interaction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 68, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 69, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 70, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 18, "idString": "guestLectures", "tableKey": "guestLectures", "title": "11. Guest lectures organized", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Name of the Resource person", "Designation and organization", "Date of conduction", "Topic", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 71, "idString": "name_of_the_resource_person", "fieldKey": "name_of_the_resource_person", "label": "Name of the Resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 72, "idString": "designation_and_organization", "fieldKey": "designation_and_organization", "label": "Designation and organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 73, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 74, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 75, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 76, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 19, "idString": "professionalBodies", "tableKey": "professionalBodies", "title": "12. Student chapters of professional bodies", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Sr no", "Name of the Professional body / chapter / student club", "No of student members", "Date of event conduction", "Title of the event", "Link to relevant Proof"], "fields": [{"id": 77, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 78, "idString": "name_of_the_professional_body_chapter_student_club", "fieldKey": "name_of_the_professional_body_chapter_student_club", "label": "Name of the Professional body / chapter / student club", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 79, "idString": "no_of_student_members", "fieldKey": "no_of_student_members", "label": "No of student members", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 80, "idString": "date_of_event_conduction", "fieldKey": "date_of_event_conduction", "label": "Date of event conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 81, "idString": "title_of_the_event", "fieldKey": "title_of_the_event", "label": "Title of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 82, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 20, "idString": "valueAddedCourses", "tableKey": "valueAddedCourses", "title": "13. Value added courses imparting transferable and life skills", "showTitle": true, "isRepeatable": true, "displayOrder": 13, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 83, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 84, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 85, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 86, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 87, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 88, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 21, "idString": "careerGuidance", "tableKey": "careerGuidance", "title": "14. Guidance for competitive examinations and career counseling", "showTitle": true, "isRepeatable": true, "displayOrder": 14, "columns": ["Session details", "Resource person details", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 89, "idString": "session_details", "fieldKey": "session_details", "label": "Session details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 90, "idString": "resource_person_details", "fieldKey": "resource_person_details", "label": "Resource person details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 91, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 92, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 93, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 22, "idString": "extensionActivities", "tableKey": "extensionActivities", "title": "15. Extension and outreach activities conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 15, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 94, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 95, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 96, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 97, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 98, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}], "blocks": [{"type": "tables", "tables": [{"id": "studentMentoring", "idString": "studentMentoring", "tableKey": "studentMentoring", "title": "1. Student Mentoring (mentor-wise list with mentee)", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Name of Mentor", "No. of Mentees", "Link to Document"], "fields": [{"id": 30, "idString": "name_of_mentor", "fieldKey": "name_of_mentor", "label": "Name of Mentor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 31, "idString": "no_of_mentees", "fieldKey": "no_of_mentees", "label": "No. of Mentees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 32, "idString": "link_to_document", "fieldKey": "link_to_document", "label": "Link to Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "graduatingStudents", "idString": "graduatingStudents", "tableKey": "graduatingStudents", "title": "2. No. of students graduating (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Program", "Female", "Male", "Total"], "fields": [{"id": 33, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 34, "idString": "female", "fieldKey": "female", "label": "Female", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 35, "idString": "male", "fieldKey": "male", "label": "Male", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 36, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "successRate", "idString": "successRate", "tableKey": "successRate", "title": "3. Success Rate of Students (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Program", "No of Students Appeared for Final Semester Exam", "Number of Students cleared Program in stipulated duration of the program", "Success Rate %"], "fields": [{"id": 37, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 38, "idString": "no_of_students_appeared_for_final_semester_exam", "fieldKey": "no_of_students_appeared_for_final_semester_exam", "label": "No of Students Appeared for Final Semester Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 39, "idString": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "fieldKey": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "label": "Number of Students cleared Program in stipulated duration of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 40, "idString": "success_rate", "fieldKey": "success_rate", "label": "Success Rate %", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "qualifyingExams", "idString": "qualifyingExams", "tableKey": "qualifyingExams", "title": "4. Students Qualifying in State/National/International level examinations", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of the Student", "Examination Details", "Proof as attachment"], "fields": [{"id": 41, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 42, "idString": "examination_details", "fieldKey": "examination_details", "label": "Examination Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 43, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentAwards", "idString": "studentAwards", "tableKey": "studentAwards", "title": "5. Awards/Medals won by students for outstanding performance in sports/cultural activities", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the Student", "Details of the Award", "Proof as an attachment"], "fields": [{"id": 44, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 45, "idString": "details_of_the_award", "fieldKey": "details_of_the_award", "label": "Details of the Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 46, "idString": "proof_as_an_attachment", "fieldKey": "proof_as_an_attachment", "label": "Proof as an attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentPlacements", "idString": "studentPlacements", "tableKey": "studentPlacements", "title": "6. Placement of outgoing students", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students Placed", "% Placement", "Proof as attachment"], "fields": [{"id": 47, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 48, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 49, "idString": "no_of_students_placed", "fieldKey": "no_of_students_placed", "label": "No of Students Placed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 50, "idString": "placement", "fieldKey": "placement", "label": "% Placement", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 51, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "higherStudies", "idString": "higherStudies", "tableKey": "higherStudies", "title": "7. Percentage of outgoing students progressing to higher education", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students selected for Higher studies", "% Students"], "fields": [{"id": 52, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 53, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 54, "idString": "no_of_students_selected_for_higher_studies", "fieldKey": "no_of_students_selected_for_higher_studies", "label": "No of Students selected for Higher studies", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 55, "idString": "students", "fieldKey": "students", "label": "% Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "studentStartups", "idString": "studentStartups", "tableKey": "studentStartups", "title": "8. Details of Start-ups incubated by students", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Student", "Name of the Venture / Start-up", "Link to relevant Proof"], "fields": [{"id": 56, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 57, "idString": "name_of_the_venture_start_up", "fieldKey": "name_of_the_venture_start_up", "label": "Name of the Venture / Start-up", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 58, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentCourses", "idString": "studentCourses", "tableKey": "studentCourses", "title": "9. Online/value-added courses completed by students", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Name of Student", "Year of Study", "Name of course", "Duration", "Link to relevant Proof"], "fields": [{"id": 59, "idString": "name_of_student", "fieldKey": "name_of_student", "label": "Name of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 60, "idString": "year_of_study", "fieldKey": "year_of_study", "label": "Year of Study", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 61, "idString": "name_of_course", "fieldKey": "name_of_course", "label": "Name of course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 62, "idString": "duration", "fieldKey": "duration", "label": "Duration", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 63, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "alumniInteractions", "idString": "alumniInteractions", "tableKey": "alumniInteractions", "title": "10. Details of Alumni interactions organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Name of Alumni", "Designation", "Present employer", "Date on interaction", "Topic", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 64, "idString": "name_of_alumni", "fieldKey": "name_of_alumni", "label": "Name of Alumni", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 65, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 66, "idString": "present_employer", "fieldKey": "present_employer", "label": "Present employer", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 67, "idString": "date_on_interaction", "fieldKey": "date_on_interaction", "label": "Date on interaction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 68, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 69, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 70, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "guestLectures", "idString": "guestLectures", "tableKey": "guestLectures", "title": "11. Guest lectures organized", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Name of the Resource person", "Designation and organization", "Date of conduction", "Topic", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 71, "idString": "name_of_the_resource_person", "fieldKey": "name_of_the_resource_person", "label": "Name of the Resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 72, "idString": "designation_and_organization", "fieldKey": "designation_and_organization", "label": "Designation and organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 73, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 74, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 75, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 76, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "professionalBodies", "idString": "professionalBodies", "tableKey": "professionalBodies", "title": "12. Student chapters of professional bodies", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Sr no", "Name of the Professional body / chapter / student club", "No of student members", "Date of event conduction", "Title of the event", "Link to relevant Proof"], "fields": [{"id": 77, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 78, "idString": "name_of_the_professional_body_chapter_student_club", "fieldKey": "name_of_the_professional_body_chapter_student_club", "label": "Name of the Professional body / chapter / student club", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 79, "idString": "no_of_student_members", "fieldKey": "no_of_student_members", "label": "No of student members", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 80, "idString": "date_of_event_conduction", "fieldKey": "date_of_event_conduction", "label": "Date of event conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 81, "idString": "title_of_the_event", "fieldKey": "title_of_the_event", "label": "Title of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 82, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "valueAddedCourses", "idString": "valueAddedCourses", "tableKey": "valueAddedCourses", "title": "13. Value added courses imparting transferable and life skills", "showTitle": true, "isRepeatable": true, "displayOrder": 13, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 83, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 84, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 85, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 86, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 87, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 88, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "careerGuidance", "idString": "careerGuidance", "tableKey": "careerGuidance", "title": "14. Guidance for competitive examinations and career counseling", "showTitle": true, "isRepeatable": true, "displayOrder": 14, "columns": ["Session details", "Resource person details", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 89, "idString": "session_details", "fieldKey": "session_details", "label": "Session details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 90, "idString": "resource_person_details", "fieldKey": "resource_person_details", "label": "Resource person details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 91, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 92, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 93, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "extensionActivities", "idString": "extensionActivities", "tableKey": "extensionActivities", "title": "15. Extension and outreach activities conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 15, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 94, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 95, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 96, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 97, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 98, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}]}]}, {"id": 4, "idString": "part-c-faculty-research", "sectionKey": "part-c-faculty-research", "title": "Part C - Faculty Development & Research Activities", "number": "C", "ownerRole": "director-schools", "displayOrder": 4, "fields": [{"id": 99, "idString": "foreignCollaborations", "fieldKey": "foreignCollaborations", "label": "(a) No. of foreign collaborations either in the form of publications / research", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 100, "idString": "nationalCollaborations", "fieldKey": "nationalCollaborations", "label": "(b) No. of collaborations with other national institutions", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 101, "idString": "functionalMousCount", "fieldKey": "functionalMousCount", "label": "No. of Functional MoUs", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [{"id": 23, "idString": "facultySpecialization", "tableKey": "facultySpecialization", "title": "1. Profile of the Teachers with qualifications and area of specialization", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name", "Designation", "Qualifications", "Specialization", "No. of Ph.D supervised"], "fields": [{"id": 102, "idString": "name", "fieldKey": "name", "label": "Name", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 103, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 104, "idString": "qualifications", "fieldKey": "qualifications", "label": "Qualifications", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 105, "idString": "specialization", "fieldKey": "specialization", "label": "Specialization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 106, "idString": "no_of_ph_d_supervised", "fieldKey": "no_of_ph_d_supervised", "label": "No. of Ph.D supervised", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}]}, {"id": 24, "idString": "researchPublications", "tableKey": "researchPublications", "title": "2. Research Publications in the Journals notified on UGC CARE list", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Title of paper", "Name of author(s)", "Name of Journal", "Year of Publication with Volume and Page numbers", "ISBN/ISSN", "Indicate UGC Approved Journal", "National/International Journal", "Impact Factor", "Link to relevant Proof"], "fields": [{"id": 107, "idString": "title_of_paper", "fieldKey": "title_of_paper", "label": "Title of paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 108, "idString": "name_of_author_s", "fieldKey": "name_of_author_s", "label": "Name of author(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 109, "idString": "name_of_journal", "fieldKey": "name_of_journal", "label": "Name of Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 110, "idString": "year_of_publication_with_volume_and_page_numbers", "fieldKey": "year_of_publication_with_volume_and_page_numbers", "label": "Year of Publication with Volume and Page numbers", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 111, "idString": "isbn_issn", "fieldKey": "isbn_issn", "label": "ISBN/ISSN", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 112, "idString": "indicate_ugc_approved_journal", "fieldKey": "indicate_ugc_approved_journal", "label": "Indicate UGC Approved Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 113, "idString": "national_international_journal", "fieldKey": "national_international_journal", "label": "National/International Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 114, "idString": "impact_factor", "fieldKey": "impact_factor", "label": "Impact Factor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 115, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 9}]}, {"id": 25, "idString": "booksChapters", "tableKey": "booksChapters", "title": "3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Name of the teacher", "Title of the book/chapters published", "Title of the paper", "Title of the proceedings of the conference", "Name of the conference", "National / international", "Year of publication", "ISBN/ISSN number", "Name of the publisher", "Link to relevant Proof"], "fields": [{"id": 116, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 117, "idString": "title_of_the_book_chapters_published", "fieldKey": "title_of_the_book_chapters_published", "label": "Title of the book/chapters published", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 118, "idString": "title_of_the_paper", "fieldKey": "title_of_the_paper", "label": "Title of the paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 119, "idString": "title_of_the_proceedings_of_the_conference", "fieldKey": "title_of_the_proceedings_of_the_conference", "label": "Title of the proceedings of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 120, "idString": "name_of_the_conference", "fieldKey": "name_of_the_conference", "label": "Name of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 121, "idString": "national_international", "fieldKey": "national_international", "label": "National / international", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 122, "idString": "year_of_publication", "fieldKey": "year_of_publication", "label": "Year of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 123, "idString": "isbn_issn_number", "fieldKey": "isbn_issn_number", "label": "ISBN/ISSN number", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 124, "idString": "name_of_the_publisher", "fieldKey": "name_of_the_publisher", "label": "Name of the publisher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 9}, {"id": 125, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 10}]}, {"id": 26, "idString": "corporateTraining", "tableKey": "corporateTraining", "title": "4. Revenue generated from corporate training by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of faculty", "Agency seeking / training", "Revenue generated", "Number of trainees", "Link to relevant Proof"], "fields": [{"id": 126, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 127, "idString": "agency_seeking_training", "fieldKey": "agency_seeking_training", "label": "Agency seeking / training", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 128, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 129, "idString": "number_of_trainees", "fieldKey": "number_of_trainees", "label": "Number of trainees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 130, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 27, "idString": "consultancy", "tableKey": "consultancy", "title": "5. Revenue generated from Consultancy by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the faculty", "Title of the consultancy project", "Consulting/Sponsoring Agency", "Revenue generated", "Link to relevant Proof"], "fields": [{"id": 131, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 132, "idString": "title_of_the_consultancy_project", "fieldKey": "title_of_the_consultancy_project", "label": "Title of the consultancy project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 133, "idString": "consulting_sponsoring_agency", "fieldKey": "consulting_sponsoring_agency", "label": "Consulting/Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 134, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 135, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 28, "idString": "researchFunds", "tableKey": "researchFunds", "title": "6. Research funds sanctioned and received from various agencies, industry and other organizations", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Name of the Project / Endowments / Chairs", "Name of the Principal Investigator", "Department of Principal Investigator", "Year of Award", "Funds provided", "Duration of the project", "Link to relevant Proof"], "fields": [{"id": 136, "idString": "name_of_the_project_endowments_chairs", "fieldKey": "name_of_the_project_endowments_chairs", "label": "Name of the Project / Endowments / Chairs", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 137, "idString": "name_of_the_principal_investigator", "fieldKey": "name_of_the_principal_investigator", "label": "Name of the Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 138, "idString": "department_of_principal_investigator", "fieldKey": "department_of_principal_investigator", "label": "Department of Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 139, "idString": "year_of_award", "fieldKey": "year_of_award", "label": "Year of Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 140, "idString": "funds_provided", "fieldKey": "funds_provided", "label": "Funds provided", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 141, "idString": "duration_of_the_project", "fieldKey": "duration_of_the_project", "label": "Duration of the project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 142, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 29, "idString": "eContents", "tableKey": "eContents", "title": "7. E-Contents developed", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Name of the teacher", "Name of the module", "Platform on which module is developed", "Date of launching e content", "Link to relevant Proof"], "fields": [{"id": 143, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 144, "idString": "name_of_the_module", "fieldKey": "name_of_the_module", "label": "Name of the module", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 145, "idString": "platform_on_which_module_is_developed", "fieldKey": "platform_on_which_module_is_developed", "label": "Platform on which module is developed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 146, "idString": "date_of_launching_e_content", "fieldKey": "date_of_launching_e_content", "label": "Date of launching e content", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 147, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 30, "idString": "teacherAwards", "tableKey": "teacherAwards", "title": "8. Teachers who received national / international fellowship / financial support", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Teacher", "National Awards", "International Awards", "Link to relevant Proof"], "fields": [{"id": 148, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the Teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 149, "idString": "national_awards", "fieldKey": "national_awards", "label": "National Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 150, "idString": "international_awards", "fieldKey": "international_awards", "label": "International Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 151, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}]}, {"id": 31, "idString": "patentsCopyrights", "tableKey": "patentsCopyrights", "title": "Number of Patents / copyright filed / published / awarded", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Sr. No", "Name of Faculty / Student", "Application No", "Title of Patent / Copyright", "Date of filing", "Date of publication", "Date of award", "Link to relevant Proof"], "fields": [{"id": 152, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 153, "idString": "name_of_faculty_student", "fieldKey": "name_of_faculty_student", "label": "Name of Faculty / Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 154, "idString": "application_no", "fieldKey": "application_no", "label": "Application No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 155, "idString": "title_of_patent_copyright", "fieldKey": "title_of_patent_copyright", "label": "Title of Patent / Copyright", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 156, "idString": "date_of_filing", "fieldKey": "date_of_filing", "label": "Date of filing", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 157, "idString": "date_of_publication", "fieldKey": "date_of_publication", "label": "Date of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 158, "idString": "date_of_award", "fieldKey": "date_of_award", "label": "Date of award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 159, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": 32, "idString": "fdpOrganized", "tableKey": "fdpOrganized", "title": "9. Details of seminar / symposia / conference / refresher course / training programmes organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Sl. No", "Name of Convener/Coordinator", "Title of seminar/course", "Sponsoring Agency", "Duration with dates", "No. of internal and external participants", "Proceedings published Yes/No", "Link to relevant Proof"], "fields": [{"id": 160, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 161, "idString": "name_of_convener_coordinator", "fieldKey": "name_of_convener_coordinator", "label": "Name of Convener/Coordinator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 162, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 163, "idString": "sponsoring_agency", "fieldKey": "sponsoring_agency", "label": "Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 164, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 165, "idString": "no_of_internal_and_external_participants", "fieldKey": "no_of_internal_and_external_participants", "label": "No. of internal and external participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 166, "idString": "proceedings_published_yes_no", "fieldKey": "proceedings_published_yes_no", "label": "Proceedings published Yes/No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 167, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": 33, "idString": "fdpAttended", "tableKey": "fdpAttended", "title": "Details of seminar / symposia / conference / refresher course / training programmes attended by faculty", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Sl. No", "Name of Faculty", "Title of seminar/course", "Sponsoring Agency / organization", "Duration with dates", "Date", "Link to relevant Proof"], "fields": [{"id": 168, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 169, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 170, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 171, "idString": "sponsoring_agency_organization", "fieldKey": "sponsoring_agency_organization", "label": "Sponsoring Agency / organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 172, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 173, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 174, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 34, "idString": "functionalMous", "tableKey": "functionalMous", "title": "11. Functional MoUs", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Name of the Organization / Institution / Industry with whom MoU is signed", "Year of signing MoU", "Duration of MoU", "List the actual activities under each MoU", "Link to relevant Proof"], "fields": [{"id": 175, "idString": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "fieldKey": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "label": "Name of the Organization / Institution / Industry with whom MoU is signed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 176, "idString": "year_of_signing_mou", "fieldKey": "year_of_signing_mou", "label": "Year of signing MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 177, "idString": "duration_of_mou", "fieldKey": "duration_of_mou", "label": "Duration of MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 178, "idString": "list_the_actual_activities_under_each_mou", "fieldKey": "list_the_actual_activities_under_each_mou", "label": "List the actual activities under each MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 179, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}], "blocks": [{"type": "tables", "tables": [{"id": "facultySpecialization", "idString": "facultySpecialization", "tableKey": "facultySpecialization", "title": "1. Profile of the Teachers with qualifications and area of specialization", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name", "Designation", "Qualifications", "Specialization", "No. of Ph.D supervised"], "fields": [{"id": 102, "idString": "name", "fieldKey": "name", "label": "Name", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 103, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 104, "idString": "qualifications", "fieldKey": "qualifications", "label": "Qualifications", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 105, "idString": "specialization", "fieldKey": "specialization", "label": "Specialization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 106, "idString": "no_of_ph_d_supervised", "fieldKey": "no_of_ph_d_supervised", "label": "No. of Ph.D supervised", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}]}, {"id": "researchPublications", "idString": "researchPublications", "tableKey": "researchPublications", "title": "2. Research Publications in the Journals notified on UGC CARE list", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Title of paper", "Name of author(s)", "Name of Journal", "Year of Publication with Volume and Page numbers", "ISBN/ISSN", "Indicate UGC Approved Journal", "National/International Journal", "Impact Factor", "Link to relevant Proof"], "fields": [{"id": 107, "idString": "title_of_paper", "fieldKey": "title_of_paper", "label": "Title of paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 108, "idString": "name_of_author_s", "fieldKey": "name_of_author_s", "label": "Name of author(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 109, "idString": "name_of_journal", "fieldKey": "name_of_journal", "label": "Name of Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 110, "idString": "year_of_publication_with_volume_and_page_numbers", "fieldKey": "year_of_publication_with_volume_and_page_numbers", "label": "Year of Publication with Volume and Page numbers", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 111, "idString": "isbn_issn", "fieldKey": "isbn_issn", "label": "ISBN/ISSN", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 112, "idString": "indicate_ugc_approved_journal", "fieldKey": "indicate_ugc_approved_journal", "label": "Indicate UGC Approved Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 113, "idString": "national_international_journal", "fieldKey": "national_international_journal", "label": "National/International Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 114, "idString": "impact_factor", "fieldKey": "impact_factor", "label": "Impact Factor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 115, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 9}]}, {"id": "booksChapters", "idString": "booksChapters", "tableKey": "booksChapters", "title": "3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Name of the teacher", "Title of the book/chapters published", "Title of the paper", "Title of the proceedings of the conference", "Name of the conference", "National / international", "Year of publication", "ISBN/ISSN number", "Name of the publisher", "Link to relevant Proof"], "fields": [{"id": 116, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 117, "idString": "title_of_the_book_chapters_published", "fieldKey": "title_of_the_book_chapters_published", "label": "Title of the book/chapters published", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 118, "idString": "title_of_the_paper", "fieldKey": "title_of_the_paper", "label": "Title of the paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 119, "idString": "title_of_the_proceedings_of_the_conference", "fieldKey": "title_of_the_proceedings_of_the_conference", "label": "Title of the proceedings of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 120, "idString": "name_of_the_conference", "fieldKey": "name_of_the_conference", "label": "Name of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 121, "idString": "national_international", "fieldKey": "national_international", "label": "National / international", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 122, "idString": "year_of_publication", "fieldKey": "year_of_publication", "label": "Year of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 123, "idString": "isbn_issn_number", "fieldKey": "isbn_issn_number", "label": "ISBN/ISSN number", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 124, "idString": "name_of_the_publisher", "fieldKey": "name_of_the_publisher", "label": "Name of the publisher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 9}, {"id": 125, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 10}]}, {"id": "corporateTraining", "idString": "corporateTraining", "tableKey": "corporateTraining", "title": "4. Revenue generated from corporate training by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of faculty", "Agency seeking / training", "Revenue generated", "Number of trainees", "Link to relevant Proof"], "fields": [{"id": 126, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 127, "idString": "agency_seeking_training", "fieldKey": "agency_seeking_training", "label": "Agency seeking / training", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 128, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 129, "idString": "number_of_trainees", "fieldKey": "number_of_trainees", "label": "Number of trainees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 130, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "consultancy", "idString": "consultancy", "tableKey": "consultancy", "title": "5. Revenue generated from Consultancy by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the faculty", "Title of the consultancy project", "Consulting/Sponsoring Agency", "Revenue generated", "Link to relevant Proof"], "fields": [{"id": 131, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 132, "idString": "title_of_the_consultancy_project", "fieldKey": "title_of_the_consultancy_project", "label": "Title of the consultancy project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 133, "idString": "consulting_sponsoring_agency", "fieldKey": "consulting_sponsoring_agency", "label": "Consulting/Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 134, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 135, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "researchFunds", "idString": "researchFunds", "tableKey": "researchFunds", "title": "6. Research funds sanctioned and received from various agencies, industry and other organizations", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Name of the Project / Endowments / Chairs", "Name of the Principal Investigator", "Department of Principal Investigator", "Year of Award", "Funds provided", "Duration of the project", "Link to relevant Proof"], "fields": [{"id": 136, "idString": "name_of_the_project_endowments_chairs", "fieldKey": "name_of_the_project_endowments_chairs", "label": "Name of the Project / Endowments / Chairs", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 137, "idString": "name_of_the_principal_investigator", "fieldKey": "name_of_the_principal_investigator", "label": "Name of the Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 138, "idString": "department_of_principal_investigator", "fieldKey": "department_of_principal_investigator", "label": "Department of Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 139, "idString": "year_of_award", "fieldKey": "year_of_award", "label": "Year of Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 140, "idString": "funds_provided", "fieldKey": "funds_provided", "label": "Funds provided", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 141, "idString": "duration_of_the_project", "fieldKey": "duration_of_the_project", "label": "Duration of the project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 142, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "eContents", "idString": "eContents", "tableKey": "eContents", "title": "7. E-Contents developed", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Name of the teacher", "Name of the module", "Platform on which module is developed", "Date of launching e content", "Link to relevant Proof"], "fields": [{"id": 143, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 144, "idString": "name_of_the_module", "fieldKey": "name_of_the_module", "label": "Name of the module", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 145, "idString": "platform_on_which_module_is_developed", "fieldKey": "platform_on_which_module_is_developed", "label": "Platform on which module is developed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 146, "idString": "date_of_launching_e_content", "fieldKey": "date_of_launching_e_content", "label": "Date of launching e content", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 147, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "teacherAwards", "idString": "teacherAwards", "tableKey": "teacherAwards", "title": "8. Teachers who received national / international fellowship / financial support", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Teacher", "National Awards", "International Awards", "Link to relevant Proof"], "fields": [{"id": 148, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the Teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 149, "idString": "national_awards", "fieldKey": "national_awards", "label": "National Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 150, "idString": "international_awards", "fieldKey": "international_awards", "label": "International Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 151, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}]}, {"id": "patentsCopyrights", "idString": "patentsCopyrights", "tableKey": "patentsCopyrights", "title": "Number of Patents / copyright filed / published / awarded", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Sr. No", "Name of Faculty / Student", "Application No", "Title of Patent / Copyright", "Date of filing", "Date of publication", "Date of award", "Link to relevant Proof"], "fields": [{"id": 152, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 153, "idString": "name_of_faculty_student", "fieldKey": "name_of_faculty_student", "label": "Name of Faculty / Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 154, "idString": "application_no", "fieldKey": "application_no", "label": "Application No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 155, "idString": "title_of_patent_copyright", "fieldKey": "title_of_patent_copyright", "label": "Title of Patent / Copyright", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 156, "idString": "date_of_filing", "fieldKey": "date_of_filing", "label": "Date of filing", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 157, "idString": "date_of_publication", "fieldKey": "date_of_publication", "label": "Date of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 158, "idString": "date_of_award", "fieldKey": "date_of_award", "label": "Date of award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 159, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": "fdpOrganized", "idString": "fdpOrganized", "tableKey": "fdpOrganized", "title": "9. Details of seminar / symposia / conference / refresher course / training programmes organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Sl. No", "Name of Convener/Coordinator", "Title of seminar/course", "Sponsoring Agency", "Duration with dates", "No. of internal and external participants", "Proceedings published Yes/No", "Link to relevant Proof"], "fields": [{"id": 160, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 161, "idString": "name_of_convener_coordinator", "fieldKey": "name_of_convener_coordinator", "label": "Name of Convener/Coordinator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 162, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 163, "idString": "sponsoring_agency", "fieldKey": "sponsoring_agency", "label": "Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 164, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 165, "idString": "no_of_internal_and_external_participants", "fieldKey": "no_of_internal_and_external_participants", "label": "No. of internal and external participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 166, "idString": "proceedings_published_yes_no", "fieldKey": "proceedings_published_yes_no", "label": "Proceedings published Yes/No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 167, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": "fdpAttended", "idString": "fdpAttended", "tableKey": "fdpAttended", "title": "Details of seminar / symposia / conference / refresher course / training programmes attended by faculty", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Sl. No", "Name of Faculty", "Title of seminar/course", "Sponsoring Agency / organization", "Duration with dates", "Date", "Link to relevant Proof"], "fields": [{"id": 168, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 169, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 170, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 171, "idString": "sponsoring_agency_organization", "fieldKey": "sponsoring_agency_organization", "label": "Sponsoring Agency / organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 172, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 173, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 174, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}]}, {"type": "fields", "fields": [{"id": "collabHeading", "kind": "heading", "label": "10. Collaborations"}, {"id": "foreignCollaborations", "idString": "foreignCollaborations", "fieldKey": "foreignCollaborations", "label": "(a) No. of foreign collaborations either in the form of publications / research", "fieldType": "TEXTAREA"}, {"id": "nationalCollaborations", "idString": "nationalCollaborations", "fieldKey": "nationalCollaborations", "label": "(b) No. of collaborations with other national institutions", "fieldType": "TEXTAREA"}, {"id": "mouHeading", "kind": "heading", "label": "11. Functional MoUs"}, {"id": "functionalMousCount", "idString": "functionalMousCount", "fieldKey": "functionalMousCount", "label": "No. of Functional MoUs", "fieldType": "TEXT"}]}, {"type": "tables", "tables": [{"id": "functionalMous", "idString": "functionalMous", "tableKey": "functionalMous", "title": "11. Functional MoUs", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Name of the Organization / Institution / Industry with whom MoU is signed", "Year of signing MoU", "Duration of MoU", "List the actual activities under each MoU", "Link to relevant Proof"], "fields": [{"id": 175, "idString": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "fieldKey": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "label": "Name of the Organization / Institution / Industry with whom MoU is signed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 176, "idString": "year_of_signing_mou", "fieldKey": "year_of_signing_mou", "label": "Year of signing MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 177, "idString": "duration_of_mou", "fieldKey": "duration_of_mou", "label": "Duration of MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 178, "idString": "list_the_actual_activities_under_each_mou", "fieldKey": "list_the_actual_activities_under_each_mou", "label": "List the actual activities under each MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 179, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}]}]}, {"id": 5, "idString": "part-d-swoc", "sectionKey": "part-d-swoc", "title": "Part D - SWOC Analysis", "number": "D", "ownerRole": "director-schools", "displayOrder": 5, "fields": [], "tables": [{"id": 35, "idString": "swocStrength", "tableKey": "swocStrength", "title": "Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Details"], "fields": [{"id": 180, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 36, "idString": "swocWeaknesses", "tableKey": "swocWeaknesses", "title": "Weaknesses", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Details"], "fields": [{"id": 181, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 37, "idString": "swocOpportunities", "tableKey": "swocOpportunities", "title": "Opportunities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Details"], "fields": [{"id": 182, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 38, "idString": "swocChallenges", "tableKey": "swocChallenges", "title": "Challenges", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Details"], "fields": [{"id": 183, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 39, "idString": "swocOtherInformation", "tableKey": "swocOtherInformation", "title": "Any other information, which is not covered above", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Details"], "fields": [{"id": 184, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}], "blocks": [{"type": "tables", "tables": [{"id": "swocStrength", "idString": "swocStrength", "tableKey": "swocStrength", "title": "Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Details"], "fields": [{"id": 180, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocWeaknesses", "idString": "swocWeaknesses", "tableKey": "swocWeaknesses", "title": "Weaknesses", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Details"], "fields": [{"id": 181, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocOpportunities", "idString": "swocOpportunities", "tableKey": "swocOpportunities", "title": "Opportunities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Details"], "fields": [{"id": 182, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocChallenges", "idString": "swocChallenges", "tableKey": "swocChallenges", "title": "Challenges", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Details"], "fields": [{"id": 183, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocOtherInformation", "idString": "swocOtherInformation", "tableKey": "swocOtherInformation", "title": "Any other information, which is not covered above", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Details"], "fields": [{"id": 184, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}]}]}, {"id": 6, "idString": "part-e-observations", "sectionKey": "part-e-observations", "title": "Part E - Observations & Recommendations of the Audit", "number": "E", "ownerRole": "auditor", "displayOrder": 6, "fields": [{"id": 185, "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 186, "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 187, "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [], "blocks": [{"type": "fields", "fields": [{"id": "auditObservations", "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "auditRecommendations", "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "auditDocumentation", "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}]}]}]}', 'system-provision', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 2, 1, 'PUBLISHED', '2025-26', 'Internal Administrative Audit', 'registrar', '{"id": "administrative-audit-2025-26", "schemaId": 2, "versionId": 2, "versionNumber": 1, "auditType": "administrative", "title": "Internal Administrative Audit", "academicYear": "2025-26", "ownerRole": "registrar", "status": "PUBLISHED", "header": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png"}, "universityInfo": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png", "code": "dypiu", "slug": "dypiu", "domain": "dypiu.ac.in", "primaryColor": "#1e3a8a"}, "sections": [{"id": 7, "idString": "section-a-university-information", "sectionKey": "section-a-university-information", "title": "Section A - University Information", "number": "A", "ownerRole": "registrar", "displayOrder": 1, "fields": [{"id": 188, "idString": "universityName", "fieldKey": "universityName", "label": "Name of the University", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 189, "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 190, "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 191, "idString": "pinCode", "fieldKey": "pinCode", "label": "Pin Code", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 192, "idString": "website", "fieldKey": "website", "label": "Website", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": 193, "idString": "viceChancellor", "fieldKey": "viceChancellor", "label": "Name of the Vice Chancellor", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": 194, "idString": "vcEmail", "fieldKey": "vcEmail", "label": "Vice Chancellor e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": 195, "idString": "registrar", "fieldKey": "registrar", "label": "Name of Registrar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}, {"id": 196, "idString": "registrarEmail", "fieldKey": "registrarEmail", "label": "Registrar e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 9}, {"id": 197, "idString": "accreditation", "fieldKey": "accreditation", "label": "Accreditation status & Agency", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 10}], "tables": [{"id": 40, "idString": "coursesOffered", "tableKey": "coursesOffered", "title": "1. Courses Offered", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name of the Program", "Level (UG/PG)", "Intake", "No. of Students Admitted", "Year of Commencement of the program", "Attachment (Attach List of the Students)"], "fields": [{"id": 198, "idString": "name_of_the_program", "fieldKey": "name_of_the_program", "label": "Name of the Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 199, "idString": "level_ug_pg", "fieldKey": "level_ug_pg", "label": "Level (UG/PG)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 200, "idString": "intake", "fieldKey": "intake", "label": "Intake", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 201, "idString": "no_of_students_admitted", "fieldKey": "no_of_students_admitted", "label": "No. of Students Admitted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 202, "idString": "year_of_commencement_of_the_program", "fieldKey": "year_of_commencement_of_the_program", "label": "Year of Commencement of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 203, "idString": "attachment_attach_list_of_the_students", "fieldKey": "attachment_attach_list_of_the_students", "label": "Attachment (Attach List of the Students)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 41, "idString": "studentStatistics", "tableKey": "studentStatistics", "title": "2. Total Number of Students in the university", "showTitle": true, "isRepeatable": false, "displayOrder": 2, "columns": ["Category", "U.G.", "P.G.", "Ph.D.", "Value added / skill Courses"], "fields": [{"id": 204, "idString": "category", "fieldKey": "category", "label": "Category", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 205, "idString": "u_g", "fieldKey": "u_g", "label": "U.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 206, "idString": "p_g", "fieldKey": "p_g", "label": "P.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 207, "idString": "ph_d", "fieldKey": "ph_d", "label": "Ph.D.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 208, "idString": "value_added_skill_courses", "fieldKey": "value_added_skill_courses", "label": "Value added / skill Courses", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}], "initialRows": [{"Sr No": "1", "Category": "SC"}, {"Sr No": "2", "Category": "ST"}, {"Sr No": "3", "Category": "OBC"}, {"Sr No": "4", "Category": "General"}], "selectOptions": {"Category": ["SC", "ST", "OBC", "General"]}}, {"id": 42, "idString": "statutoryBodies", "tableKey": "statutoryBodies", "title": "3. Statutory Body Meetings and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Body / Cell", "Meetings Conducted", "ATR Status", "Remarks / Link"], "fields": [{"id": 209, "idString": "body_cell", "fieldKey": "body_cell", "label": "Body / Cell", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 210, "idString": "meetings_conducted", "fieldKey": "meetings_conducted", "label": "Meetings Conducted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 211, "idString": "atr_status", "fieldKey": "atr_status", "label": "ATR Status", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 212, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Body / Cell": "Governing Body"}, {"Sr No": "2", "Body / Cell": "Board of Management"}, {"Sr No": "3", "Body / Cell": "Academic Council"}, {"Sr No": "4", "Body / Cell": "Finance Committee"}, {"Sr No": "5", "Body / Cell": "ICC"}, {"Sr No": "6", "Body / Cell": "Student Grievance Cell"}, {"Sr No": "7", "Body / Cell": "Faculty / Staff Grievance Cell"}, {"Sr No": "8", "Body / Cell": "Anti Ragging Committee"}, {"Sr No": "9", "Body / Cell": "Equal opportunity Cell"}, {"Sr No": "10", "Body / Cell": "IQAC"}, {"Sr No": "11", "Body / Cell": "Any Other Body / Cell"}]}, {"id": 43, "idString": "auditRecords", "tableKey": "auditRecords", "title": "4. Audits Completed", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Audit Type", "Completed Yes / No", "Date", "Remarks / Link"], "fields": [{"id": 213, "idString": "audit_type", "fieldKey": "audit_type", "label": "Audit Type", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 214, "idString": "completed_yes_no", "fieldKey": "completed_yes_no", "label": "Completed Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 215, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 216, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Audit Type": "Financial Audit"}, {"Sr No": "2", "Audit Type": "Energy Audit"}, {"Sr No": "3", "Audit Type": "Environmental Audit"}, {"Sr No": "4", "Audit Type": "Green Audit"}, {"Sr No": "5", "Audit Type": "Gender Audit"}, {"Sr No": "6", "Audit Type": "Academic and Administrative Audit"}]}, {"id": 44, "idString": "scholarshipSummary", "tableKey": "scholarshipSummary", "title": "5. Scholarship Details", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Year", "Title of Scholarship", "Number of the Students", "Amount received", "Awarding Agency", "Awarding Organization", "Attachment"], "fields": [{"id": 217, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 218, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 219, "idString": "number_of_the_students", "fieldKey": "number_of_the_students", "label": "Number of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 220, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 221, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 222, "idString": "awarding_organization", "fieldKey": "awarding_organization", "label": "Awarding Organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 223, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 45, "idString": "scholarshipStudents", "tableKey": "scholarshipStudents", "title": "6. Scholarship Student Details", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Year", "Title of Scholarship", "Name of the Students", "Amount received", "Awarding Agency", "Attachment"], "fields": [{"id": 224, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 225, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 226, "idString": "name_of_the_students", "fieldKey": "name_of_the_students", "label": "Name of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 227, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 228, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 229, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "fields", "fields": [{"id": "universityName", "idString": "universityName", "fieldKey": "universityName", "label": "Name of the University", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "establishmentYear", "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "address", "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "pinCode", "idString": "pinCode", "fieldKey": "pinCode", "label": "Pin Code", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "website", "idString": "website", "fieldKey": "website", "label": "Website", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": "viceChancellor", "idString": "viceChancellor", "fieldKey": "viceChancellor", "label": "Name of the Vice Chancellor", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": "vcEmail", "idString": "vcEmail", "fieldKey": "vcEmail", "label": "Vice Chancellor e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": "registrar", "idString": "registrar", "fieldKey": "registrar", "label": "Name of Registrar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}, {"id": "registrarEmail", "idString": "registrarEmail", "fieldKey": "registrarEmail", "label": "Registrar e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 9}, {"id": "accreditation", "idString": "accreditation", "fieldKey": "accreditation", "label": "Accreditation status & Agency", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 10}]}, {"type": "tables", "tables": [{"id": "coursesOffered", "idString": "coursesOffered", "tableKey": "coursesOffered", "title": "1. Courses Offered", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name of the Program", "Level (UG/PG)", "Intake", "No. of Students Admitted", "Year of Commencement of the program", "Attachment (Attach List of the Students)"], "fields": [{"id": 198, "idString": "name_of_the_program", "fieldKey": "name_of_the_program", "label": "Name of the Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 199, "idString": "level_ug_pg", "fieldKey": "level_ug_pg", "label": "Level (UG/PG)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 200, "idString": "intake", "fieldKey": "intake", "label": "Intake", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 201, "idString": "no_of_students_admitted", "fieldKey": "no_of_students_admitted", "label": "No. of Students Admitted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 202, "idString": "year_of_commencement_of_the_program", "fieldKey": "year_of_commencement_of_the_program", "label": "Year of Commencement of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 203, "idString": "attachment_attach_list_of_the_students", "fieldKey": "attachment_attach_list_of_the_students", "label": "Attachment (Attach List of the Students)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "studentStatistics", "idString": "studentStatistics", "tableKey": "studentStatistics", "title": "2. Total Number of Students in the university", "showTitle": true, "isRepeatable": false, "displayOrder": 2, "columns": ["Category", "U.G.", "P.G.", "Ph.D.", "Value added / skill Courses"], "fields": [{"id": 204, "idString": "category", "fieldKey": "category", "label": "Category", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 205, "idString": "u_g", "fieldKey": "u_g", "label": "U.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 206, "idString": "p_g", "fieldKey": "p_g", "label": "P.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 207, "idString": "ph_d", "fieldKey": "ph_d", "label": "Ph.D.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 208, "idString": "value_added_skill_courses", "fieldKey": "value_added_skill_courses", "label": "Value added / skill Courses", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}], "initialRows": [{"Sr No": "1", "Category": "SC"}, {"Sr No": "2", "Category": "ST"}, {"Sr No": "3", "Category": "OBC"}, {"Sr No": "4", "Category": "General"}], "selectOptions": {"Category": ["SC", "ST", "OBC", "General"]}}, {"id": "statutoryBodies", "idString": "statutoryBodies", "tableKey": "statutoryBodies", "title": "3. Statutory Body Meetings and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Body / Cell", "Meetings Conducted", "ATR Status", "Remarks / Link"], "fields": [{"id": 209, "idString": "body_cell", "fieldKey": "body_cell", "label": "Body / Cell", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 210, "idString": "meetings_conducted", "fieldKey": "meetings_conducted", "label": "Meetings Conducted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 211, "idString": "atr_status", "fieldKey": "atr_status", "label": "ATR Status", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 212, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Body / Cell": "Governing Body"}, {"Sr No": "2", "Body / Cell": "Board of Management"}, {"Sr No": "3", "Body / Cell": "Academic Council"}, {"Sr No": "4", "Body / Cell": "Finance Committee"}, {"Sr No": "5", "Body / Cell": "ICC"}, {"Sr No": "6", "Body / Cell": "Student Grievance Cell"}, {"Sr No": "7", "Body / Cell": "Faculty / Staff Grievance Cell"}, {"Sr No": "8", "Body / Cell": "Anti Ragging Committee"}, {"Sr No": "9", "Body / Cell": "Equal opportunity Cell"}, {"Sr No": "10", "Body / Cell": "IQAC"}, {"Sr No": "11", "Body / Cell": "Any Other Body / Cell"}]}, {"id": "auditRecords", "idString": "auditRecords", "tableKey": "auditRecords", "title": "4. Audits Completed", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Audit Type", "Completed Yes / No", "Date", "Remarks / Link"], "fields": [{"id": 213, "idString": "audit_type", "fieldKey": "audit_type", "label": "Audit Type", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 214, "idString": "completed_yes_no", "fieldKey": "completed_yes_no", "label": "Completed Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 215, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 216, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Audit Type": "Financial Audit"}, {"Sr No": "2", "Audit Type": "Energy Audit"}, {"Sr No": "3", "Audit Type": "Environmental Audit"}, {"Sr No": "4", "Audit Type": "Green Audit"}, {"Sr No": "5", "Audit Type": "Gender Audit"}, {"Sr No": "6", "Audit Type": "Academic and Administrative Audit"}]}, {"id": "scholarshipSummary", "idString": "scholarshipSummary", "tableKey": "scholarshipSummary", "title": "5. Scholarship Details", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Year", "Title of Scholarship", "Number of the Students", "Amount received", "Awarding Agency", "Awarding Organization", "Attachment"], "fields": [{"id": 217, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 218, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 219, "idString": "number_of_the_students", "fieldKey": "number_of_the_students", "label": "Number of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 220, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 221, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 222, "idString": "awarding_organization", "fieldKey": "awarding_organization", "label": "Awarding Organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 223, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "scholarshipStudents", "idString": "scholarshipStudents", "tableKey": "scholarshipStudents", "title": "6. Scholarship Student Details", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Year", "Title of Scholarship", "Name of the Students", "Amount received", "Awarding Agency", "Attachment"], "fields": [{"id": 224, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 225, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 226, "idString": "name_of_the_students", "fieldKey": "name_of_the_students", "label": "Name of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 227, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 228, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 229, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 8, "idString": "section-b-faculty-staff-details", "sectionKey": "section-b-faculty-staff-details", "title": "Section B - Faculty and Staff Details", "number": "B", "ownerRole": "hr", "displayOrder": 2, "fields": [{"id": 230, "idString": "bogMomSanctionedPostsAttachment", "fieldKey": "bogMomSanctionedPostsAttachment", "label": "BoG MoM Extract showing Sanctioned Posts", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 231, "idString": "phdQualification", "fieldKey": "phdQualification", "label": "(a)(i) Faculty members with Ph.D qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 232, "idString": "pgQualification", "fieldKey": "pgQualification", "label": "(a)(ii) Post Graduation Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 233, "idString": "otherQualification", "fieldKey": "otherQualification", "label": "(a)(iii) Any Other Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 234, "idString": "studentFacultyRatio", "fieldKey": "studentFacultyRatio", "label": "(b) Student Faculty Ratio", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}], "tables": [{"id": 46, "idString": "facultyInformation", "tableKey": "facultyInformation", "title": "Faculty Information", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Cadre", "Required", "Regular", "Contract"], "fields": [{"id": 235, "idString": "cadre", "fieldKey": "cadre", "label": "Cadre", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 236, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 237, "idString": "regular", "fieldKey": "regular", "label": "Regular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 238, "idString": "contract", "fieldKey": "contract", "label": "Contract", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Cadre": "Professors"}, {"Sr No": "2", "Cadre": "Associate Professors"}, {"Sr No": "3", "Cadre": "Assistant Professor"}, {"Sr No": "4", "Cadre": "Total"}], "selectOptions": {"Cadre": ["Professor", "Associate Professor", "Assistant Professor"]}}, {"id": 47, "idString": "facultyTenure", "tableKey": "facultyTenure", "title": "(c) Teaching Experience of the Faculty in DYPIU", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Tenure", "No. of Faculty"], "fields": [{"id": 239, "idString": "tenure", "fieldKey": "tenure", "label": "Tenure", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 240, "idString": "no_of_faculty", "fieldKey": "no_of_faculty", "label": "No. of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Tenure": "More than 5 Years"}, {"Sr No": "2", "Tenure": "Between 3 to 5 Years"}, {"Sr No": "3", "Tenure": "Between 1 to 3 Years"}, {"Sr No": "4", "Tenure": "Below 1 Year"}]}, {"id": 48, "idString": "facultyExperience", "tableKey": "facultyExperience", "title": "(d) Consolidated Experience of the teaching faculty considering outside experience", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["S.No", "Name of the Faculty", "Designation", "Highest Qualification", "Date of Joining", "Experience in DYPIU", "Experience before joining DYPIU (Teaching)", "Total Experience"], "fields": [{"id": 241, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 242, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 243, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 244, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 245, "idString": "date_of_joining", "fieldKey": "date_of_joining", "label": "Date of Joining", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 246, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 247, "idString": "experience_before_joining_dypiu_teaching", "fieldKey": "experience_before_joining_dypiu_teaching", "label": "Experience before joining DYPIU (Teaching)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 248, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": 49, "idString": "supportingStaff", "tableKey": "supportingStaff", "title": "Details of Admin and Supporting Staff", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["S.No", "Name of the Supporting Staff", "Designation", "Highest Qualification", "Date of Joining in DYPIU", "Experience in DYPIU", "Experience before joining DYPIU", "Total Experience"], "fields": [{"id": 249, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 250, "idString": "name_of_the_supporting_staff", "fieldKey": "name_of_the_supporting_staff", "label": "Name of the Supporting Staff", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 251, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 252, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 253, "idString": "date_of_joining_in_dypiu", "fieldKey": "date_of_joining_in_dypiu", "label": "Date of Joining in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 254, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 255, "idString": "experience_before_joining_dypiu", "fieldKey": "experience_before_joining_dypiu", "label": "Experience before joining DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 256, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": 50, "idString": "staffTraining", "tableKey": "staffTraining", "title": "Administrative training / professional development program organized for non-teaching staff", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Attachment (Report of the Event)"], "fields": [{"id": 257, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 258, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 259, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 260, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 261, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 262, "idString": "attachment_report_of_the_event", "fieldKey": "attachment_report_of_the_event", "label": "Attachment (Report of the Event)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "tables", "tables": [{"id": "facultyInformation", "idString": "facultyInformation", "tableKey": "facultyInformation", "title": "Faculty Information", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Cadre", "Required", "Regular", "Contract"], "fields": [{"id": 235, "idString": "cadre", "fieldKey": "cadre", "label": "Cadre", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 236, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 237, "idString": "regular", "fieldKey": "regular", "label": "Regular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 238, "idString": "contract", "fieldKey": "contract", "label": "Contract", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Cadre": "Professors"}, {"Sr No": "2", "Cadre": "Associate Professors"}, {"Sr No": "3", "Cadre": "Assistant Professor"}, {"Sr No": "4", "Cadre": "Total"}], "selectOptions": {"Cadre": ["Professor", "Associate Professor", "Assistant Professor"]}}]}, {"type": "attachment-field", "id": "bogMomSanctionedPostsAttachment", "label": "BoG MoM Extract showing Sanctioned Posts"}, {"type": "fields", "fields": [{"id": "phdQualification", "idString": "phdQualification", "fieldKey": "phdQualification", "label": "(a)(i) Faculty members with Ph.D qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "pgQualification", "idString": "pgQualification", "fieldKey": "pgQualification", "label": "(a)(ii) Post Graduation Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "otherQualification", "idString": "otherQualification", "fieldKey": "otherQualification", "label": "(a)(iii) Any Other Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "studentFacultyRatio", "idString": "studentFacultyRatio", "fieldKey": "studentFacultyRatio", "label": "(b) Student Faculty Ratio", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}]}, {"type": "tables", "tables": [{"id": "facultyTenure", "idString": "facultyTenure", "tableKey": "facultyTenure", "title": "(c) Teaching Experience of the Faculty in DYPIU", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Tenure", "No. of Faculty"], "fields": [{"id": 239, "idString": "tenure", "fieldKey": "tenure", "label": "Tenure", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 240, "idString": "no_of_faculty", "fieldKey": "no_of_faculty", "label": "No. of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Tenure": "More than 5 Years"}, {"Sr No": "2", "Tenure": "Between 3 to 5 Years"}, {"Sr No": "3", "Tenure": "Between 1 to 3 Years"}, {"Sr No": "4", "Tenure": "Below 1 Year"}]}, {"id": "facultyExperience", "idString": "facultyExperience", "tableKey": "facultyExperience", "title": "(d) Consolidated Experience of the teaching faculty considering outside experience", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["S.No", "Name of the Faculty", "Designation", "Highest Qualification", "Date of Joining", "Experience in DYPIU", "Experience before joining DYPIU (Teaching)", "Total Experience"], "fields": [{"id": 241, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 242, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 243, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 244, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 245, "idString": "date_of_joining", "fieldKey": "date_of_joining", "label": "Date of Joining", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 246, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 247, "idString": "experience_before_joining_dypiu_teaching", "fieldKey": "experience_before_joining_dypiu_teaching", "label": "Experience before joining DYPIU (Teaching)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 248, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": "supportingStaff", "idString": "supportingStaff", "tableKey": "supportingStaff", "title": "Details of Admin and Supporting Staff", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["S.No", "Name of the Supporting Staff", "Designation", "Highest Qualification", "Date of Joining in DYPIU", "Experience in DYPIU", "Experience before joining DYPIU", "Total Experience"], "fields": [{"id": 249, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 250, "idString": "name_of_the_supporting_staff", "fieldKey": "name_of_the_supporting_staff", "label": "Name of the Supporting Staff", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 251, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 252, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 253, "idString": "date_of_joining_in_dypiu", "fieldKey": "date_of_joining_in_dypiu", "label": "Date of Joining in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 254, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 255, "idString": "experience_before_joining_dypiu", "fieldKey": "experience_before_joining_dypiu", "label": "Experience before joining DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 256, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": "staffTraining", "idString": "staffTraining", "tableKey": "staffTraining", "title": "Administrative training / professional development program organized for non-teaching staff", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Attachment (Report of the Event)"], "fields": [{"id": 257, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 258, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 259, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 260, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 261, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 262, "idString": "attachment_report_of_the_event", "fieldKey": "attachment_report_of_the_event", "label": "Attachment (Report of the Event)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 9, "idString": "section-c-infrastructure-details", "sectionKey": "section-c-infrastructure-details", "title": "Section C - Infrastructure Details", "number": "C", "ownerRole": "registrar", "displayOrder": 3, "fields": [], "tables": [{"id": 51, "idString": "buildingInfrastructure", "tableKey": "buildingInfrastructure", "title": "1. Building Infrastructure", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Facilities", "No."], "fields": [{"id": 263, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 264, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Classrooms"}, {"Sr No": "2", "Facilities": "Laboratories"}, {"Sr No": "3", "Facilities": "Classroom with Smart Panel"}, {"Sr No": "4", "Facilities": "Classroom with Wi-Fi"}, {"Sr No": "5", "Facilities": "Seminar Hall with ICT Facilities"}, {"Sr No": "6", "Facilities": "Computer with ICT Facilities"}, {"Sr No": "7", "Facilities": "Play area facilities"}, {"Sr No": "8", "Facilities": "Common Rooms"}, {"Sr No": "9", "Facilities": "Staff rooms"}, {"Sr No": "10", "Facilities": "Others"}]}, {"id": 52, "idString": "libraryInfrastructure", "tableKey": "libraryInfrastructure", "title": "2. Library & Research Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Facilities", "No."], "fields": [{"id": 265, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 266, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Books (Title and Volumes)"}, {"Sr No": "2", "Facilities": "E-books and Journals"}, {"Sr No": "3", "Facilities": "Journals"}, {"Sr No": "4", "Facilities": "Digital Data base"}, {"Sr No": "5", "Facilities": "CD / Video"}, {"Sr No": "6", "Facilities": "Library Automation"}, {"Sr No": "7", "Facilities": "Others"}]}, {"id": 53, "idString": "eResources", "tableKey": "eResources", "title": "E-resource Availability", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 267, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 268, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 269, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"Sr No": "1", "Facilities": "e-journals"}, {"Sr No": "2", "Facilities": "Membership / subscription of e-ShodhSindhu"}, {"Sr No": "3", "Facilities": "Membership / subscription of Shodhganga"}, {"Sr No": "4", "Facilities": "Discipline-specific Databases"}, {"Sr No": "5", "Facilities": "Plagiarism Check software"}, {"Sr No": "6", "Facilities": "Licensed statistical software"}, {"Sr No": "7", "Facilities": "Discipline specific simulation software"}]}, {"id": 54, "idString": "itInfrastructure", "tableKey": "itInfrastructure", "title": "3. I.T. (Computer) Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Facilities", "No."], "fields": [{"id": 270, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 271, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "No. of Computers in Institute"}, {"Sr No": "2", "Facilities": "No. of Computer exclusively for students only"}, {"Sr No": "3", "Facilities": "No. of Servers"}, {"Sr No": "4", "Facilities": "No. of System Software''s"}, {"Sr No": "5", "Facilities": "No. of Application Software''s"}, {"Sr No": "6", "Facilities": "Internet Bandwidth"}, {"Sr No": "7", "Facilities": "No. of Wi-Fi Units"}, {"Sr No": "8", "Facilities": "Internet Connectivity"}]}, {"id": 55, "idString": "sportsFacilities", "tableKey": "sportsFacilities", "title": "4. Facilities for cultural activities, yoga, games, sports etc", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Facilities", "No."], "fields": [{"id": 272, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 273, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}, {"id": 56, "idString": "divyangajanFacilities", "tableKey": "divyangajanFacilities", "title": "5. Facilities for Divyangajan", "showTitle": true, "isRepeatable": false, "displayOrder": 6, "columns": ["Facilities", "Available Yes / No"], "fields": [{"id": 274, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 275, "idString": "available_yes_no", "fieldKey": "available_yes_no", "label": "Available Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Built environment with ramps / lifts for easy access to classrooms"}, {"Sr No": "2", "Facilities": "Divyangan friendly washrooms"}, {"Sr No": "3", "Facilities": "Signage including tactile path, lights, display boards and signposts"}, {"Sr No": "4", "Facilities": "Assistive technology and facilities for Divyangjan"}, {"Sr No": "5", "Facilities": "Provision for enquiry and information"}]}, {"id": 57, "idString": "researchResources", "tableKey": "researchResources", "title": "6. Research Resources", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 276, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 277, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 278, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}], "blocks": [{"type": "tables", "tables": [{"id": "buildingInfrastructure", "idString": "buildingInfrastructure", "tableKey": "buildingInfrastructure", "title": "1. Building Infrastructure", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Facilities", "No."], "fields": [{"id": 263, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 264, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Classrooms"}, {"Sr No": "2", "Facilities": "Laboratories"}, {"Sr No": "3", "Facilities": "Classroom with Smart Panel"}, {"Sr No": "4", "Facilities": "Classroom with Wi-Fi"}, {"Sr No": "5", "Facilities": "Seminar Hall with ICT Facilities"}, {"Sr No": "6", "Facilities": "Computer with ICT Facilities"}, {"Sr No": "7", "Facilities": "Play area facilities"}, {"Sr No": "8", "Facilities": "Common Rooms"}, {"Sr No": "9", "Facilities": "Staff rooms"}, {"Sr No": "10", "Facilities": "Others"}]}, {"id": "libraryInfrastructure", "idString": "libraryInfrastructure", "tableKey": "libraryInfrastructure", "title": "2. Library & Research Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Facilities", "No."], "fields": [{"id": 265, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 266, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Books (Title and Volumes)"}, {"Sr No": "2", "Facilities": "E-books and Journals"}, {"Sr No": "3", "Facilities": "Journals"}, {"Sr No": "4", "Facilities": "Digital Data base"}, {"Sr No": "5", "Facilities": "CD / Video"}, {"Sr No": "6", "Facilities": "Library Automation"}, {"Sr No": "7", "Facilities": "Others"}]}, {"id": "eResources", "idString": "eResources", "tableKey": "eResources", "title": "E-resource Availability", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 267, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 268, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 269, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"Sr No": "1", "Facilities": "e-journals"}, {"Sr No": "2", "Facilities": "Membership / subscription of e-ShodhSindhu"}, {"Sr No": "3", "Facilities": "Membership / subscription of Shodhganga"}, {"Sr No": "4", "Facilities": "Discipline-specific Databases"}, {"Sr No": "5", "Facilities": "Plagiarism Check software"}, {"Sr No": "6", "Facilities": "Licensed statistical software"}, {"Sr No": "7", "Facilities": "Discipline specific simulation software"}]}, {"id": "itInfrastructure", "idString": "itInfrastructure", "tableKey": "itInfrastructure", "title": "3. I.T. (Computer) Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Facilities", "No."], "fields": [{"id": 270, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 271, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "No. of Computers in Institute"}, {"Sr No": "2", "Facilities": "No. of Computer exclusively for students only"}, {"Sr No": "3", "Facilities": "No. of Servers"}, {"Sr No": "4", "Facilities": "No. of System Software''s"}, {"Sr No": "5", "Facilities": "No. of Application Software''s"}, {"Sr No": "6", "Facilities": "Internet Bandwidth"}, {"Sr No": "7", "Facilities": "No. of Wi-Fi Units"}, {"Sr No": "8", "Facilities": "Internet Connectivity"}]}, {"id": "sportsFacilities", "idString": "sportsFacilities", "tableKey": "sportsFacilities", "title": "4. Facilities for cultural activities, yoga, games, sports etc", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Facilities", "No."], "fields": [{"id": 272, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 273, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}, {"id": "divyangajanFacilities", "idString": "divyangajanFacilities", "tableKey": "divyangajanFacilities", "title": "5. Facilities for Divyangajan", "showTitle": true, "isRepeatable": false, "displayOrder": 6, "columns": ["Facilities", "Available Yes / No"], "fields": [{"id": 274, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 275, "idString": "available_yes_no", "fieldKey": "available_yes_no", "label": "Available Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Built environment with ramps / lifts for easy access to classrooms"}, {"Sr No": "2", "Facilities": "Divyangan friendly washrooms"}, {"Sr No": "3", "Facilities": "Signage including tactile path, lights, display boards and signposts"}, {"Sr No": "4", "Facilities": "Assistive technology and facilities for Divyangjan"}, {"Sr No": "5", "Facilities": "Provision for enquiry and information"}]}, {"id": "researchResources", "idString": "researchResources", "tableKey": "researchResources", "title": "6. Research Resources", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 276, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 277, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 278, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}]}]}, {"id": 10, "idString": "section-d-student-activities", "sectionKey": "section-d-student-activities", "title": "Section D - Student Activities (Extension and Outreach Activities)", "number": "D", "ownerRole": "dean-student-welfare", "displayOrder": 4, "fields": [], "tables": [{"id": 58, "idString": "hackathons", "tableKey": "hackathons", "title": "1. Hackathons and Ideation workshops", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 279, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 280, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 281, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 282, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 283, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 59, "idString": "culturalActivities", "tableKey": "culturalActivities", "title": "2. Cultural Clubs and activities and festivals", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 284, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 285, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 286, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 287, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 288, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 60, "idString": "sportsActivities", "tableKey": "sportsActivities", "title": "3. Sports clubs / teams and activities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 289, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 290, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 291, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 292, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 293, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 61, "idString": "communityActivities", "tableKey": "communityActivities", "title": "4. Community related activities", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 294, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 295, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 296, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 297, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 298, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 62, "idString": "adminStudentAwards", "tableKey": "adminStudentAwards", "title": "5. Awards / Prizes / Recognitions in curricular and extended curricular areas", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the award", "Team / Individual", "Inter-University / State / National / International", "Name of the event", "Name of the student(s)", "Attachment"], "fields": [{"id": 299, "idString": "name_of_the_award", "fieldKey": "name_of_the_award", "label": "Name of the award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 300, "idString": "team_individual", "fieldKey": "team_individual", "label": "Team / Individual", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 301, "idString": "inter_university_state_national_international", "fieldKey": "inter_university_state_national_international", "label": "Inter-University / State / National / International", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 302, "idString": "name_of_the_event", "fieldKey": "name_of_the_event", "label": "Name of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 303, "idString": "name_of_the_student_s", "fieldKey": "name_of_the_student_s", "label": "Name of the student(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 304, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "tables", "tables": [{"id": "hackathons", "idString": "hackathons", "tableKey": "hackathons", "title": "1. Hackathons and Ideation workshops", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 279, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 280, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 281, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 282, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 283, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "culturalActivities", "idString": "culturalActivities", "tableKey": "culturalActivities", "title": "2. Cultural Clubs and activities and festivals", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 284, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 285, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 286, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 287, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 288, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "sportsActivities", "idString": "sportsActivities", "tableKey": "sportsActivities", "title": "3. Sports clubs / teams and activities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 289, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 290, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 291, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 292, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 293, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "communityActivities", "idString": "communityActivities", "tableKey": "communityActivities", "title": "4. Community related activities", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 294, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 295, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 296, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 297, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 298, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "adminStudentAwards", "idString": "adminStudentAwards", "tableKey": "adminStudentAwards", "title": "5. Awards / Prizes / Recognitions in curricular and extended curricular areas", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the award", "Team / Individual", "Inter-University / State / National / International", "Name of the event", "Name of the student(s)", "Attachment"], "fields": [{"id": 299, "idString": "name_of_the_award", "fieldKey": "name_of_the_award", "label": "Name of the award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 300, "idString": "team_individual", "fieldKey": "team_individual", "label": "Team / Individual", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 301, "idString": "inter_university_state_national_international", "fieldKey": "inter_university_state_national_international", "label": "Inter-University / State / National / International", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 302, "idString": "name_of_the_event", "fieldKey": "name_of_the_event", "label": "Name of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 303, "idString": "name_of_the_student_s", "fieldKey": "name_of_the_student_s", "label": "Name of the student(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 304, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 11, "idString": "section-e-placement-training", "sectionKey": "section-e-placement-training", "title": "Section E - Student Progression", "number": "E", "ownerRole": "dean-placement", "displayOrder": 5, "fields": [{"id": 305, "idString": "partESchools", "fieldKey": "partESchools", "label": "School-wise Placement Programs & Compensation", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}], "tables": [], "blocks": [{"type": "part-e-schools", "fieldId": "partESchools"}]}, {"id": 12, "idString": "section-f-observations-recommendations", "sectionKey": "section-f-observations-recommendations", "title": "Section F - Observations & Recommendations of the Audit", "number": "F", "ownerRole": "auditor", "displayOrder": 6, "fields": [{"id": 306, "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 307, "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 308, "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [], "blocks": [{"type": "fields", "fields": [{"id": "auditObservations", "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "auditRecommendations", "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "auditDocumentation", "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}]}]}]}', 'system-provision', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (id) DO UPDATE SET 
+    compiled_schema = EXCLUDED.compiled_schema,
+    academic_year = EXCLUDED.academic_year,
+    status = EXCLUDED.status;
+
+SELECT pg_catalog.setval('public.form_schemas_id_seq', 2, true);
+SELECT pg_catalog.setval('public.schema_versions_id_seq', 2, true);
+SELECT pg_catalog.setval('public.form_sections_id_seq', (SELECT COALESCE(max(id), 1) FROM public.form_sections), true);
+SELECT pg_catalog.setval('public.form_tables_id_seq', (SELECT COALESCE(max(id), 1) FROM public.form_tables), true);
+SELECT pg_catalog.setval('public.form_fields_id_seq', (SELECT COALESCE(max(id), 1) FROM public.form_fields), true);
+-- =============================================================================
+-- PART 2: 64 LEGACY NORMALIZED RELATIONAL FORM TABLES & DATA
+-- Extracted from: school_appraisal_backup_2026-08-13.sql
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 2.1 TABLE & SEQUENCE SCHEMAS
+-- -----------------------------------------------------------------------------
 --
 -- TOC entry 219 (class 1259 OID 35973)
 -- Name: admin_student_awards; Type: TABLE; Schema: public; Owner: postgres
@@ -2691,13 +4057,6 @@ ALTER SEQUENCE public.value_added_courses_id_seq OWNER TO postgres;
 ALTER SEQUENCE public.value_added_courses_id_seq OWNED BY public.value_added_courses.id;
 
 --
--- TOC entry 3685 (class 2604 OID 49573)
--- Name: academic_years id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.academic_years ALTER COLUMN id SET DEFAULT nextval('public.academic_years_id_seq'::regclass);
-
---
 -- TOC entry 3687 (class 2604 OID 49574)
 -- Name: admin_student_awards id; Type: DEFAULT; Schema: public; Owner: postgres
 --
@@ -3146,12 +4505,8 @@ ALTER TABLE ONLY public.training_activities ALTER COLUMN id SET DEFAULT nextval(
 ALTER TABLE ONLY public.value_added_courses ALTER COLUMN id SET DEFAULT nextval('public.value_added_courses_id_seq'::regclass);
 
 -- -----------------------------------------------------------------------------
--- 2. TABLE DATA INSERTS
+-- 2.2 TABLE DATA INSERTS (COPY BLOCKS)
 -- -----------------------------------------------------------------------------
-COPY public.academic_years (id, year_label, active, started_at, closed_at) FROM stdin;
-3	2025-2026	t	2026-06-29 07:15:48.018905	\N
-\.
-
 COPY public.admin_student_awards (id, submission_id, sr_no, award_name, team_individual, level_type, event_name, student_name, attachment) FROM stdin;
 180	79	1	Sports - Kabaddi	Team	National	19th National level Inter-collegiate Kabaddi Tournament SUMMIT 2026	\N	[{"name":"MIT SUMEET NATIONAL KABADDI 2025-26 30-Nov-2025 13-28-26.pdf","fileName":"MIT SUMEET NATIONAL KABADDI 2025-26 30-Nov-2025 13-28-26.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/413e05e7-e1d3-425c-bd76-398399d4d923-MIT_SUMEET_NATIONAL_KABADDI_2025-26_30-Nov-2025_13-28-26.pdf"}]
 181	79	2	Sports- Kabaddi	Team	State	MMCOE EVOLVE Championship 2026	\N	[{"name":"Screenshot 2026-02-24 160047.pdf","fileName":"Screenshot 2026-02-24 160047.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/684c2ea3-d085-4fa2-9593-2ba759f05d61-Screenshot_2026-02-24_160047.pdf"}]
@@ -5366,24 +6721,8 @@ COPY public.value_added_courses (id, submission_id, sr_no, course_title, resourc
 \.
 
 -- -----------------------------------------------------------------------------
--- 3. PRIMARY KEYS & UNIQUE CONSTRAINTS
+-- 2.3 PRIMARY KEYS & UNIQUE CONSTRAINTS
 -- -----------------------------------------------------------------------------
---
--- TOC entry 3780 (class 2606 OID 36895)
--- Name: academic_years academic_years_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.academic_years
-    ADD CONSTRAINT academic_years_pkey PRIMARY KEY (id);
-
---
--- TOC entry 3782 (class 2606 OID 36897)
--- Name: academic_years academic_years_year_label_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.academic_years
-    ADD CONSTRAINT academic_years_year_label_key UNIQUE (year_label);
-
 --
 -- TOC entry 3785 (class 2606 OID 36899)
 -- Name: admin_student_awards admin_student_awards_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -5897,26 +7236,11 @@ ALTER TABLE ONLY public.value_added_courses
     ADD CONSTRAINT value_added_courses_pkey PRIMARY KEY (id);
 
 -- -----------------------------------------------------------------------------
--- 4. INDEXES
+-- 2.4 INDEXES
 -- -----------------------------------------------------------------------------
---
--- TOC entry 3783 (class 1259 OID 37050)
--- Name: uk_academic_years_one_active; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX uk_academic_years_one_active ON public.academic_years USING btree (active) WHERE (active = true);
-
 -- -----------------------------------------------------------------------------
--- 6. SEQUENCE VALUE SYNCHRONIZATION
+-- 2.6 SEQUENCE VALUE SYNCHRONIZATION
 -- -----------------------------------------------------------------------------
---
--- TOC entry 4522 (class 0 OID 0)
--- Dependencies: 218
--- Name: academic_years_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.academic_years_id_seq', 4, true);
-
 --
 -- TOC entry 4523 (class 0 OID 0)
 -- Dependencies: 220

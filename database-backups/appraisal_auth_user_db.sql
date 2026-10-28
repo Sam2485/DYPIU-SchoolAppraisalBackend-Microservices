@@ -1,7 +1,8 @@
 -- =============================================================================
 -- PostgreSQL Database Dump: appraisal_auth_user_db
--- Target Microservice: auth-user-service (Port 9001)
--- Source: school_appraisal_backup_2026-08-13.sql
+-- Target Microservice: auth-user-service (Port 8081)
+-- Extracted from: school_appraisal_backup_2026-08-13.sql
+-- System: DYPIU Director & Faculty Appraisal System
 -- =============================================================================
 
 SET statement_timeout = 0;
@@ -16,115 +17,25 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 SET search_path = public, pg_catalog;
 
 -- -----------------------------------------------------------------------------
--- 1. TABLE & SEQUENCE SCHEMAS
+-- 1. DROP EXISTING TABLES IN REVERSE DEPENDENCY ORDER
 -- -----------------------------------------------------------------------------
---
--- TOC entry 361 (class 1259 OID 52409)
--- Name: mfa_login_sessions; Type: TABLE; Schema: public; Owner: app_user
---
+DROP TABLE IF EXISTS public.refresh_tokens CASCADE;
+DROP TABLE IF EXISTS public.user_roles CASCADE;
+DROP TABLE IF EXISTS public.roles CASCADE;
+DROP TABLE IF EXISTS public.appraisal_users CASCADE;
+DROP TABLE IF EXISTS public.mfa_login_sessions CASCADE;
+DROP TABLE IF EXISTS public.password_reset_tokens CASCADE;
+DROP TABLE IF EXISTS public.user_administrative_posts CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
 
-CREATE TABLE public.mfa_login_sessions (
-    id character varying(64) NOT NULL,
-    user_id bigint NOT NULL,
-    otp_hash character varying(255) NOT NULL,
-    created_at timestamp without time zone NOT NULL,
-    expires_at timestamp without time zone NOT NULL,
-    used boolean DEFAULT false NOT NULL,
-    failed_attempts integer DEFAULT 0 NOT NULL,
-    locked_until timestamp without time zone,
-    resend_count integer DEFAULT 0 NOT NULL,
-    last_resend_at timestamp without time zone
-);
-
-
-ALTER TABLE public.mfa_login_sessions OWNER TO app_user;
-
---
--- TOC entry 288 (class 1259 OID 36183)
--- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.password_reset_tokens (
-    id bigint NOT NULL,
-    email character varying(255) NOT NULL,
-    token_hash character varying(255) NOT NULL,
-    used boolean DEFAULT false NOT NULL,
-    expires_at timestamp without time zone NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-
-ALTER TABLE public.password_reset_tokens OWNER TO postgres;
-
---
--- TOC entry 289 (class 1259 OID 36190)
--- Name: password_reset_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.password_reset_tokens_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.password_reset_tokens_id_seq OWNER TO postgres;
-
---
--- TOC entry 4419 (class 0 OID 0)
--- Dependencies: 289
--- Name: password_reset_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.password_reset_tokens_id_seq OWNED BY public.password_reset_tokens.id;
-
---
--- TOC entry 354 (class 1259 OID 36393)
--- Name: user_administrative_posts; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.user_administrative_posts (
-    id bigint NOT NULL,
-    user_id bigint NOT NULL,
-    post character varying(100) NOT NULL
-);
-
-
-ALTER TABLE public.user_administrative_posts OWNER TO postgres;
-
---
--- TOC entry 355 (class 1259 OID 36396)
--- Name: user_administrative_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.user_administrative_posts_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.user_administrative_posts_id_seq OWNER TO postgres;
-
---
--- TOC entry 4516 (class 0 OID 0)
--- Dependencies: 355
--- Name: user_administrative_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.user_administrative_posts_id_seq OWNED BY public.user_administrative_posts.id;
-
---
--- TOC entry 356 (class 1259 OID 36397)
--- Name: users; Type: TABLE; Schema: public; Owner: app_user
---
-
+-- -----------------------------------------------------------------------------
+-- 2. SCHEMAS & TABLES
+-- -----------------------------------------------------------------------------
 CREATE TABLE public.users (
     id bigint NOT NULL,
     email character varying(255) NOT NULL,
@@ -143,80 +54,138 @@ CREATE TABLE public.users (
     deleted_at timestamp without time zone,
     deleted_by character varying(255),
     schools character varying(1000),
-    avatar_url text
+    avatar_url text,
+    reset_token character varying(255),
+    reset_token_expiry timestamp without time zone,
+    assigned_schools text,
+    first_login boolean DEFAULT true,
+    university_id bigint,
+    university_code character varying(50),
+    permissions jsonb
 );
 
-
-ALTER TABLE public.users OWNER TO app_user;
-
---
--- TOC entry 357 (class 1259 OID 36403)
--- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: app_user
---
-
-CREATE SEQUENCE public.users_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.users_id_seq OWNER TO app_user;
-
---
--- TOC entry 4518 (class 0 OID 0)
--- Dependencies: 357
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: app_user
---
-
+CREATE SEQUENCE public.users_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
 ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
-
---
--- TOC entry 3722 (class 2604 OID 49608)
--- Name: password_reset_tokens id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.password_reset_tokens ALTER COLUMN id SET DEFAULT nextval('public.password_reset_tokens_id_seq'::regclass);
-
---
--- TOC entry 3770 (class 2604 OID 49641)
--- Name: user_administrative_posts id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.user_administrative_posts ALTER COLUMN id SET DEFAULT nextval('public.user_administrative_posts_id_seq'::regclass);
-
---
--- TOC entry 3771 (class 2604 OID 49642)
--- Name: users id; Type: DEFAULT; Schema: public; Owner: app_user
---
-
 ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
+ALTER TABLE ONLY public.users ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.users ADD CONSTRAINT uk_users_email UNIQUE (email);
+
+CREATE TABLE public.appraisal_users (
+    id bigint NOT NULL,
+    email character varying(255) NOT NULL,
+    password character varying(255) NOT NULL,
+    name character varying(255),
+    designation character varying(255),
+    school character varying(255),
+    role character varying(100) NOT NULL,
+    account_type character varying(100),
+    category character varying(100),
+    auditor_type character varying(100),
+    auditor_role character varying(255),
+    post character varying(255),
+    status character varying(100) DEFAULT 'active'::character varying,
+    deleted boolean DEFAULT false,
+    deleted_at timestamp without time zone,
+    deleted_by character varying(255),
+    schools character varying(1000),
+    avatar_url text,
+    reset_token character varying(255),
+    reset_token_expiry timestamp without time zone,
+    assigned_schools text,
+    first_login boolean DEFAULT true,
+    university_id bigint,
+    university_code character varying(50),
+    permissions jsonb
+);
+
+CREATE SEQUENCE public.appraisal_users_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.appraisal_users_id_seq OWNED BY public.appraisal_users.id;
+ALTER TABLE ONLY public.appraisal_users ALTER COLUMN id SET DEFAULT nextval('public.appraisal_users_id_seq'::regclass);
+ALTER TABLE ONLY public.appraisal_users ADD CONSTRAINT appraisal_users_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.appraisal_users ADD CONSTRAINT uk_appraisal_users_email UNIQUE (email);
+
+CREATE TABLE public.roles (
+    id bigint NOT NULL,
+    name character varying(50) NOT NULL,
+    description character varying(255)
+);
+
+CREATE SEQUENCE public.roles_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.roles_id_seq OWNED BY public.roles.id;
+ALTER TABLE ONLY public.roles ALTER COLUMN id SET DEFAULT nextval('public.roles_id_seq'::regclass);
+ALTER TABLE ONLY public.roles ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.roles ADD CONSTRAINT uk_roles_name UNIQUE (name);
+
+CREATE TABLE public.user_roles (
+    user_id bigint NOT NULL,
+    role_id bigint NOT NULL,
+    CONSTRAINT user_roles_pkey PRIMARY KEY (user_id, role_id)
+);
+
+CREATE TABLE public.refresh_tokens (
+    id bigint NOT NULL,
+    token character varying(500) NOT NULL,
+    user_email character varying(255) NOT NULL,
+    expiry_date timestamp without time zone NOT NULL,
+    revoked boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.refresh_tokens_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.refresh_tokens_id_seq OWNED BY public.refresh_tokens.id;
+ALTER TABLE ONLY public.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('public.refresh_tokens_id_seq'::regclass);
+ALTER TABLE ONLY public.refresh_tokens ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.refresh_tokens ADD CONSTRAINT uk_refresh_tokens_token UNIQUE (token);
+
+CREATE TABLE public.user_administrative_posts (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    post character varying(100) NOT NULL
+);
+
+CREATE SEQUENCE public.user_administrative_posts_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.user_administrative_posts_id_seq OWNED BY public.user_administrative_posts.id;
+ALTER TABLE ONLY public.user_administrative_posts ALTER COLUMN id SET DEFAULT nextval('public.user_administrative_posts_id_seq'::regclass);
+ALTER TABLE ONLY public.user_administrative_posts ADD CONSTRAINT user_administrative_posts_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.password_reset_tokens (
+    id bigint NOT NULL,
+    email character varying(255) NOT NULL,
+    token_hash character varying(255) NOT NULL,
+    used boolean DEFAULT false NOT NULL,
+    expires_at timestamp without time zone NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.password_reset_tokens_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.password_reset_tokens_id_seq OWNED BY public.password_reset_tokens.id;
+ALTER TABLE ONLY public.password_reset_tokens ALTER COLUMN id SET DEFAULT nextval('public.password_reset_tokens_id_seq'::regclass);
+ALTER TABLE ONLY public.password_reset_tokens ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
+
+CREATE TABLE public.mfa_login_sessions (
+    id character varying(64) NOT NULL,
+    user_id bigint NOT NULL,
+    otp_hash character varying(255) NOT NULL,
+    created_at timestamp without time zone NOT NULL,
+    expires_at timestamp without time zone NOT NULL,
+    used boolean DEFAULT false NOT NULL,
+    failed_attempts integer DEFAULT 0 NOT NULL,
+    locked_until timestamp without time zone,
+    resend_count integer DEFAULT 0 NOT NULL,
+    last_resend_at timestamp without time zone
+);
+
+ALTER TABLE ONLY public.mfa_login_sessions ADD CONSTRAINT mfa_login_sessions_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_users_email ON public.users(email);
+CREATE INDEX idx_users_role ON public.users(role);
+CREATE INDEX idx_users_school ON public.users(school);
+CREATE INDEX idx_appraisal_users_email ON public.appraisal_users(email);
+CREATE INDEX idx_refresh_tokens_user_email ON public.refresh_tokens(user_email);
 
 -- -----------------------------------------------------------------------------
--- 2. TABLE DATA INSERTS
+-- 3. DATA INSERTS (COPY BLOCKS & SEEDS)
 -- -----------------------------------------------------------------------------
-COPY public.mfa_login_sessions (id, user_id, otp_hash, created_at, expires_at, used, failed_attempts, locked_until, resend_count, last_resend_at) FROM stdin;
-\.
-
-COPY public.password_reset_tokens (id, email, token_hash, used, expires_at, created_at) FROM stdin;
-2	arvind.kumar@dypiu.ac.in	4946b9145e9798cc6a9b456f1aa799efb93025f44ed8c8eae589ad8377d36fda	t	2026-07-02 11:08:19.358078	2026-07-02 10:08:19.358194
-3	anupama.patil@dypiu.ac.in	3d20d4c950ddbd95922a040fb8feb054735ce66ff76692e06f3db62e981bc7e8	t	2026-07-08 10:58:16.070059	2026-07-08 09:58:16.070177
-4	rahul.sharma@dypiu.ac.in	8a7566637ffc353ddffee8b1faf108039055fad421e44f03433da8457d7f0859	t	2026-07-10 11:35:38.755595	2026-07-10 10:35:38.755694
-5	iqac@dypiu.ac.in	431c250fda6a9f5958c559162d646bdcbe32b8cc066a3ddaccd14d3d40aee6a7	f	2026-07-21 07:45:04.170801	2026-07-21 06:45:04.171125
-\.
-
-COPY public.user_administrative_posts (id, user_id, post) FROM stdin;
-14	264	registrar
-15	264	hr
-16	264	dean-student-welfare
-17	264	dean-placement
-18	265	registrar
-19	265	hr
-20	265	dean-student-welfare
-21	265	dean-placement
-\.
-
 COPY public.users (id, email, password, name, designation, school, role, account_type, category, auditor_type, auditor_role, post, status, deleted, deleted_at, deleted_by, schools, avatar_url) FROM stdin;
 179	vc@dypiu.ac.in	$2a$10$5BJ82akQQ778CjVHF8WO2.pylVvkyuS2D971YhoHcPgmHIjQZ.zs6	Vice Chancellor	Vice Chancellor	Root	vice-chancellor	reviewer	\N	\N	\N	\N	active	f	\N	\N	\N	\N
 180	iqac@dypiu.ac.in	$2a$10$9ApDjDh8DPItIDFCjlVxO.QlNJCxzZgcJ3vPODNi1tnrH3Pw0PFFC	IQAC	IQAC	Root	iqac	reviewer	\N	\N	\N	\N	active	f	\N	\N	\N	\N
@@ -247,145 +216,51 @@ COPY public.users (id, email, password, name, designation, school, role, account
 265	akd@pilani.bits-pilani1.ac.in	$2a$10$jMLFiS4FFBKD4QsBxKH9MuAcCau/pGQdHGry.tr95h7V1xB4LSre6	Dr Abhijeet Digalwar	External Administrative Auditor	Administrative Office	administrative-external-auditor	auditor	administrative	external	administrative-external-auditor	registrar	active	f	\N	\N	\N	\N
 \.
 
--- -----------------------------------------------------------------------------
--- 3. PRIMARY KEYS & UNIQUE CONSTRAINTS
--- -----------------------------------------------------------------------------
---
--- TOC entry 3947 (class 2606 OID 52416)
--- Name: mfa_login_sessions mfa_login_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: app_user
---
+INSERT INTO public.appraisal_users SELECT * FROM public.users ON CONFLICT (id) DO NOTHING;
 
-ALTER TABLE ONLY public.mfa_login_sessions
-    ADD CONSTRAINT mfa_login_sessions_pkey PRIMARY KEY (id);
+INSERT INTO public.roles (id, name, description) VALUES
+(1, 'DIRECTOR', 'School Director'),
+(2, 'ADMINISTRATIVE', 'Administrative Officer'),
+(3, 'VICE_CHANCELLOR', 'Vice Chancellor'),
+(4, 'IQAC', 'Internal Quality Assurance Cell'),
+(5, 'AUDITOR', 'Auditor'),
+(6, 'REGISTRAR', 'Registrar'),
+(7, 'HR', 'Human Resources'),
+(8, 'DEAN_STUDENT_WELFARE', 'Dean Student Welfare'),
+(9, 'DEAN_PLACEMENT', 'Dean Placement & Corporate Relations')
+ON CONFLICT (id) DO NOTHING;
 
---
--- TOC entry 3856 (class 2606 OID 36969)
--- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
+INSERT INTO public.user_roles (user_id, role_id)
+SELECT u.id, r.id FROM public.users u
+JOIN public.roles r ON UPPER(REPLACE(u.role, '-', '_')) = r.name
+ON CONFLICT (user_id, role_id) DO NOTHING;
+COPY public.user_administrative_posts (id, user_id, post) FROM stdin;
+14	264	registrar
+15	264	hr
+16	264	dean-student-welfare
+17	264	dean-placement
+18	265	registrar
+19	265	hr
+20	265	dean-student-welfare
+21	265	dean-placement
+\.
 
-ALTER TABLE ONLY public.password_reset_tokens
-    ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
+COPY public.password_reset_tokens (id, email, token_hash, used, expires_at, created_at) FROM stdin;
+2	arvind.kumar@dypiu.ac.in	4946b9145e9798cc6a9b456f1aa799efb93025f44ed8c8eae589ad8377d36fda	t	2026-07-02 11:08:19.358078	2026-07-02 10:08:19.358194
+3	anupama.patil@dypiu.ac.in	3d20d4c950ddbd95922a040fb8feb054735ce66ff76692e06f3db62e981bc7e8	t	2026-07-08 10:58:16.070059	2026-07-08 09:58:16.070177
+4	rahul.sharma@dypiu.ac.in	8a7566637ffc353ddffee8b1faf108039055fad421e44f03433da8457d7f0859	t	2026-07-10 11:35:38.755595	2026-07-10 10:35:38.755694
+5	iqac@dypiu.ac.in	431c250fda6a9f5958c559162d646bdcbe32b8cc066a3ddaccd14d3d40aee6a7	f	2026-07-21 07:45:04.170801	2026-07-21 06:45:04.171125
+\.
 
---
--- TOC entry 3858 (class 2606 OID 36971)
--- Name: password_reset_tokens password_reset_tokens_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.password_reset_tokens
-    ADD CONSTRAINT password_reset_tokens_token_hash_key UNIQUE (token_hash);
-
---
--- TOC entry 3931 (class 2606 OID 37037)
--- Name: user_administrative_posts user_administrative_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.user_administrative_posts
-    ADD CONSTRAINT user_administrative_posts_pkey PRIMARY KEY (id);
-
---
--- TOC entry 3936 (class 2606 OID 37039)
--- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: app_user
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_email_key UNIQUE (email);
-
---
--- TOC entry 3938 (class 2606 OID 37041)
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: app_user
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+COPY public.mfa_login_sessions (id, user_id, otp_hash, created_at, expires_at, used, failed_attempts, locked_until, resend_count, last_resend_at) FROM stdin;
+\.
 
 -- -----------------------------------------------------------------------------
--- 4. INDEXES
+-- 4. SEQUENCE RESETS
 -- -----------------------------------------------------------------------------
---
--- TOC entry 3944 (class 1259 OID 52423)
--- Name: idx_mfa_expires_at; Type: INDEX; Schema: public; Owner: app_user
---
-
-CREATE INDEX idx_mfa_expires_at ON public.mfa_login_sessions USING btree (expires_at);
-
---
--- TOC entry 3945 (class 1259 OID 52422)
--- Name: idx_mfa_user_id; Type: INDEX; Schema: public; Owner: app_user
---
-
-CREATE INDEX idx_mfa_user_id ON public.mfa_login_sessions USING btree (user_id);
-
---
--- TOC entry 3932 (class 1259 OID 37048)
--- Name: idx_users_role; Type: INDEX; Schema: public; Owner: app_user
---
-
-CREATE INDEX idx_users_role ON public.users USING btree (role);
-
---
--- TOC entry 3933 (class 1259 OID 37049)
--- Name: idx_users_status; Type: INDEX; Schema: public; Owner: app_user
---
-
-CREATE INDEX idx_users_status ON public.users USING btree (status);
-
---
--- TOC entry 3929 (class 1259 OID 37054)
--- Name: uk_user_administrative_posts; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX uk_user_administrative_posts ON public.user_administrative_posts USING btree (user_id, post);
-
---
--- TOC entry 3934 (class 1259 OID 37055)
--- Name: uk_users_email; Type: INDEX; Schema: public; Owner: app_user
---
-
-CREATE UNIQUE INDEX uk_users_email ON public.users USING btree (email);
-
--- -----------------------------------------------------------------------------
--- 5. INTRA-DATABASE FOREIGN KEY CONSTRAINTS
--- -----------------------------------------------------------------------------
---
--- TOC entry 4015 (class 2606 OID 52417)
--- Name: mfa_login_sessions fk_mfa_user; Type: FK CONSTRAINT; Schema: public; Owner: app_user
---
-
-ALTER TABLE ONLY public.mfa_login_sessions
-    ADD CONSTRAINT fk_mfa_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
---
--- TOC entry 4013 (class 2606 OID 37381)
--- Name: user_administrative_posts fk_user_administrative_posts_user; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.user_administrative_posts
-    ADD CONSTRAINT fk_user_administrative_posts_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
--- -----------------------------------------------------------------------------
--- 6. SEQUENCE VALUE SYNCHRONIZATION
--- -----------------------------------------------------------------------------
---
--- TOC entry 4557 (class 0 OID 0)
--- Dependencies: 289
--- Name: password_reset_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.password_reset_tokens_id_seq', 6, true);
-
---
--- TOC entry 4590 (class 0 OID 0)
--- Dependencies: 355
--- Name: user_administrative_posts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.user_administrative_posts_id_seq', 21, true);
-
---
--- TOC entry 4591 (class 0 OID 0)
--- Dependencies: 357
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: app_user
---
-
-SELECT pg_catalog.setval('public.users_id_seq', 265, true);
-
+SELECT pg_catalog.setval('public.users_id_seq', (SELECT COALESCE(max(id), 1) FROM public.users), true);
+SELECT pg_catalog.setval('public.appraisal_users_id_seq', (SELECT COALESCE(max(id), 1) FROM public.appraisal_users), true);
+SELECT pg_catalog.setval('public.roles_id_seq', 9, true);
+SELECT pg_catalog.setval('public.refresh_tokens_id_seq', 1, true);
+SELECT pg_catalog.setval('public.user_administrative_posts_id_seq', (SELECT COALESCE(max(id), 1) FROM public.user_administrative_posts), true);
+SELECT pg_catalog.setval('public.password_reset_tokens_id_seq', (SELECT COALESCE(max(id), 1) FROM public.password_reset_tokens), true);

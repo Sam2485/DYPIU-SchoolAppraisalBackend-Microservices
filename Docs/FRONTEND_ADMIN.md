@@ -1,122 +1,95 @@
-# Admin Form Studio Frontend Documentation (`DYPIU-SchoolAppraisal-admin`)
+# Admin Form Studio & Schema Management (`formStudio`)
 
-This document provides a comprehensive architectural and operational guide to the **Admin Form Studio Application** (`DYPIU-SchoolAppraisal-admin`).
+This document provides a comprehensive architectural and operational guide to the **Integrated Admin Form Studio Engine** located in `src/features/schoolAppraisal/formStudio/` within the unified frontend application.
 
 ---
 
 ## 🎨 Overview & Architecture
 
-The Admin Form Studio is a React 18 single-page application (SPA) powered by Vite that serves as the administrative control center for university appraisal forms. It empowers administrators to manage university tenants, create form schemas, design visual section/table/field layouts, test forms in real-time, publish version freezes, and execute instant rollbacks without touching source code or redeploying microservices.
+The Admin Form Studio is an advanced visual metadata builder integrated directly into the unified React 19 application. It serves as the institutional quality control center, empowering IQAC administrators and super-administrators to manage university schools and posts, design form schemas, configure visual section/table/field layouts, preview dynamic AST rendering in real-time, import schemas from Excel workbooks, publish version freezes, and execute instant rollbacks without touching source code or redeploying microservices.
 
 ```text
                                   +---------------------------------------+
-                                  |         REACT 18 ADMIN STUDIO         |
-                                  |      (DYPIU-SchoolAppraisal-admin)    |
+                                  |         INTEGRATED FORM STUDIO        |
+                                  |     (features/schoolAppraisal/formStudio)
                                   +-------------------+-------------------+
                                                       |
                     +---------------------------------+---------------------------------+
                     |                                 |                                 |
                     v                                 v                                 v
         +-----------------------+         +-----------------------+         +-----------------------+
-        |   University Manager  |         |     Schema Manager    |         |  Form Builder Canvas  |
-        | - Create / Edit Unis  |         | - Schemas by Tenant   |         | - Section CRUD/Order  |
-        | - Domain & Branding   |         | - Version Histories   |         | - Table CRUD/Order    |
-        | - Colors & Logos      |         | - Draft & Rollbacks   |         | - Field CRUD/Order    |
+        |   School & Post Mgmt  |         |     Schema Manager    |         |  Form Builder Canvas  |
+        | - SchoolManager.jsx   |         | - SchemaManager.jsx   |         | - FormBuilderCanvas   |
+        | - PostManager.jsx     |         | - Version Histories   |         | - Section/Table/Field |
+        | - University Tenancy  |         | - Clone, Draft, Roll  |         | - Drag Reorder API    |
         +-----------------------+         +-----------------------+         +-----------------------+
                                                       |
                                                       v
                                           +-----------------------+
                                           |   Live Form Preview   |
-                                          | - Interactive Preview |
-                                          | - Instant Verification|
+                                          | - LiveFormPreview.jsx |
+                                          | - Side-by-Side Tester |
                                           +-----------------------+
                                                       |
-                                                      v (Proxy: /api -> http://localhost:9000)
+                                                      v (API Client: /api/admin/config/...)
                                           +-----------------------+
                                           |   SPRING CLOUD GATEWAY|
+                                          |   (Port 9000 -> 9002) |
                                           +-----------------------+
 ```
 
 ---
 
-## 🛠️ Tech Stack & Directory Structure
+## 🛠️ Tech Stack & Module Components
 
-- **Framework**: React 18 with Vite
-- **HTTP Client**: Axios with centralized correlation tracking (`X-Correlation-Id`) and error interceptors
-- **Styling**: Bootstrap 5 with custom studio styling (`index.css`)
-- **Port**: Configured on Port `3005` (with dev proxy forwarding `/api` to Gateway at `http://localhost:9000`)
+- **Framework**: React 19.2.6 & React DOM 19.2.6 (Integrated feature module)
+- **API Client**: `formStudioApi.js` communicating with `form-data-service` via API Gateway
+- **Spreadsheet Processing**: SheetJS (XLSX) 0.18.5 for visual client-side parsing of Excel templates
+- **Iconography**: Lucide React 1.47.0 + `StudioIcons.jsx`
 
-### Project Structure:
-```text
-DYPIU-SchoolAppraisal-admin/
-├── package.json                   # Project dependencies & scripts
-├── vite.config.js                 # Vite dev proxy configuration (port 3005)
-├── src/
-│   ├── main.jsx                   # React application root
-│   ├── App.jsx                    # Master state, university selector & tab navigation
-│   ├── index.css                  # Studio styles & builder theme
-│   ├── api/
-│   │   └── adminApi.js            # Admin CRUD, versioning, reordering & publish APIs
-│   └── components/
-│       ├── Navbar.jsx             # Top studio navigation & university dropdown
-│       ├── UniversityManager.jsx  # Multi-university tenant CRUD & branding editor
-│       ├── SchemaManager.jsx      # Form schemas list, version timeline & rollback
-│       ├── FormBuilderCanvas.jsx  # Visual section, table & column builder canvas
-│       └── LiveFormPreview.jsx    # Real-time interactive dynamic form tester
-```
+### Component Inventory (`src/features/schoolAppraisal/formStudio/`):
+* `AppraisalFormStudio.jsx`: Master workspace container with tabbed views for Schemas, Schools, Posts, and Form Builder.
+* `FormBuilderCanvas.jsx`: Interactive visual tree editor for Sections, Tables, and Fields with ordering controls.
+* `LiveFormPreview.jsx`: Real-time split-screen rendering testing the compiled AST JSON output.
+* `SchemaManager.jsx`: Schema listing, version history timeline, draft creation, and rollback buttons.
+* `SchoolManager.jsx`: CRUD interface for university schools/departments (`/api/admin/config/universities/{id}/schools`).
+* `PostManager.jsx`: CRUD interface for recognized administrative posts (`/api/admin/config/universities/{id}/posts`).
+* `ExcelFullSchemaImportModal.jsx`: Modal for importing an entire multi-section audit schema from an Excel workbook (.xlsx).
+* `ExcelTableImportModal.jsx`: Modal for batch-importing repeatable tables from an Excel sheet.
+* `formStudioApi.js`: Centralized REST client covering all 25+ schema and configuration endpoints.
 
 ---
 
 ## 🏗️ Core Admin Studio Capabilities
 
-### 1. Multi-University Tenant Management (`UniversityManager.jsx`)
-- Create new university tenants with code, name, domain, establishment act, and campus address.
-- Customize university branding (primary colors, main logo URL, IQAC logo URL).
-- Isolate form definitions so each tenant has independently configurable appraisals.
+### 1. Schema & Version Lifecycle Management (`SchemaManager.jsx`)
+* **Schemas Organization**: Schemas categorized by University and Audit Type (`academic` or `administrative`).
+* **Draft Creation**: Invokes `POST /api/admin/config/schemas/{schemaId}/versions/draft`, cloning the active schema into an isolated working DRAFT.
+* **Version Rollback**: Invokes `POST /api/admin/config/schemas/{schemaId}/rollback/{targetVersionId}`, instantly reactivating a historical version with zero downtime.
 
-### 2. Schema & Version Lifecycle Management (`SchemaManager.jsx`)
-- Organizes schemas by University and Audit Type (`academic`, `administrative`).
-- **Draft Creation**: Creates a cloned, isolated draft version without mutating the currently active production schema.
-- **Version Rollback**: Instantly points the active version pointer to any historical published version with zero downtime.
-
-### 3. Visual Form Builder Canvas (`FormBuilderCanvas.jsx`)
-- **Section Management**: Add, edit, delete, and reorder form sections with custom display orders, Roman numeral prefixes, and owner roles.
-- **Table Management**: Create repeatable or single-row tables with customizable headers and layout options.
-- **Field & Column Management**: Configure fields with 8 dynamic data types:
+### 2. Visual Form Builder Canvas (`FormBuilderCanvas.jsx`)
+* **Section Management**: Create, update, delete, and reorder sections with display numbers, Roman numeral prefixes, and owner roles.
+* **Table Management**: Configure repeatable or fixed data grids with custom titles and layout flags.
+* **Field & Column Configuration**: Configure fields with 8 dynamic data types:
   - `TEXT` (Single line text inputs)
-  - `NUMBER` (Numeric inputs with min/max validation)
+  - `NUMBER` (Numeric inputs with min/max bounds)
   - `DATE` (Date picker inputs)
-  - `SELECT` (Dropdown selects with customizable option lists)
-  - `TEXTAREA` (Multi-line text areas with max length bounds)
+  - `SELECT` (Dropdown selects with custom options)
+  - `TEXTAREA` (Multi-line text areas with max length limits)
   - `ATTACHMENT` (Document upload dropzones with MIME validation)
   - `EMAIL` & `URL` (Validated contact and link inputs)
-- **Reordering API Integration**: Drag-and-drop or order updates are persisted directly to backend endpoints:
+* **Reordering API Integration**:
   - `PUT /api/admin/config/versions/{versionId}/reorder-sections`
   - `PUT /api/admin/config/sections/{sectionId}/reorder-tables`
   - `PUT /api/admin/config/tables/{tableId}/reorder-fields`
 
+### 3. Excel Bulk Schema Importer
+* Administrators can upload an Excel workbook containing multiple sheets.
+* The client-side XLSX parser extracts sheet names as sections and tabular headers as fields, converting raw spreadsheets into structured AST JSON sent to:
+  - `POST /api/admin/config/versions/{versionId}/import-full-schema`
+  - `POST /api/admin/config/sections/{sectionId}/batch-tables`
+
 ### 4. One-Click Version Publishing
-- Clicking **Publish Version** invokes `POST /api/admin/config/versions/{versionId}/publish`.
-- The backend compiles the complete relational hierarchy into an optimized AST JSON string, saves it to `schema_versions.compiled_schema`, and sets `form_schemas.active_version_id`.
-- The Main Frontend (`DYPIU-SchoolAppraisal`) immediately renders the new schema on its next fetch without code redeployment.
-
-### 5. Live Form Preview (`LiveFormPreview.jsx`)
-- Administrators can test the complete form workflow in real-time inside the studio before publishing to ensure columns, validations, and tables display correctly.
-
----
-
-## 🚀 Running the Admin Form Studio
-
-### Development Mode
-```bash
-cd DYPIU-SchoolAppraisal-admin
-npm install
-npm run dev
-# Starts on http://localhost:3005 with automatic proxying to API Gateway (http://localhost:9000)
-```
-
-### Production Build
-```bash
-npm run build
-# Generates production bundle in dist/
-```
+* Clicking **Publish Version** calls `POST /api/admin/config/versions/{versionId}/publish`.
+* The backend `SchemaCompilerService` validates the relational hierarchy, compiles it into an optimized AST JSON string, saves it to `schema_versions.compiled_schema`, and sets `form_schemas.active_version_id`.
+* All subsequent contributor requests (`GET /api/config/active`) immediately receive the updated form structure in $O(1)$ time (<8ms).

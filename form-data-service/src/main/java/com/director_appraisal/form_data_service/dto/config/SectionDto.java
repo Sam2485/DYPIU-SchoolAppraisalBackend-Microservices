@@ -1,5 +1,6 @@
 package com.director_appraisal.form_data_service.dto.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,8 +13,9 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SectionDto {
-    private Long id;
+    private Object id;
     private String idString; // e.g. "part-a-academic-activities"
     private String sectionKey;
     private String title;

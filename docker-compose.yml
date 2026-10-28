@@ -42,6 +42,9 @@ services:
       SMTP_USER: ${SMTP_USER:-appraisal@dypiu.ac.in}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-your_app_password}
       MAIL_FROM: ${MAIL_FROM:-noreply@dypiu.edu.in}
+      UPLOAD_LOCAL_PATH: ${UPLOAD_DIR:-/app/uploads}
+    volumes:
+      - ./uploads:${UPLOAD_DIR:-/app/uploads}
     ports:
       - "${AUTH_SERVICE_PORT:-9001}:9001"
     depends_on:

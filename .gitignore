@@ -60,10 +60,37 @@ uploads/
 .serena
 serena/
 
+# Python files and caches
+*.py
+**/*.py
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+scripts/
+
+# Document files (.docs, .doc, .docx, .xlsx, etc.)
+*.doc
+*.docx
+*.docs
+**/*.doc
+**/*.docx
+**/*.docs
+*.xls
+*.xlsx
+**/*.xls
+**/*.xlsx
+
 # Markdown documentation & reports
 *.md
+**/*.md
 !README.md
-!Docs/README.md
+
+# Scratch and temporary prompt files
+scratch/
+**/scratch/
+master_prompt_extracted.txt
 
 # Database dump files in root & backups
 /*.sql
