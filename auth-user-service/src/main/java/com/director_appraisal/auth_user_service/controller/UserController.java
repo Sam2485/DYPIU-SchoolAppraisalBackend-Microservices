@@ -935,28 +935,6 @@ public class UserController {
         }
     }
 
-    @PostMapping("/me/avatar")
-    public ResponseEntity<?> defaultAvatar(
-            Authentication authentication,
-            @RequestParam(value = "avatarUrl", required = false) String avatarUrlParam) {
-        if (avatarUrlParam != null && !avatarUrlParam.isBlank()) {
-            User currentUser = getCurrentUser(authentication);
-            if (currentUser == null) {
-                return error(HttpStatus.UNAUTHORIZED, "Authentication is required.");
-            }
-            Optional<User> userOpt = userService.findByEmail(currentUser.getEmail());
-            if (userOpt.isEmpty()) {
-                return error(HttpStatus.NOT_FOUND, "User not found.");
-            }
-            User user = userOpt.get();
-            user.setAvatarUrl(avatarUrlParam.trim());
-            userService.updateUser(user, null);
-            Map<String, Object> data = new LinkedHashMap<>();
-            data.put("avatarUrl", avatarUrlParam.trim());
-            return ResponseEntity.ok(Map.of("data", data));
-        }
-        return error(HttpStatus.BAD_REQUEST, "Avatar image file or avatarUrl is required.");
-    }
 
     @DeleteMapping("/me/avatar")
     public ResponseEntity<?> removeAvatar(Authentication authentication) {
