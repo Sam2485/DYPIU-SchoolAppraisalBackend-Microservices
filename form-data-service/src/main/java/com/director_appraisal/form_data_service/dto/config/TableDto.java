@@ -22,6 +22,8 @@ public class TableDto {
     private Boolean showTitle;
     private Boolean isRepeatable;
     private Integer displayOrder;
+    private String blockType;
+    private Boolean isTextField;
 
     private List<String> columns; // Array of column header strings (e.g. ["Class", "Intake", "Admitted"])
     private List<FieldDto> fields; // Column field definitions with types/validations

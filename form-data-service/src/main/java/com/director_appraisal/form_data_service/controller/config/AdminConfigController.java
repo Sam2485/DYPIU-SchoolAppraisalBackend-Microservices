@@ -469,10 +469,11 @@ public class AdminConfigController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Field deleted."));
     }
 
-    @PutMapping("/tables/{tableId}/reorder-fields")
+    @PutMapping({"/tables/{tableId}/reorder-fields", "/sections/{sectionId}/reorder-fields"})
     @Transactional
     public ResponseEntity<Map<String, Object>> reorderFields(
-            @PathVariable Long tableId,
+            @PathVariable(value = "tableId", required = false) Long tableId,
+            @PathVariable(value = "sectionId", required = false) Long sectionId,
             @RequestBody List<Long> fieldIds) {
         for (int i = 0; i < fieldIds.size(); i++) {
             Long fId = fieldIds.get(i);

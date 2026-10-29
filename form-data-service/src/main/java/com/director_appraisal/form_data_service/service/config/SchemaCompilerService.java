@@ -94,8 +94,14 @@ public class SchemaCompilerService {
                 }
                 compiledTableKeys.add(uniqueTableKey.toLowerCase());
 
+                boolean isTextField = (uniqueTableKey != null && (uniqueTableKey.toLowerCase().startsWith("textfield_") || uniqueTableKey.toLowerCase().startsWith("text_field_")))
+                        || (!Boolean.TRUE.equals(tbl.getIsRepeatable()) && colFieldDtos.size() == 1 && ("value".equalsIgnoreCase(colFieldDtos.get(0).getFieldKey()) || colFieldDtos.get(0).getFieldKey().toLowerCase().startsWith("value")));
+                String blockType = isTextField ? "TEXT_FIELD" : "TABLE";
+
                 TableDto tableDto = TableDto.builder()
                         .id(tbl.getId())
+                        .blockType(blockType)
+                        .isTextField(isTextField)
                         .idString(uniqueTableKey)
                         .tableKey(uniqueTableKey)
                         .title(tbl.getTitle())

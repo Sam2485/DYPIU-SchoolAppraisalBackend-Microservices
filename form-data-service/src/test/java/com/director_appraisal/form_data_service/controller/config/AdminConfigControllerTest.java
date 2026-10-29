@@ -128,5 +128,37 @@ class AdminConfigControllerTest {
         assertEquals("Academic Audit V2", response.getBody().getTitle());
         assertEquals("PUBLISHED", response.getBody().getStatus());
     }
+
+    @Test
+    @DisplayName("Should reorder table fields")
+    void testReorderTableFields() {
+        FormField f1 = FormField.builder().id(101L).displayOrder(5).build();
+        FormField f2 = FormField.builder().id(102L).displayOrder(6).build();
+
+        when(formFieldRepository.findById(101L)).thenReturn(Optional.of(f1));
+        when(formFieldRepository.findById(102L)).thenReturn(Optional.of(f2));
+
+        ResponseEntity<java.util.Map<String, Object>> res = adminConfigController.reorderFields(50L, null, List.of(102L, 101L));
+        assertEquals(200, res.getStatusCode().value());
+        assertTrue((Boolean) res.getBody().get("success"));
+        assertEquals(1, f2.getDisplayOrder());
+        assertEquals(2, f1.getDisplayOrder());
+    }
+
+    @Test
+    @DisplayName("Should reorder section top-level fields")
+    void testReorderSectionFields() {
+        FormField f1 = FormField.builder().id(201L).displayOrder(10).build();
+        FormField f2 = FormField.builder().id(202L).displayOrder(20).build();
+
+        when(formFieldRepository.findById(201L)).thenReturn(Optional.of(f1));
+        when(formFieldRepository.findById(202L)).thenReturn(Optional.of(f2));
+
+        ResponseEntity<java.util.Map<String, Object>> res = adminConfigController.reorderFields(null, 10L, List.of(202L, 201L));
+        assertEquals(200, res.getStatusCode().value());
+        assertTrue((Boolean) res.getBody().get("success"));
+        assertEquals(1, f2.getDisplayOrder());
+        assertEquals(2, f1.getDisplayOrder());
+    }
 }
 
