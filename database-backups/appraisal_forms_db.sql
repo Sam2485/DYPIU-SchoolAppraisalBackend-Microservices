@@ -1,7 +1,7 @@
 -- =============================================================================
--- PostgreSQL Database Dump: appraisal_forms_db
--- Target Microservice: form-data-service (Port 8082)
--- Extracted from: school_appraisal_backup_2026-08-13.sql
+-- PostgreSQL Database Dump: appraisal_forms_db (form-data-service)
+-- Generated for DYPIU Director & Faculty Appraisal Microservices
+-- Extracted and Reconciled: Complete Historical & Dynamic Engine Data
 -- System: DYPIU Director & Faculty Appraisal System
 -- =============================================================================
 
@@ -22,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 SET search_path = public, pg_catalog;
 
 -- -----------------------------------------------------------------------------
--- 1. DROP EXISTING DYNAMIC ENGINE TABLES
+-- 1. DROP EXISTING TABLES IN REVERSE DEPENDENCY ORDER
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS public.form_fields CASCADE;
 DROP TABLE IF EXISTS public.form_tables CASCADE;
@@ -33,66 +33,70 @@ DROP TABLE IF EXISTS public.academic_years CASCADE;
 DROP TABLE IF EXISTS public.university_posts CASCADE;
 DROP TABLE IF EXISTS public.university_schools CASCADE;
 DROP TABLE IF EXISTS public.universities CASCADE;
-
--- -----------------------------------------------------------------------------
--- 2. DYNAMIC FORM ENGINE SCHEMAS & TABLES
--- -----------------------------------------------------------------------------
-CREATE TABLE public.universities (
-    id bigint NOT NULL,
-    code character varying(50) NOT NULL,
-    slug character varying(50) DEFAULT 'dypiu'::character varying,
-    name character varying(255) NOT NULL,
-    domain character varying(100),
-    status character varying(20) DEFAULT 'ACTIVE'::character varying,
-    address text,
-    establishment_act text,
-    logo_url text,
-    iqac_logo_url text,
-    primary_color character varying(20) DEFAULT '#1e3a8a'::character varying,
-    theme_branding text,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.universities_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.universities_id_seq OWNED BY public.universities.id;
-ALTER TABLE ONLY public.universities ALTER COLUMN id SET DEFAULT nextval('public.universities_id_seq'::regclass);
-ALTER TABLE ONLY public.universities ADD CONSTRAINT universities_pkey PRIMARY KEY (id);
-ALTER TABLE ONLY public.universities ADD CONSTRAINT uk_universities_code UNIQUE (code);
-
-CREATE TABLE public.university_schools (
-    id bigint NOT NULL,
-    university_id bigint NOT NULL DEFAULT 1,
-    code character varying(50) NOT NULL,
-    name character varying(255) NOT NULL,
-    group_name character varying(50) DEFAULT 'general',
-    status character varying(50) DEFAULT 'ACTIVE',
-    display_order integer DEFAULT 0,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.university_schools_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.university_schools_id_seq OWNED BY public.university_schools.id;
-ALTER TABLE ONLY public.university_schools ALTER COLUMN id SET DEFAULT nextval('public.university_schools_id_seq'::regclass);
-ALTER TABLE ONLY public.university_schools ADD CONSTRAINT university_schools_pkey PRIMARY KEY (id);
-
-CREATE TABLE public.university_posts (
-    id bigint NOT NULL,
-    university_id bigint NOT NULL DEFAULT 1,
-    code character varying(60) NOT NULL,
-    name character varying(255) NOT NULL,
-    description character varying(255),
-    status character varying(50) DEFAULT 'ACTIVE',
-    display_order integer DEFAULT 0,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.university_posts_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.university_posts_id_seq OWNED BY public.university_posts.id;
-ALTER TABLE ONLY public.university_posts ALTER COLUMN id SET DEFAULT nextval('public.university_posts_id_seq'::regclass);
-ALTER TABLE ONLY public.university_posts ADD CONSTRAINT university_posts_pkey PRIMARY KEY (id);
+DROP TABLE IF EXISTS public.admin_student_awards CASCADE;
+DROP TABLE IF EXISTS public.alumni_interactions CASCADE;
+DROP TABLE IF EXISTS public.audit_records CASCADE;
+DROP TABLE IF EXISTS public.best_practices CASCADE;
+DROP TABLE IF EXISTS public.board_of_studies CASCADE;
+DROP TABLE IF EXISTS public.books_chapters CASCADE;
+DROP TABLE IF EXISTS public.building_infrastructure CASCADE;
+DROP TABLE IF EXISTS public.career_guidance CASCADE;
+DROP TABLE IF EXISTS public.community_activities CASCADE;
+DROP TABLE IF EXISTS public.consultancy CASCADE;
+DROP TABLE IF EXISTS public.corporate_training CASCADE;
+DROP TABLE IF EXISTS public.courses_offered CASCADE;
+DROP TABLE IF EXISTS public.cultural_activities CASCADE;
+DROP TABLE IF EXISTS public.divyangajan_facilities CASCADE;
+DROP TABLE IF EXISTS public.e_contents CASCADE;
+DROP TABLE IF EXISTS public.e_resources CASCADE;
+DROP TABLE IF EXISTS public.extension_activities CASCADE;
+DROP TABLE IF EXISTS public.faculty_experience CASCADE;
+DROP TABLE IF EXISTS public.faculty_information CASCADE;
+DROP TABLE IF EXISTS public.faculty_specialization CASCADE;
+DROP TABLE IF EXISTS public.faculty_strength CASCADE;
+DROP TABLE IF EXISTS public.faculty_tenure CASCADE;
+DROP TABLE IF EXISTS public.fdp_attended CASCADE;
+DROP TABLE IF EXISTS public.fdp_organized CASCADE;
+DROP TABLE IF EXISTS public.functional_mous CASCADE;
+DROP TABLE IF EXISTS public.graduating_students CASCADE;
+DROP TABLE IF EXISTS public.guest_lectures CASCADE;
+DROP TABLE IF EXISTS public.hackathons CASCADE;
+DROP TABLE IF EXISTS public.higher_studies CASCADE;
+DROP TABLE IF EXISTS public.industry_collaborations CASCADE;
+DROP TABLE IF EXISTS public.it_infrastructure CASCADE;
+DROP TABLE IF EXISTS public.library_infrastructure CASCADE;
+DROP TABLE IF EXISTS public.nep_status CASCADE;
+DROP TABLE IF EXISTS public.obe_implementation CASCADE;
+DROP TABLE IF EXISTS public.patents_copyrights CASCADE;
+DROP TABLE IF EXISTS public.professional_bodies CASCADE;
+DROP TABLE IF EXISTS public.qualifying_exams CASCADE;
+DROP TABLE IF EXISTS public.research_funds CASCADE;
+DROP TABLE IF EXISTS public.research_publications CASCADE;
+DROP TABLE IF EXISTS public.research_resources CASCADE;
+DROP TABLE IF EXISTS public.scholarship_students CASCADE;
+DROP TABLE IF EXISTS public.scholarship_summary CASCADE;
+DROP TABLE IF EXISTS public.sports_activities CASCADE;
+DROP TABLE IF EXISTS public.sports_facilities CASCADE;
+DROP TABLE IF EXISTS public.staff_training CASCADE;
+DROP TABLE IF EXISTS public.statutory_bodies CASCADE;
+DROP TABLE IF EXISTS public.student_awards CASCADE;
+DROP TABLE IF EXISTS public.student_courses CASCADE;
+DROP TABLE IF EXISTS public.student_mentoring CASCADE;
+DROP TABLE IF EXISTS public.student_placements CASCADE;
+DROP TABLE IF EXISTS public.student_startups CASCADE;
+DROP TABLE IF EXISTS public.student_statistics CASCADE;
+DROP TABLE IF EXISTS public.student_strength CASCADE;
+DROP TABLE IF EXISTS public.success_rate CASCADE;
+DROP TABLE IF EXISTS public.supporting_staff CASCADE;
+DROP TABLE IF EXISTS public.swoc_challenges CASCADE;
+DROP TABLE IF EXISTS public.swoc_opportunities CASCADE;
+DROP TABLE IF EXISTS public.swoc_other_information CASCADE;
+DROP TABLE IF EXISTS public.swoc_strength CASCADE;
+DROP TABLE IF EXISTS public.swoc_weaknesses CASCADE;
+DROP TABLE IF EXISTS public.syllabus_revision CASCADE;
+DROP TABLE IF EXISTS public.teacher_awards CASCADE;
+DROP TABLE IF EXISTS public.training_activities CASCADE;
+DROP TABLE IF EXISTS public.value_added_courses CASCADE;
 
 CREATE TABLE public.academic_years (
     id bigint NOT NULL,
@@ -102,1333 +106,35 @@ CREATE TABLE public.academic_years (
     closed_at timestamp without time zone
 );
 
-CREATE SEQUENCE public.academic_years_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.academic_years_id_seq OWNED BY public.academic_years.id;
-ALTER TABLE ONLY public.academic_years ALTER COLUMN id SET DEFAULT nextval('public.academic_years_id_seq'::regclass);
-ALTER TABLE ONLY public.academic_years ADD CONSTRAINT academic_years_pkey PRIMARY KEY (id);
 
-CREATE TABLE public.form_schemas (
-    id bigint NOT NULL,
-    university_id bigint DEFAULT 1 NOT NULL,
-    audit_type character varying(50) NOT NULL,
-    name character varying(255) NOT NULL,
-    description text,
-    assigned_schools text DEFAULT 'ALL'::text,
-    active_version_number integer,
-    active_version_id bigint,
-    status character varying(20) DEFAULT 'ACTIVE'::character varying,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
+ALTER TABLE public.academic_years OWNER TO postgres;
 
-CREATE SEQUENCE public.form_schemas_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.form_schemas_id_seq OWNED BY public.form_schemas.id;
-ALTER TABLE ONLY public.form_schemas ALTER COLUMN id SET DEFAULT nextval('public.form_schemas_id_seq'::regclass);
-ALTER TABLE ONLY public.form_schemas ADD CONSTRAINT form_schemas_pkey PRIMARY KEY (id);
-
-CREATE TABLE public.schema_versions (
-    id bigint NOT NULL,
-    schema_id bigint NOT NULL,
-    version_number integer NOT NULL,
-    status character varying(20) DEFAULT 'PUBLISHED'::character varying,
-    academic_year character varying(50) NOT NULL,
-    title character varying(255),
-    owner_role character varying(100),
-    compiled_schema text,
-    published_by character varying(255),
-    published_at timestamp without time zone,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.schema_versions_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.schema_versions_id_seq OWNED BY public.schema_versions.id;
-ALTER TABLE ONLY public.schema_versions ALTER COLUMN id SET DEFAULT nextval('public.schema_versions_id_seq'::regclass);
-ALTER TABLE ONLY public.schema_versions ADD CONSTRAINT schema_versions_pkey PRIMARY KEY (id);
-
-CREATE TABLE public.form_sections (
-    id bigint NOT NULL,
-    version_id bigint NOT NULL,
-    section_key character varying(100) NOT NULL,
-    title character varying(255) NOT NULL,
-    section_number character varying(20),
-    owner_role character varying(100),
-    description text,
-    table_buttons text,
-    display_order integer DEFAULT 0,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.form_sections_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.form_sections_id_seq OWNED BY public.form_sections.id;
-ALTER TABLE ONLY public.form_sections ALTER COLUMN id SET DEFAULT nextval('public.form_sections_id_seq'::regclass);
-ALTER TABLE ONLY public.form_sections ADD CONSTRAINT form_sections_pkey PRIMARY KEY (id);
-
-CREATE TABLE public.form_tables (
-    id bigint NOT NULL,
-    section_id bigint NOT NULL,
-    table_key character varying(100) NOT NULL,
-    title character varying(255) NOT NULL,
-    show_title boolean DEFAULT true,
-    is_repeatable boolean DEFAULT true,
-    display_order integer DEFAULT 0,
-    initial_rows text,
-    select_options text,
-    date_columns text,
-    number_columns text,
-    textarea_columns text,
-    textarea_max_lengths text,
-    validation_rules text,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.form_tables_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.form_tables_id_seq OWNED BY public.form_tables.id;
-ALTER TABLE ONLY public.form_tables ALTER COLUMN id SET DEFAULT nextval('public.form_tables_id_seq'::regclass);
-ALTER TABLE ONLY public.form_tables ADD CONSTRAINT form_tables_pkey PRIMARY KEY (id);
-
-CREATE TABLE public.form_fields (
-    id bigint NOT NULL,
-    section_id bigint NOT NULL,
-    table_id bigint,
-    field_key character varying(100) NOT NULL,
-    label character varying(500) NOT NULL,
-    field_type character varying(50) DEFAULT 'TEXT'::character varying,
-    kind character varying(50) DEFAULT 'field'::character varying,
-    is_required boolean DEFAULT false,
-    placeholder character varying(255),
-    default_value character varying(255),
-    validation_rules text,
-    options text,
-    attachment_rules text,
-    display_order integer DEFAULT 0,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE SEQUENCE public.form_fields_id_seq START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-ALTER SEQUENCE public.form_fields_id_seq OWNED BY public.form_fields.id;
-ALTER TABLE ONLY public.form_fields ALTER COLUMN id SET DEFAULT nextval('public.form_fields_id_seq'::regclass);
-ALTER TABLE ONLY public.form_fields ADD CONSTRAINT form_fields_pkey PRIMARY KEY (id);
-
-CREATE INDEX idx_form_schemas_audit_type ON public.form_schemas(audit_type);
-CREATE INDEX idx_schema_versions_schema_id ON public.schema_versions(schema_id);
-CREATE INDEX idx_form_sections_version_id ON public.form_sections(version_id);
-CREATE INDEX idx_form_tables_section_id ON public.form_tables(section_id);
-CREATE INDEX idx_form_fields_section_id ON public.form_fields(section_id);
-CREATE INDEX idx_form_fields_table_id ON public.form_fields(table_id);
-
--- 3. SEED UNIVERSITIES & CORE ENTITIES
-INSERT INTO public.universities (id, code, slug, name, domain, address, establishment_act, logo_url, iqac_logo_url, primary_color, status)
-VALUES (1, 'dypiu', 'dypiu', 'D Y Patil International University, Akurdi, Pune', 'dypiu.ac.in', 'Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044', 'Maharashtra State Act No. VI of 2019', '/uploads/branding/dypiu_logo.png', '/uploads/branding/iqac_logo.png', '#1e3a8a', 'ACTIVE')
-ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, code = EXCLUDED.code;
-
-INSERT INTO public.form_schemas (id, university_id, audit_type, name, description, assigned_schools, active_version_number, active_version_id, status)
-VALUES (1, 1, 'academic', 'External Academic Audit', 'Annual Academic Audit Form for Schools', 'ALL', 1, 1, 'ACTIVE')
-ON CONFLICT (id) DO UPDATE SET active_version_id = EXCLUDED.active_version_id, active_version_number = EXCLUDED.active_version_number, status = EXCLUDED.status;
-
-INSERT INTO public.form_schemas (id, university_id, audit_type, name, description, assigned_schools, active_version_number, active_version_id, status)
-VALUES (2, 1, 'administrative', 'Internal Administrative Audit', 'Annual Administrative Audit Form for Offices', 'ALL', 1, 2, 'ACTIVE')
-ON CONFLICT (id) DO UPDATE SET active_version_id = EXCLUDED.active_version_id, active_version_number = EXCLUDED.active_version_number, status = EXCLUDED.status;
-
-INSERT INTO public.university_schools (id, university_id, code, name, group_name, status, display_order) VALUES
-(1, 1, 'SoCSEA', 'School of Computer Science & Applications', 'engineering', 'ACTIVE', 1),
-(2, 1, 'SoBB', 'School of Bio-Engineering & Bio Science', 'engineering', 'ACTIVE', 2),
-(3, 1, 'SoCE', 'School of Continual Education', 'engineering', 'ACTIVE', 3),
-(4, 1, 'SoEMR', 'School of Engineering, Management & Research', 'engineering', 'ACTIVE', 4),
-(5, 1, 'SoCM', 'School of Commerce & Management', 'nonEngineering', 'ACTIVE', 5),
-(6, 1, 'SoMCS', 'School of Media & Communication Studies', 'nonEngineering', 'ACTIVE', 6),
-(7, 1, 'SoD', 'School of Design', 'nonEngineering', 'ACTIVE', 7),
-(8, 1, 'SoAA', 'School of Applied Arts', 'nonEngineering', 'ACTIVE', 8)
-ON CONFLICT (id) DO NOTHING;
-SELECT pg_catalog.setval('public.university_schools_id_seq', 8, true);
-
-INSERT INTO public.university_posts (id, university_id, code, name, description, status, display_order) VALUES
-(1, 1, 'registrar', 'Registrar', 'Registrar Office', 'ACTIVE', 1),
-(2, 1, 'hr', 'HR', 'Human Resources', 'ACTIVE', 2),
-(3, 1, 'dean-student-welfare', 'Dean Student Welfare', 'Student Affairs & Welfare', 'ACTIVE', 3),
-(4, 1, 'dean-placement', 'Dean Placement', 'Training and Placement Cell', 'ACTIVE', 4)
-ON CONFLICT (id) DO NOTHING;
-SELECT pg_catalog.setval('public.university_posts_id_seq', 4, true);
-COPY public.academic_years (id, year_label, active, started_at, closed_at) FROM stdin;
-3	2025-2026	t	2026-06-29 07:15:48.018905	\N
-\.
-
-SELECT pg_catalog.setval('public.academic_years_id_seq', (SELECT COALESCE(max(id), 1) FROM public.academic_years), true);
-
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (1, 1, 'school-department-information', 'School / Department Information', '1', 'director-schools', 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (1, 1, NULL, 'schoolName', 'Name of the School / Department', 'TEXT', true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (2, 1, NULL, 'establishmentYear', 'Year of Establishment', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (3, 1, NULL, 'address', 'Address', 'TEXTAREA', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (4, 1, NULL, 'directorName', 'Director''s Name', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (5, 1, NULL, 'directorEmail', 'Director''s Mail Id', 'EMAIL', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (6, 1, NULL, 'ugIntake', 'UG Intake', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (7, 1, NULL, 'pgIntake', 'PG Intake', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (8, 1, NULL, 'academicCalendar', 'Academic Calendar', 'TEXT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (1, 1, 'studentStrength', 'Student''s Strength', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (9, 1, 1, 'class', 'Class', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (10, 1, 1, 'no_of_student', 'No. of Student', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (11, 1, 1, 'total', 'Total', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (2, 1, 'facultyStrength', 'Faculty Strength', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (12, 1, 2, 'required', 'Required', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (13, 1, 2, 'available', 'Available', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (2, 1, 'part-a-academic-activities', 'Part A - Academic Activities', 'A', 'director-schools', 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (14, 2, NULL, 'bosMeetingsCount', 'No. of meetings conducted', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (15, 2, NULL, 'stakeholderFeedback', 'a. Stakeholder feedback', 'TEXTAREA', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (16, 2, NULL, 'feedbackAnalysis', 'b. Analysis of the feedback', 'TEXTAREA', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (17, 2, NULL, 'actionTakenReport', 'c. Action taken Report', 'TEXTAREA', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (3, 2, 'boardOfStudies', '1. Board of Studies meetings conducted', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (18, 2, 3, 'date_of_the_meeting', 'Date of the meeting', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (19, 2, 3, 'link_for_mom', 'Link for MoM', 'ATTACHMENT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (4, 2, 'syllabusRevision', '2. Syllabus revision feedback, analysis and ATR', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (20, 2, 4, 'category_of_feedback', 'Category of Feedback', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (21, 2, 4, 'link_for_analysis_and_atr', 'Link for Analysis and ATR', 'ATTACHMENT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (5, 2, 'obeImplementation', '3. Outcome based education implementation', true, false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (22, 2, 5, 'particular', 'Particular', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (23, 2, 5, 'link_for_the_document', 'Link for the Document', 'ATTACHMENT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (6, 2, 'nepStatus', '4. NEP 2020 implementation status', true, false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (24, 2, 6, 'check_points', 'Check Points', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (25, 2, 6, 'availability', 'Availability', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (26, 2, 6, 'link_for_the_document', 'Link for the Document', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (7, 2, 'bestPractices', '5. Best Practices at School level', true, false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (27, 2, 7, 'check_points', 'Check Points', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (28, 2, 7, 'availability', 'Availability', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (29, 2, 7, 'link_for_the_document', 'Link for the Document', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (3, 1, 'part-b-student-development', 'Part B - Student Development & Progression', 'B', 'director-schools', 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (8, 3, 'studentMentoring', '1. Student Mentoring (mentor-wise list with mentee)', true, false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (30, 3, 8, 'name_of_mentor', 'Name of Mentor', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (31, 3, 8, 'no_of_mentees', 'No. of Mentees', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (32, 3, 8, 'link_to_document', 'Link to Document', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (9, 3, 'graduatingStudents', '2. No. of students graduating (Program wise)', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (33, 3, 9, 'program', 'Program', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (34, 3, 9, 'female', 'Female', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (35, 3, 9, 'male', 'Male', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (36, 3, 9, 'total', 'Total', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (10, 3, 'successRate', '3. Success Rate of Students (Program wise)', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (37, 3, 10, 'program', 'Program', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (38, 3, 10, 'no_of_students_appeared_for_final_semester_exam', 'No of Students Appeared for Final Semester Exam', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (39, 3, 10, 'number_of_students_cleared_program_in_stipulated_duration_of_the_program', 'Number of Students cleared Program in stipulated duration of the program', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (40, 3, 10, 'success_rate', 'Success Rate %', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (11, 3, 'qualifyingExams', '4. Students Qualifying in State/National/International level examinations', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (41, 3, 11, 'name_of_the_student', 'Name of the Student', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (42, 3, 11, 'examination_details', 'Examination Details', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (43, 3, 11, 'proof_as_attachment', 'Proof as attachment', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (12, 3, 'studentAwards', '5. Awards/Medals won by students for outstanding performance in sports/cultural activities', true, true, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (44, 3, 12, 'name_of_the_student', 'Name of the Student', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (45, 3, 12, 'details_of_the_award', 'Details of the Award', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (46, 3, 12, 'proof_as_an_attachment', 'Proof as an attachment', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (13, 3, 'studentPlacements', '6. Placement of outgoing students', true, true, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (47, 3, 13, 'program', 'Program', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (48, 3, 13, 'no_of_students_appeared_for_final_year_exam', 'No of Students Appeared for Final Year Exam', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (49, 3, 13, 'no_of_students_placed', 'No of Students Placed', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (50, 3, 13, 'placement', '% Placement', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (51, 3, 13, 'proof_as_attachment', 'Proof as attachment', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (14, 3, 'higherStudies', '7. Percentage of outgoing students progressing to higher education', true, true, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (52, 3, 14, 'program', 'Program', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (53, 3, 14, 'no_of_students_appeared_for_final_year_exam', 'No of Students Appeared for Final Year Exam', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (54, 3, 14, 'no_of_students_selected_for_higher_studies', 'No of Students selected for Higher studies', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (55, 3, 14, 'students', '% Students', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (15, 3, 'studentStartups', '8. Details of Start-ups incubated by students', true, true, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (56, 3, 15, 'name_of_the_student', 'Name of the Student', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (57, 3, 15, 'name_of_the_venture_start_up', 'Name of the Venture / Start-up', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (58, 3, 15, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (16, 3, 'studentCourses', '9. Online/value-added courses completed by students', true, true, 9)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (59, 3, 16, 'name_of_student', 'Name of Student', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (60, 3, 16, 'year_of_study', 'Year of Study', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (61, 3, 16, 'name_of_course', 'Name of course', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (62, 3, 16, 'duration', 'Duration', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (63, 3, 16, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (17, 3, 'alumniInteractions', '10. Details of Alumni interactions organized', true, true, 10)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (64, 3, 17, 'name_of_alumni', 'Name of Alumni', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (65, 3, 17, 'designation', 'Designation', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (66, 3, 17, 'present_employer', 'Present employer', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (67, 3, 17, 'date_on_interaction', 'Date on interaction', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (68, 3, 17, 'topic', 'Topic', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (69, 3, 17, 'no_of_beneficiaries', 'No of beneficiaries', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (70, 3, 17, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (18, 3, 'guestLectures', '11. Guest lectures organized', true, true, 11)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (71, 3, 18, 'name_of_the_resource_person', 'Name of the Resource person', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (72, 3, 18, 'designation_and_organization', 'Designation and organization', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (73, 3, 18, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (74, 3, 18, 'topic', 'Topic', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (75, 3, 18, 'number_of_beneficiaries', 'Number of beneficiaries', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (76, 3, 18, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (19, 3, 'professionalBodies', '12. Student chapters of professional bodies', true, true, 12)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (77, 3, 19, 'sr_no', 'Sr no', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (78, 3, 19, 'name_of_the_professional_body_chapter_student_club', 'Name of the Professional body / chapter / student club', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (79, 3, 19, 'no_of_student_members', 'No of student members', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (80, 3, 19, 'date_of_event_conduction', 'Date of event conduction', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (81, 3, 19, 'title_of_the_event', 'Title of the event', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (82, 3, 19, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (20, 3, 'valueAddedCourses', '13. Value added courses imparting transferable and life skills', true, true, 13)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (83, 3, 20, 'sr_no', 'Sr no', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (84, 3, 20, 'title_of_the_course', 'Title of the Course', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (85, 3, 20, 'details_of_resource_person', 'Details of resource person', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (86, 3, 20, 'duration_and_date_of_conduction', 'Duration and date of conduction', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (87, 3, 20, 'no_of_beneficiaries', 'No of beneficiaries', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (88, 3, 20, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (21, 3, 'careerGuidance', '14. Guidance for competitive examinations and career counseling', true, true, 14)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (89, 3, 21, 'session_details', 'Session details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (90, 3, 21, 'resource_person_details', 'Resource person details', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (91, 3, 21, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (92, 3, 21, 'number_of_beneficiaries', 'Number of beneficiaries', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (93, 3, 21, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (22, 3, 'extensionActivities', '15. Extension and outreach activities conducted', true, true, 15)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (94, 3, 22, 'activity_details', 'Activity details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (95, 3, 22, 'organized_by', 'Organized by', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (96, 3, 22, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (97, 3, 22, 'number_of_beneficiaries', 'Number of beneficiaries', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (98, 3, 22, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (4, 1, 'part-c-faculty-research', 'Part C - Faculty Development & Research Activities', 'C', 'director-schools', 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (99, 4, NULL, 'foreignCollaborations', '(a) No. of foreign collaborations either in the form of publications / research', 'TEXTAREA', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (100, 4, NULL, 'nationalCollaborations', '(b) No. of collaborations with other national institutions', 'TEXTAREA', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (101, 4, NULL, 'functionalMousCount', 'No. of Functional MoUs', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (23, 4, 'facultySpecialization', '1. Profile of the Teachers with qualifications and area of specialization', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (102, 4, 23, 'name', 'Name', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (103, 4, 23, 'designation', 'Designation', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (104, 4, 23, 'qualifications', 'Qualifications', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (105, 4, 23, 'specialization', 'Specialization', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (106, 4, 23, 'no_of_ph_d_supervised', 'No. of Ph.D supervised', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (24, 4, 'researchPublications', '2. Research Publications in the Journals notified on UGC CARE list', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (107, 4, 24, 'title_of_paper', 'Title of paper', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (108, 4, 24, 'name_of_author_s', 'Name of author(s)', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (109, 4, 24, 'name_of_journal', 'Name of Journal', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (110, 4, 24, 'year_of_publication_with_volume_and_page_numbers', 'Year of Publication with Volume and Page numbers', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (111, 4, 24, 'isbn_issn', 'ISBN/ISSN', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (112, 4, 24, 'indicate_ugc_approved_journal', 'Indicate UGC Approved Journal', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (113, 4, 24, 'national_international_journal', 'National/International Journal', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (114, 4, 24, 'impact_factor', 'Impact Factor', 'TEXT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (115, 4, 24, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 9)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (25, 4, 'booksChapters', '3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (116, 4, 25, 'name_of_the_teacher', 'Name of the teacher', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (117, 4, 25, 'title_of_the_book_chapters_published', 'Title of the book/chapters published', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (118, 4, 25, 'title_of_the_paper', 'Title of the paper', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (119, 4, 25, 'title_of_the_proceedings_of_the_conference', 'Title of the proceedings of the conference', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (120, 4, 25, 'name_of_the_conference', 'Name of the conference', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (121, 4, 25, 'national_international', 'National / international', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (122, 4, 25, 'year_of_publication', 'Year of publication', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (123, 4, 25, 'isbn_issn_number', 'ISBN/ISSN number', 'TEXT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (124, 4, 25, 'name_of_the_publisher', 'Name of the publisher', 'TEXT', false, 9)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (125, 4, 25, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 10)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (26, 4, 'corporateTraining', '4. Revenue generated from corporate training by the Department', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (126, 4, 26, 'name_of_faculty', 'Name of faculty', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (127, 4, 26, 'agency_seeking_training', 'Agency seeking / training', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (128, 4, 26, 'revenue_generated', 'Revenue generated', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (129, 4, 26, 'number_of_trainees', 'Number of trainees', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (130, 4, 26, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (27, 4, 'consultancy', '5. Revenue generated from Consultancy by the Department', true, true, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (131, 4, 27, 'name_of_the_faculty', 'Name of the faculty', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (132, 4, 27, 'title_of_the_consultancy_project', 'Title of the consultancy project', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (133, 4, 27, 'consulting_sponsoring_agency', 'Consulting/Sponsoring Agency', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (134, 4, 27, 'revenue_generated', 'Revenue generated', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (135, 4, 27, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (28, 4, 'researchFunds', '6. Research funds sanctioned and received from various agencies, industry and other organizations', true, true, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (136, 4, 28, 'name_of_the_project_endowments_chairs', 'Name of the Project / Endowments / Chairs', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (137, 4, 28, 'name_of_the_principal_investigator', 'Name of the Principal Investigator', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (138, 4, 28, 'department_of_principal_investigator', 'Department of Principal Investigator', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (139, 4, 28, 'year_of_award', 'Year of Award', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (140, 4, 28, 'funds_provided', 'Funds provided', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (141, 4, 28, 'duration_of_the_project', 'Duration of the project', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (142, 4, 28, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (29, 4, 'eContents', '7. E-Contents developed', true, true, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (143, 4, 29, 'name_of_the_teacher', 'Name of the teacher', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (144, 4, 29, 'name_of_the_module', 'Name of the module', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (145, 4, 29, 'platform_on_which_module_is_developed', 'Platform on which module is developed', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (146, 4, 29, 'date_of_launching_e_content', 'Date of launching e content', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (147, 4, 29, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (30, 4, 'teacherAwards', '8. Teachers who received national / international fellowship / financial support', true, true, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (148, 4, 30, 'name_of_the_teacher', 'Name of the Teacher', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (149, 4, 30, 'national_awards', 'National Awards', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (150, 4, 30, 'international_awards', 'International Awards', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (151, 4, 30, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (31, 4, 'patentsCopyrights', 'Number of Patents / copyright filed / published / awarded', true, true, 9)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (152, 4, 31, 'sr_no', 'Sr. No', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (153, 4, 31, 'name_of_faculty_student', 'Name of Faculty / Student', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (154, 4, 31, 'application_no', 'Application No', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (155, 4, 31, 'title_of_patent_copyright', 'Title of Patent / Copyright', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (156, 4, 31, 'date_of_filing', 'Date of filing', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (157, 4, 31, 'date_of_publication', 'Date of publication', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (158, 4, 31, 'date_of_award', 'Date of award', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (159, 4, 31, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (32, 4, 'fdpOrganized', '9. Details of seminar / symposia / conference / refresher course / training programmes organized', true, true, 10)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (160, 4, 32, 'sl_no', 'Sl. No', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (161, 4, 32, 'name_of_convener_coordinator', 'Name of Convener/Coordinator', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (162, 4, 32, 'title_of_seminar_course', 'Title of seminar/course', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (163, 4, 32, 'sponsoring_agency', 'Sponsoring Agency', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (164, 4, 32, 'duration_with_dates', 'Duration with dates', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (165, 4, 32, 'no_of_internal_and_external_participants', 'No. of internal and external participants', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (166, 4, 32, 'proceedings_published_yes_no', 'Proceedings published Yes/No', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (167, 4, 32, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (33, 4, 'fdpAttended', 'Details of seminar / symposia / conference / refresher course / training programmes attended by faculty', true, true, 11)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (168, 4, 33, 'sl_no', 'Sl. No', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (169, 4, 33, 'name_of_faculty', 'Name of Faculty', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (170, 4, 33, 'title_of_seminar_course', 'Title of seminar/course', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (171, 4, 33, 'sponsoring_agency_organization', 'Sponsoring Agency / organization', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (172, 4, 33, 'duration_with_dates', 'Duration with dates', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (173, 4, 33, 'date', 'Date', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (174, 4, 33, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (34, 4, 'functionalMous', '11. Functional MoUs', true, true, 12)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (175, 4, 34, 'name_of_the_organization_institution_industry_with_whom_mou_is_signed', 'Name of the Organization / Institution / Industry with whom MoU is signed', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (176, 4, 34, 'year_of_signing_mou', 'Year of signing MoU', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (177, 4, 34, 'duration_of_mou', 'Duration of MoU', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (178, 4, 34, 'list_the_actual_activities_under_each_mou', 'List the actual activities under each MoU', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (179, 4, 34, 'link_to_relevant_proof', 'Link to relevant Proof', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (5, 1, 'part-d-swoc', 'Part D - SWOC Analysis', 'D', 'director-schools', 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (35, 5, 'swocStrength', 'Strength', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (180, 5, 35, 'details', 'Details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (36, 5, 'swocWeaknesses', 'Weaknesses', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (181, 5, 36, 'details', 'Details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (37, 5, 'swocOpportunities', 'Opportunities', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (182, 5, 37, 'details', 'Details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (38, 5, 'swocChallenges', 'Challenges', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (183, 5, 38, 'details', 'Details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (39, 5, 'swocOtherInformation', 'Any other information, which is not covered above', true, true, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (184, 5, 39, 'details', 'Details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (6, 1, 'part-e-observations', 'Part E - Observations & Recommendations of the Audit', 'E', 'auditor', 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (185, 6, NULL, 'auditObservations', 'Observations of the Academic Audit Team', 'TEXTAREA', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (186, 6, NULL, 'auditRecommendations', 'Recommendations of the Audit Team', 'TEXTAREA', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (187, 6, NULL, 'auditDocumentation', 'Upload Documentation', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (7, 2, 'section-a-university-information', 'Section A - University Information', 'A', 'registrar', 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (188, 7, NULL, 'universityName', 'Name of the University', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (189, 7, NULL, 'establishmentYear', 'Year of Establishment', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (190, 7, NULL, 'address', 'Address', 'TEXTAREA', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (191, 7, NULL, 'pinCode', 'Pin Code', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (192, 7, NULL, 'website', 'Website', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (193, 7, NULL, 'viceChancellor', 'Name of the Vice Chancellor', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (194, 7, NULL, 'vcEmail', 'Vice Chancellor e-Mail Id', 'EMAIL', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (195, 7, NULL, 'registrar', 'Name of Registrar', 'TEXT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (196, 7, NULL, 'registrarEmail', 'Registrar e-Mail Id', 'EMAIL', false, 9)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (197, 7, NULL, 'accreditation', 'Accreditation status & Agency', 'TEXTAREA', false, 10)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (40, 7, 'coursesOffered', '1. Courses Offered', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (198, 7, 40, 'name_of_the_program', 'Name of the Program', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (199, 7, 40, 'level_ug_pg', 'Level (UG/PG)', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (200, 7, 40, 'intake', 'Intake', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (201, 7, 40, 'no_of_students_admitted', 'No. of Students Admitted', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (202, 7, 40, 'year_of_commencement_of_the_program', 'Year of Commencement of the program', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (203, 7, 40, 'attachment_attach_list_of_the_students', 'Attachment (Attach List of the Students)', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (41, 7, 'studentStatistics', '2. Total Number of Students in the university', true, false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (204, 7, 41, 'category', 'Category', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (205, 7, 41, 'u_g', 'U.G.', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (206, 7, 41, 'p_g', 'P.G.', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (207, 7, 41, 'ph_d', 'Ph.D.', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (208, 7, 41, 'value_added_skill_courses', 'Value added / skill Courses', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (42, 7, 'statutoryBodies', '3. Statutory Body Meetings and ATR', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (209, 7, 42, 'body_cell', 'Body / Cell', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (210, 7, 42, 'meetings_conducted', 'Meetings Conducted', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (211, 7, 42, 'atr_status', 'ATR Status', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (212, 7, 42, 'remarks_link', 'Remarks / Link', 'ATTACHMENT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (43, 7, 'auditRecords', '4. Audits Completed', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (213, 7, 43, 'audit_type', 'Audit Type', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (214, 7, 43, 'completed_yes_no', 'Completed Yes / No', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (215, 7, 43, 'date', 'Date', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (216, 7, 43, 'remarks_link', 'Remarks / Link', 'ATTACHMENT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (44, 7, 'scholarshipSummary', '5. Scholarship Details', true, false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (217, 7, 44, 'year', 'Year', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (218, 7, 44, 'title_of_scholarship', 'Title of Scholarship', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (219, 7, 44, 'number_of_the_students', 'Number of the Students', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (220, 7, 44, 'amount_received', 'Amount received', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (221, 7, 44, 'awarding_agency', 'Awarding Agency', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (222, 7, 44, 'awarding_organization', 'Awarding Organization', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (223, 7, 44, 'attachment', 'Attachment', 'ATTACHMENT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (45, 7, 'scholarshipStudents', '6. Scholarship Student Details', true, true, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (224, 7, 45, 'year', 'Year', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (225, 7, 45, 'title_of_scholarship', 'Title of Scholarship', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (226, 7, 45, 'name_of_the_students', 'Name of the Students', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (227, 7, 45, 'amount_received', 'Amount received', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (228, 7, 45, 'awarding_agency', 'Awarding Agency', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (229, 7, 45, 'attachment', 'Attachment', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (8, 2, 'section-b-faculty-staff-details', 'Section B - Faculty and Staff Details', 'B', 'hr', 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (230, 8, NULL, 'bogMomSanctionedPostsAttachment', 'BoG MoM Extract showing Sanctioned Posts', 'ATTACHMENT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (231, 8, NULL, 'phdQualification', '(a)(i) Faculty members with Ph.D qualification', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (232, 8, NULL, 'pgQualification', '(a)(ii) Post Graduation Qualification', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (233, 8, NULL, 'otherQualification', '(a)(iii) Any Other Qualification', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (234, 8, NULL, 'studentFacultyRatio', '(b) Student Faculty Ratio', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (46, 8, 'facultyInformation', 'Faculty Information', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (235, 8, 46, 'cadre', 'Cadre', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (236, 8, 46, 'required', 'Required', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (237, 8, 46, 'regular', 'Regular', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (238, 8, 46, 'contract', 'Contract', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (47, 8, 'facultyTenure', '(c) Teaching Experience of the Faculty in DYPIU', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (239, 8, 47, 'tenure', 'Tenure', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (240, 8, 47, 'no_of_faculty', 'No. of Faculty', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (48, 8, 'facultyExperience', '(d) Consolidated Experience of the teaching faculty considering outside experience', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (241, 8, 48, 's_no', 'S.No', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (242, 8, 48, 'name_of_the_faculty', 'Name of the Faculty', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (243, 8, 48, 'designation', 'Designation', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (244, 8, 48, 'highest_qualification', 'Highest Qualification', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (245, 8, 48, 'date_of_joining', 'Date of Joining', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (246, 8, 48, 'experience_in_dypiu', 'Experience in DYPIU', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (247, 8, 48, 'experience_before_joining_dypiu_teaching', 'Experience before joining DYPIU (Teaching)', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (248, 8, 48, 'total_experience', 'Total Experience', 'TEXT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (49, 8, 'supportingStaff', 'Details of Admin and Supporting Staff', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (249, 8, 49, 's_no', 'S.No', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (250, 8, 49, 'name_of_the_supporting_staff', 'Name of the Supporting Staff', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (251, 8, 49, 'designation', 'Designation', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (252, 8, 49, 'highest_qualification', 'Highest Qualification', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (253, 8, 49, 'date_of_joining_in_dypiu', 'Date of Joining in DYPIU', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (254, 8, 49, 'experience_in_dypiu', 'Experience in DYPIU', 'TEXT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (255, 8, 49, 'experience_before_joining_dypiu', 'Experience before joining DYPIU', 'TEXT', false, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (256, 8, 49, 'total_experience', 'Total Experience', 'TEXT', false, 8)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (50, 8, 'staffTraining', 'Administrative training / professional development program organized for non-teaching staff', true, true, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (257, 8, 50, 'sr_no', 'Sr no', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (258, 8, 50, 'title_of_the_course', 'Title of the Course', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (259, 8, 50, 'details_of_resource_person', 'Details of resource person', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (260, 8, 50, 'duration_and_date_of_conduction', 'Duration and date of conduction', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (261, 8, 50, 'no_of_beneficiaries', 'No of beneficiaries', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (262, 8, 50, 'attachment_report_of_the_event', 'Attachment (Report of the Event)', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (9, 2, 'section-c-infrastructure-details', 'Section C - Infrastructure Details', 'C', 'registrar', 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (51, 9, 'buildingInfrastructure', '1. Building Infrastructure', true, false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (263, 9, 51, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (264, 9, 51, 'no', 'No.', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (52, 9, 'libraryInfrastructure', '2. Library & Research Infrastructure', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (265, 9, 52, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (266, 9, 52, 'no', 'No.', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (53, 9, 'eResources', 'E-resource Availability', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (267, 9, 53, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (268, 9, 53, 'availability', 'Availability', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (269, 9, 53, 'remarks', 'Remarks', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (54, 9, 'itInfrastructure', '3. I.T. (Computer) Infrastructure', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (270, 9, 54, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (271, 9, 54, 'no', 'No.', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (55, 9, 'sportsFacilities', '4. Facilities for cultural activities, yoga, games, sports etc', true, true, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (272, 9, 55, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (273, 9, 55, 'no', 'No.', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (56, 9, 'divyangajanFacilities', '5. Facilities for Divyangajan', true, false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (274, 9, 56, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (275, 9, 56, 'available_yes_no', 'Available Yes / No', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (57, 9, 'researchResources', '6. Research Resources', true, true, 7)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (276, 9, 57, 'facilities', 'Facilities', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (277, 9, 57, 'availability', 'Availability', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (278, 9, 57, 'remarks', 'Remarks', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (10, 2, 'section-d-student-activities', 'Section D - Student Activities (Extension and Outreach Activities)', 'D', 'dean-student-welfare', 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (58, 10, 'hackathons', '1. Hackathons and Ideation workshops', true, true, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (279, 10, 58, 'activity_details', 'Activity details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (280, 10, 58, 'organized_by', 'Organized by', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (281, 10, 58, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (282, 10, 58, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (283, 10, 58, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (59, 10, 'culturalActivities', '2. Cultural Clubs and activities and festivals', true, true, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (284, 10, 59, 'activity_details', 'Activity details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (285, 10, 59, 'organized_by', 'Organized by', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (286, 10, 59, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (287, 10, 59, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (288, 10, 59, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (60, 10, 'sportsActivities', '3. Sports clubs / teams and activities', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (289, 10, 60, 'activity_details', 'Activity details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (290, 10, 60, 'organized_by', 'Organized by', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (291, 10, 60, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (292, 10, 60, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (293, 10, 60, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (61, 10, 'communityActivities', '4. Community related activities', true, true, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (294, 10, 61, 'activity_details', 'Activity details', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (295, 10, 61, 'organized_by', 'Organized by', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (296, 10, 61, 'date_of_conduction', 'Date of conduction', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (297, 10, 61, 'number_of_beneficiaries_participants', 'Number of beneficiaries / Participants', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (298, 10, 61, 'attachment', 'Attachment', 'ATTACHMENT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order)
-VALUES (62, 10, 'adminStudentAwards', '5. Awards / Prizes / Recognitions in curricular and extended curricular areas', true, true, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (299, 10, 62, 'name_of_the_award', 'Name of the award', 'TEXT', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (300, 10, 62, 'team_individual', 'Team / Individual', 'TEXT', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (301, 10, 62, 'inter_university_state_national_international', 'Inter-University / State / National / International', 'TEXT', false, 3)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (302, 10, 62, 'name_of_the_event', 'Name of the event', 'TEXT', false, 4)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (303, 10, 62, 'name_of_the_student_s', 'Name of the student(s)', 'TEXT', false, 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (304, 10, 62, 'attachment', 'Attachment', 'ATTACHMENT', false, 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (11, 2, 'section-e-placement-training', 'Section E - Student Progression', 'E', 'dean-placement', 5)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (305, 11, NULL, 'partESchools', 'School-wise Placement Programs & Compensation', 'TEXTAREA', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_sections (id, version_id, section_key, title, section_number, owner_role, display_order)
-VALUES (12, 2, 'section-f-observations-recommendations', 'Section F - Observations & Recommendations of the Audit', 'F', 'auditor', 6)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (306, 12, NULL, 'auditObservations', 'Observations of the Academic Audit Team', 'TEXTAREA', false, 1)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (307, 12, NULL, 'auditRecommendations', 'Recommendations of the Audit Team', 'TEXTAREA', false, 2)
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.form_fields (id, section_id, table_id, field_key, label, field_type, is_required, display_order)
-VALUES (308, 12, NULL, 'auditDocumentation', 'Upload Documentation', 'ATTACHMENT', false, 3)
-ON CONFLICT (id) DO NOTHING;
--- 4. INSERT SCHEMA VERSIONS
-INSERT INTO public.schema_versions (id, schema_id, version_number, status, academic_year, title, owner_role, compiled_schema, published_by, published_at, created_at, updated_at)
-VALUES 
-(1, 1, 1, 'PUBLISHED', '2025-26', 'External Academic Audit', 'director-schools', '{"id": "academic-audit-2025-26", "schemaId": 1, "versionId": 1, "versionNumber": 1, "auditType": "academic", "title": "External Academic Audit", "academicYear": "2025-26", "ownerRole": "director-schools", "status": "PUBLISHED", "header": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png"}, "universityInfo": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png", "code": "dypiu", "slug": "dypiu", "domain": "dypiu.ac.in", "primaryColor": "#1e3a8a"}, "sections": [{"id": 1, "idString": "school-department-information", "sectionKey": "school-department-information", "title": "School / Department Information", "number": "1", "ownerRole": "director-schools", "displayOrder": 1, "fields": [{"id": 1, "idString": "schoolName", "fieldKey": "schoolName", "label": "Name of the School / Department", "fieldType": "TEXT", "kind": "field", "isRequired": true, "displayOrder": 1}, {"id": 2, "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 3, "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 4, "idString": "directorName", "fieldKey": "directorName", "label": "Director''s Name", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 5, "idString": "directorEmail", "fieldKey": "directorEmail", "label": "Director''s Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": 6, "idString": "ugIntake", "fieldKey": "ugIntake", "label": "UG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": 7, "idString": "pgIntake", "fieldKey": "pgIntake", "label": "PG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": 8, "idString": "academicCalendar", "fieldKey": "academicCalendar", "label": "Academic Calendar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}], "tables": [{"id": 1, "idString": "studentStrength", "tableKey": "studentStrength", "title": "Student''s Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Class", "No. of Student", "Total"], "fields": [{"id": 9, "idString": "class", "fieldKey": "class", "label": "Class", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 10, "idString": "no_of_student", "fieldKey": "no_of_student", "label": "No. of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 11, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}, {"id": 2, "idString": "facultyStrength", "tableKey": "facultyStrength", "title": "Faculty Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Required", "Available"], "fields": [{"id": 12, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 13, "idString": "available", "fieldKey": "available", "label": "Available", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}], "blocks": [{"type": "fields", "fields": [{"id": "schoolName", "idString": "schoolName", "fieldKey": "schoolName", "label": "Name of the School / Department", "fieldType": "TEXT", "kind": "field", "isRequired": true, "displayOrder": 1}, {"id": "establishmentYear", "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "address", "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "directorName", "idString": "directorName", "fieldKey": "directorName", "label": "Director''s Name", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "directorEmail", "idString": "directorEmail", "fieldKey": "directorEmail", "label": "Director''s Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": "ugIntake", "idString": "ugIntake", "fieldKey": "ugIntake", "label": "UG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": "pgIntake", "idString": "pgIntake", "fieldKey": "pgIntake", "label": "PG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": "academicCalendar", "idString": "academicCalendar", "fieldKey": "academicCalendar", "label": "Academic Calendar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}]}, {"type": "tables", "tables": [{"id": "studentStrength", "idString": "studentStrength", "tableKey": "studentStrength", "title": "Student''s Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Class", "No. of Student", "Total"], "fields": [{"id": 9, "idString": "class", "fieldKey": "class", "label": "Class", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 10, "idString": "no_of_student", "fieldKey": "no_of_student", "label": "No. of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 11, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}, {"id": "facultyStrength", "idString": "facultyStrength", "tableKey": "facultyStrength", "title": "Faculty Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Required", "Available"], "fields": [{"id": 12, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 13, "idString": "available", "fieldKey": "available", "label": "Available", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}]}]}, {"id": 2, "idString": "part-a-academic-activities", "sectionKey": "part-a-academic-activities", "title": "Part A - Academic Activities", "number": "A", "ownerRole": "director-schools", "displayOrder": 2, "fields": [{"id": 14, "idString": "bosMeetingsCount", "fieldKey": "bosMeetingsCount", "label": "No. of meetings conducted", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 15, "idString": "stakeholderFeedback", "fieldKey": "stakeholderFeedback", "label": "a. Stakeholder feedback", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 16, "idString": "feedbackAnalysis", "fieldKey": "feedbackAnalysis", "label": "b. Analysis of the feedback", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 17, "idString": "actionTakenReport", "fieldKey": "actionTakenReport", "label": "c. Action taken Report", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 4}], "tables": [{"id": 3, "idString": "boardOfStudies", "tableKey": "boardOfStudies", "title": "1. Board of Studies meetings conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Date of the meeting", "Link for MoM"], "fields": [{"id": 18, "idString": "date_of_the_meeting", "fieldKey": "date_of_the_meeting", "label": "Date of the meeting", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 19, "idString": "link_for_mom", "fieldKey": "link_for_mom", "label": "Link for MoM", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}, {"id": 4, "idString": "syllabusRevision", "tableKey": "syllabusRevision", "title": "2. Syllabus revision feedback, analysis and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Category of Feedback", "Link for Analysis and ATR"], "fields": [{"id": 20, "idString": "category_of_feedback", "fieldKey": "category_of_feedback", "label": "Category of Feedback", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 21, "idString": "link_for_analysis_and_atr", "fieldKey": "link_for_analysis_and_atr", "label": "Link for Analysis and ATR", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}, {"id": 5, "idString": "obeImplementation", "tableKey": "obeImplementation", "title": "3. Outcome based education implementation", "showTitle": true, "isRepeatable": false, "displayOrder": 3, "columns": ["Particular", "Link for the Document"], "fields": [{"id": 22, "idString": "particular", "fieldKey": "particular", "label": "Particular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 23, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Particular": "Learning outcomes"}, {"Sr No": "2", "Particular": "Concurrent assessment"}, {"Sr No": "3", "Particular": "CO Coverage in Assessment"}, {"Sr No": "4", "Particular": "Course Exit Survey"}]}, {"id": 6, "idString": "nepStatus", "tableKey": "nepStatus", "title": "4. NEP 2020 implementation status", "showTitle": true, "isRepeatable": false, "displayOrder": 4, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 24, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 25, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 26, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "NEP Governance Structure"}, {"SN": "2", "Check Points": "Curriculum Alignment with NEP"}, {"SN": "3", "Check Points": "Multidisciplinary & Interdisciplinary Learning"}, {"SN": "4", "Check Points": "Academic Bank of Credits (ABC)"}, {"SN": "5", "Check Points": "Multiple Entry & Exit"}, {"SN": "6", "Check Points": "Skill & Vocational Education"}, {"SN": "7", "Check Points": "Experiential Learning & Internships"}, {"SN": "8", "Check Points": "Outcome Based Education (OBE)"}, {"SN": "9", "Check Points": "Technology Integration & MOOCs"}, {"SN": "10", "Check Points": "Holistic Development & Student Support"}], "textareaColumns": ["SDG Address"]}, {"id": 7, "idString": "bestPractices", "tableKey": "bestPractices", "title": "5. Best Practices at School level", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 27, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 28, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 29, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "Best Practice Identification"}, {"SN": "2", "Check Points": "Detailed Implementation Plan"}, {"SN": "3", "Check Points": "Stakeholder Participation Data"}, {"SN": "4", "Check Points": "Outcome Measurement"}, {"SN": "5", "Check Points": "Impact Assessment"}, {"SN": "5(a)", "Check Points": "Quantitative Impact"}, {"SN": "5(b)", "Check Points": "Qualitative Impact"}]}], "blocks": [{"type": "tables", "tables": [{"id": "boardOfStudies", "idString": "boardOfStudies", "tableKey": "boardOfStudies", "title": "1. Board of Studies meetings conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Date of the meeting", "Link for MoM"], "fields": [{"id": 18, "idString": "date_of_the_meeting", "fieldKey": "date_of_the_meeting", "label": "Date of the meeting", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 19, "idString": "link_for_mom", "fieldKey": "link_for_mom", "label": "Link for MoM", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}]}, {"type": "fields", "fields": [{"id": "syllabusHeading", "kind": "heading", "label": "2. Syllabus revision (Major/Minor) details"}, {"id": "stakeholderFeedback", "idString": "stakeholderFeedback", "fieldKey": "stakeholderFeedback", "label": "a. Stakeholder feedback", "fieldType": "TEXTAREA"}, {"id": "feedbackAnalysis", "idString": "feedbackAnalysis", "fieldKey": "feedbackAnalysis", "label": "b. Analysis of the feedback", "fieldType": "TEXTAREA"}, {"id": "actionTakenReport", "idString": "actionTakenReport", "fieldKey": "actionTakenReport", "label": "c. Action taken Report", "fieldType": "TEXTAREA"}]}, {"type": "tables", "tables": [{"id": "syllabusRevision", "idString": "syllabusRevision", "tableKey": "syllabusRevision", "title": "2. Syllabus revision feedback, analysis and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Category of Feedback", "Link for Analysis and ATR"], "fields": [{"id": 20, "idString": "category_of_feedback", "fieldKey": "category_of_feedback", "label": "Category of Feedback", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 21, "idString": "link_for_analysis_and_atr", "fieldKey": "link_for_analysis_and_atr", "label": "Link for Analysis and ATR", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}]}, {"type": "tables", "tables": [{"id": "obeImplementation", "idString": "obeImplementation", "tableKey": "obeImplementation", "title": "3. Outcome based education implementation", "showTitle": true, "isRepeatable": false, "displayOrder": 3, "columns": ["Particular", "Link for the Document"], "fields": [{"id": 22, "idString": "particular", "fieldKey": "particular", "label": "Particular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 23, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Particular": "Learning outcomes"}, {"Sr No": "2", "Particular": "Concurrent assessment"}, {"Sr No": "3", "Particular": "CO Coverage in Assessment"}, {"Sr No": "4", "Particular": "Course Exit Survey"}]}, {"id": "nepStatus", "idString": "nepStatus", "tableKey": "nepStatus", "title": "4. NEP 2020 implementation status", "showTitle": true, "isRepeatable": false, "displayOrder": 4, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 24, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 25, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 26, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "NEP Governance Structure"}, {"SN": "2", "Check Points": "Curriculum Alignment with NEP"}, {"SN": "3", "Check Points": "Multidisciplinary & Interdisciplinary Learning"}, {"SN": "4", "Check Points": "Academic Bank of Credits (ABC)"}, {"SN": "5", "Check Points": "Multiple Entry & Exit"}, {"SN": "6", "Check Points": "Skill & Vocational Education"}, {"SN": "7", "Check Points": "Experiential Learning & Internships"}, {"SN": "8", "Check Points": "Outcome Based Education (OBE)"}, {"SN": "9", "Check Points": "Technology Integration & MOOCs"}, {"SN": "10", "Check Points": "Holistic Development & Student Support"}], "textareaColumns": ["SDG Address"]}, {"id": "bestPractices", "idString": "bestPractices", "tableKey": "bestPractices", "title": "5. Best Practices at School level", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 27, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 28, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 29, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "Best Practice Identification"}, {"SN": "2", "Check Points": "Detailed Implementation Plan"}, {"SN": "3", "Check Points": "Stakeholder Participation Data"}, {"SN": "4", "Check Points": "Outcome Measurement"}, {"SN": "5", "Check Points": "Impact Assessment"}, {"SN": "5(a)", "Check Points": "Quantitative Impact"}, {"SN": "5(b)", "Check Points": "Qualitative Impact"}]}]}]}, {"id": 3, "idString": "part-b-student-development", "sectionKey": "part-b-student-development", "title": "Part B - Student Development & Progression", "number": "B", "ownerRole": "director-schools", "displayOrder": 3, "fields": [], "tables": [{"id": 8, "idString": "studentMentoring", "tableKey": "studentMentoring", "title": "1. Student Mentoring (mentor-wise list with mentee)", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Name of Mentor", "No. of Mentees", "Link to Document"], "fields": [{"id": 30, "idString": "name_of_mentor", "fieldKey": "name_of_mentor", "label": "Name of Mentor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 31, "idString": "no_of_mentees", "fieldKey": "no_of_mentees", "label": "No. of Mentees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 32, "idString": "link_to_document", "fieldKey": "link_to_document", "label": "Link to Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 9, "idString": "graduatingStudents", "tableKey": "graduatingStudents", "title": "2. No. of students graduating (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Program", "Female", "Male", "Total"], "fields": [{"id": 33, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 34, "idString": "female", "fieldKey": "female", "label": "Female", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 35, "idString": "male", "fieldKey": "male", "label": "Male", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 36, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 10, "idString": "successRate", "tableKey": "successRate", "title": "3. Success Rate of Students (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Program", "No of Students Appeared for Final Semester Exam", "Number of Students cleared Program in stipulated duration of the program", "Success Rate %"], "fields": [{"id": 37, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 38, "idString": "no_of_students_appeared_for_final_semester_exam", "fieldKey": "no_of_students_appeared_for_final_semester_exam", "label": "No of Students Appeared for Final Semester Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 39, "idString": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "fieldKey": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "label": "Number of Students cleared Program in stipulated duration of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 40, "idString": "success_rate", "fieldKey": "success_rate", "label": "Success Rate %", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 11, "idString": "qualifyingExams", "tableKey": "qualifyingExams", "title": "4. Students Qualifying in State/National/International level examinations", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of the Student", "Examination Details", "Proof as attachment"], "fields": [{"id": 41, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 42, "idString": "examination_details", "fieldKey": "examination_details", "label": "Examination Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 43, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 12, "idString": "studentAwards", "tableKey": "studentAwards", "title": "5. Awards/Medals won by students for outstanding performance in sports/cultural activities", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the Student", "Details of the Award", "Proof as an attachment"], "fields": [{"id": 44, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 45, "idString": "details_of_the_award", "fieldKey": "details_of_the_award", "label": "Details of the Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 46, "idString": "proof_as_an_attachment", "fieldKey": "proof_as_an_attachment", "label": "Proof as an attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 13, "idString": "studentPlacements", "tableKey": "studentPlacements", "title": "6. Placement of outgoing students", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students Placed", "% Placement", "Proof as attachment"], "fields": [{"id": 47, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 48, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 49, "idString": "no_of_students_placed", "fieldKey": "no_of_students_placed", "label": "No of Students Placed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 50, "idString": "placement", "fieldKey": "placement", "label": "% Placement", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 51, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 14, "idString": "higherStudies", "tableKey": "higherStudies", "title": "7. Percentage of outgoing students progressing to higher education", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students selected for Higher studies", "% Students"], "fields": [{"id": 52, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 53, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 54, "idString": "no_of_students_selected_for_higher_studies", "fieldKey": "no_of_students_selected_for_higher_studies", "label": "No of Students selected for Higher studies", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 55, "idString": "students", "fieldKey": "students", "label": "% Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 15, "idString": "studentStartups", "tableKey": "studentStartups", "title": "8. Details of Start-ups incubated by students", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Student", "Name of the Venture / Start-up", "Link to relevant Proof"], "fields": [{"id": 56, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 57, "idString": "name_of_the_venture_start_up", "fieldKey": "name_of_the_venture_start_up", "label": "Name of the Venture / Start-up", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 58, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 16, "idString": "studentCourses", "tableKey": "studentCourses", "title": "9. Online/value-added courses completed by students", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Name of Student", "Year of Study", "Name of course", "Duration", "Link to relevant Proof"], "fields": [{"id": 59, "idString": "name_of_student", "fieldKey": "name_of_student", "label": "Name of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 60, "idString": "year_of_study", "fieldKey": "year_of_study", "label": "Year of Study", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 61, "idString": "name_of_course", "fieldKey": "name_of_course", "label": "Name of course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 62, "idString": "duration", "fieldKey": "duration", "label": "Duration", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 63, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 17, "idString": "alumniInteractions", "tableKey": "alumniInteractions", "title": "10. Details of Alumni interactions organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Name of Alumni", "Designation", "Present employer", "Date on interaction", "Topic", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 64, "idString": "name_of_alumni", "fieldKey": "name_of_alumni", "label": "Name of Alumni", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 65, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 66, "idString": "present_employer", "fieldKey": "present_employer", "label": "Present employer", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 67, "idString": "date_on_interaction", "fieldKey": "date_on_interaction", "label": "Date on interaction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 68, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 69, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 70, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 18, "idString": "guestLectures", "tableKey": "guestLectures", "title": "11. Guest lectures organized", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Name of the Resource person", "Designation and organization", "Date of conduction", "Topic", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 71, "idString": "name_of_the_resource_person", "fieldKey": "name_of_the_resource_person", "label": "Name of the Resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 72, "idString": "designation_and_organization", "fieldKey": "designation_and_organization", "label": "Designation and organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 73, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 74, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 75, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 76, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 19, "idString": "professionalBodies", "tableKey": "professionalBodies", "title": "12. Student chapters of professional bodies", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Sr no", "Name of the Professional body / chapter / student club", "No of student members", "Date of event conduction", "Title of the event", "Link to relevant Proof"], "fields": [{"id": 77, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 78, "idString": "name_of_the_professional_body_chapter_student_club", "fieldKey": "name_of_the_professional_body_chapter_student_club", "label": "Name of the Professional body / chapter / student club", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 79, "idString": "no_of_student_members", "fieldKey": "no_of_student_members", "label": "No of student members", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 80, "idString": "date_of_event_conduction", "fieldKey": "date_of_event_conduction", "label": "Date of event conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 81, "idString": "title_of_the_event", "fieldKey": "title_of_the_event", "label": "Title of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 82, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 20, "idString": "valueAddedCourses", "tableKey": "valueAddedCourses", "title": "13. Value added courses imparting transferable and life skills", "showTitle": true, "isRepeatable": true, "displayOrder": 13, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 83, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 84, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 85, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 86, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 87, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 88, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 21, "idString": "careerGuidance", "tableKey": "careerGuidance", "title": "14. Guidance for competitive examinations and career counseling", "showTitle": true, "isRepeatable": true, "displayOrder": 14, "columns": ["Session details", "Resource person details", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 89, "idString": "session_details", "fieldKey": "session_details", "label": "Session details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 90, "idString": "resource_person_details", "fieldKey": "resource_person_details", "label": "Resource person details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 91, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 92, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 93, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 22, "idString": "extensionActivities", "tableKey": "extensionActivities", "title": "15. Extension and outreach activities conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 15, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 94, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 95, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 96, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 97, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 98, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}], "blocks": [{"type": "tables", "tables": [{"id": "studentMentoring", "idString": "studentMentoring", "tableKey": "studentMentoring", "title": "1. Student Mentoring (mentor-wise list with mentee)", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Name of Mentor", "No. of Mentees", "Link to Document"], "fields": [{"id": 30, "idString": "name_of_mentor", "fieldKey": "name_of_mentor", "label": "Name of Mentor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 31, "idString": "no_of_mentees", "fieldKey": "no_of_mentees", "label": "No. of Mentees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 32, "idString": "link_to_document", "fieldKey": "link_to_document", "label": "Link to Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "graduatingStudents", "idString": "graduatingStudents", "tableKey": "graduatingStudents", "title": "2. No. of students graduating (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Program", "Female", "Male", "Total"], "fields": [{"id": 33, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 34, "idString": "female", "fieldKey": "female", "label": "Female", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 35, "idString": "male", "fieldKey": "male", "label": "Male", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 36, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "successRate", "idString": "successRate", "tableKey": "successRate", "title": "3. Success Rate of Students (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Program", "No of Students Appeared for Final Semester Exam", "Number of Students cleared Program in stipulated duration of the program", "Success Rate %"], "fields": [{"id": 37, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 38, "idString": "no_of_students_appeared_for_final_semester_exam", "fieldKey": "no_of_students_appeared_for_final_semester_exam", "label": "No of Students Appeared for Final Semester Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 39, "idString": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "fieldKey": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "label": "Number of Students cleared Program in stipulated duration of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 40, "idString": "success_rate", "fieldKey": "success_rate", "label": "Success Rate %", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "qualifyingExams", "idString": "qualifyingExams", "tableKey": "qualifyingExams", "title": "4. Students Qualifying in State/National/International level examinations", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of the Student", "Examination Details", "Proof as attachment"], "fields": [{"id": 41, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 42, "idString": "examination_details", "fieldKey": "examination_details", "label": "Examination Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 43, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentAwards", "idString": "studentAwards", "tableKey": "studentAwards", "title": "5. Awards/Medals won by students for outstanding performance in sports/cultural activities", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the Student", "Details of the Award", "Proof as an attachment"], "fields": [{"id": 44, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 45, "idString": "details_of_the_award", "fieldKey": "details_of_the_award", "label": "Details of the Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 46, "idString": "proof_as_an_attachment", "fieldKey": "proof_as_an_attachment", "label": "Proof as an attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentPlacements", "idString": "studentPlacements", "tableKey": "studentPlacements", "title": "6. Placement of outgoing students", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students Placed", "% Placement", "Proof as attachment"], "fields": [{"id": 47, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 48, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 49, "idString": "no_of_students_placed", "fieldKey": "no_of_students_placed", "label": "No of Students Placed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 50, "idString": "placement", "fieldKey": "placement", "label": "% Placement", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 51, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "higherStudies", "idString": "higherStudies", "tableKey": "higherStudies", "title": "7. Percentage of outgoing students progressing to higher education", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students selected for Higher studies", "% Students"], "fields": [{"id": 52, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 53, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 54, "idString": "no_of_students_selected_for_higher_studies", "fieldKey": "no_of_students_selected_for_higher_studies", "label": "No of Students selected for Higher studies", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 55, "idString": "students", "fieldKey": "students", "label": "% Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "studentStartups", "idString": "studentStartups", "tableKey": "studentStartups", "title": "8. Details of Start-ups incubated by students", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Student", "Name of the Venture / Start-up", "Link to relevant Proof"], "fields": [{"id": 56, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 57, "idString": "name_of_the_venture_start_up", "fieldKey": "name_of_the_venture_start_up", "label": "Name of the Venture / Start-up", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 58, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentCourses", "idString": "studentCourses", "tableKey": "studentCourses", "title": "9. Online/value-added courses completed by students", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Name of Student", "Year of Study", "Name of course", "Duration", "Link to relevant Proof"], "fields": [{"id": 59, "idString": "name_of_student", "fieldKey": "name_of_student", "label": "Name of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 60, "idString": "year_of_study", "fieldKey": "year_of_study", "label": "Year of Study", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 61, "idString": "name_of_course", "fieldKey": "name_of_course", "label": "Name of course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 62, "idString": "duration", "fieldKey": "duration", "label": "Duration", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 63, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "alumniInteractions", "idString": "alumniInteractions", "tableKey": "alumniInteractions", "title": "10. Details of Alumni interactions organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Name of Alumni", "Designation", "Present employer", "Date on interaction", "Topic", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 64, "idString": "name_of_alumni", "fieldKey": "name_of_alumni", "label": "Name of Alumni", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 65, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 66, "idString": "present_employer", "fieldKey": "present_employer", "label": "Present employer", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 67, "idString": "date_on_interaction", "fieldKey": "date_on_interaction", "label": "Date on interaction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 68, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 69, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 70, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "guestLectures", "idString": "guestLectures", "tableKey": "guestLectures", "title": "11. Guest lectures organized", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Name of the Resource person", "Designation and organization", "Date of conduction", "Topic", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 71, "idString": "name_of_the_resource_person", "fieldKey": "name_of_the_resource_person", "label": "Name of the Resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 72, "idString": "designation_and_organization", "fieldKey": "designation_and_organization", "label": "Designation and organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 73, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 74, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 75, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 76, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "professionalBodies", "idString": "professionalBodies", "tableKey": "professionalBodies", "title": "12. Student chapters of professional bodies", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Sr no", "Name of the Professional body / chapter / student club", "No of student members", "Date of event conduction", "Title of the event", "Link to relevant Proof"], "fields": [{"id": 77, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 78, "idString": "name_of_the_professional_body_chapter_student_club", "fieldKey": "name_of_the_professional_body_chapter_student_club", "label": "Name of the Professional body / chapter / student club", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 79, "idString": "no_of_student_members", "fieldKey": "no_of_student_members", "label": "No of student members", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 80, "idString": "date_of_event_conduction", "fieldKey": "date_of_event_conduction", "label": "Date of event conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 81, "idString": "title_of_the_event", "fieldKey": "title_of_the_event", "label": "Title of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 82, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "valueAddedCourses", "idString": "valueAddedCourses", "tableKey": "valueAddedCourses", "title": "13. Value added courses imparting transferable and life skills", "showTitle": true, "isRepeatable": true, "displayOrder": 13, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 83, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 84, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 85, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 86, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 87, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 88, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "careerGuidance", "idString": "careerGuidance", "tableKey": "careerGuidance", "title": "14. Guidance for competitive examinations and career counseling", "showTitle": true, "isRepeatable": true, "displayOrder": 14, "columns": ["Session details", "Resource person details", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 89, "idString": "session_details", "fieldKey": "session_details", "label": "Session details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 90, "idString": "resource_person_details", "fieldKey": "resource_person_details", "label": "Resource person details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 91, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 92, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 93, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "extensionActivities", "idString": "extensionActivities", "tableKey": "extensionActivities", "title": "15. Extension and outreach activities conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 15, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 94, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 95, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 96, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 97, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 98, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}]}]}, {"id": 4, "idString": "part-c-faculty-research", "sectionKey": "part-c-faculty-research", "title": "Part C - Faculty Development & Research Activities", "number": "C", "ownerRole": "director-schools", "displayOrder": 4, "fields": [{"id": 99, "idString": "foreignCollaborations", "fieldKey": "foreignCollaborations", "label": "(a) No. of foreign collaborations either in the form of publications / research", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 100, "idString": "nationalCollaborations", "fieldKey": "nationalCollaborations", "label": "(b) No. of collaborations with other national institutions", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 101, "idString": "functionalMousCount", "fieldKey": "functionalMousCount", "label": "No. of Functional MoUs", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [{"id": 23, "idString": "facultySpecialization", "tableKey": "facultySpecialization", "title": "1. Profile of the Teachers with qualifications and area of specialization", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name", "Designation", "Qualifications", "Specialization", "No. of Ph.D supervised"], "fields": [{"id": 102, "idString": "name", "fieldKey": "name", "label": "Name", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 103, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 104, "idString": "qualifications", "fieldKey": "qualifications", "label": "Qualifications", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 105, "idString": "specialization", "fieldKey": "specialization", "label": "Specialization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 106, "idString": "no_of_ph_d_supervised", "fieldKey": "no_of_ph_d_supervised", "label": "No. of Ph.D supervised", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}]}, {"id": 24, "idString": "researchPublications", "tableKey": "researchPublications", "title": "2. Research Publications in the Journals notified on UGC CARE list", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Title of paper", "Name of author(s)", "Name of Journal", "Year of Publication with Volume and Page numbers", "ISBN/ISSN", "Indicate UGC Approved Journal", "National/International Journal", "Impact Factor", "Link to relevant Proof"], "fields": [{"id": 107, "idString": "title_of_paper", "fieldKey": "title_of_paper", "label": "Title of paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 108, "idString": "name_of_author_s", "fieldKey": "name_of_author_s", "label": "Name of author(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 109, "idString": "name_of_journal", "fieldKey": "name_of_journal", "label": "Name of Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 110, "idString": "year_of_publication_with_volume_and_page_numbers", "fieldKey": "year_of_publication_with_volume_and_page_numbers", "label": "Year of Publication with Volume and Page numbers", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 111, "idString": "isbn_issn", "fieldKey": "isbn_issn", "label": "ISBN/ISSN", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 112, "idString": "indicate_ugc_approved_journal", "fieldKey": "indicate_ugc_approved_journal", "label": "Indicate UGC Approved Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 113, "idString": "national_international_journal", "fieldKey": "national_international_journal", "label": "National/International Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 114, "idString": "impact_factor", "fieldKey": "impact_factor", "label": "Impact Factor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 115, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 9}]}, {"id": 25, "idString": "booksChapters", "tableKey": "booksChapters", "title": "3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Name of the teacher", "Title of the book/chapters published", "Title of the paper", "Title of the proceedings of the conference", "Name of the conference", "National / international", "Year of publication", "ISBN/ISSN number", "Name of the publisher", "Link to relevant Proof"], "fields": [{"id": 116, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 117, "idString": "title_of_the_book_chapters_published", "fieldKey": "title_of_the_book_chapters_published", "label": "Title of the book/chapters published", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 118, "idString": "title_of_the_paper", "fieldKey": "title_of_the_paper", "label": "Title of the paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 119, "idString": "title_of_the_proceedings_of_the_conference", "fieldKey": "title_of_the_proceedings_of_the_conference", "label": "Title of the proceedings of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 120, "idString": "name_of_the_conference", "fieldKey": "name_of_the_conference", "label": "Name of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 121, "idString": "national_international", "fieldKey": "national_international", "label": "National / international", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 122, "idString": "year_of_publication", "fieldKey": "year_of_publication", "label": "Year of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 123, "idString": "isbn_issn_number", "fieldKey": "isbn_issn_number", "label": "ISBN/ISSN number", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 124, "idString": "name_of_the_publisher", "fieldKey": "name_of_the_publisher", "label": "Name of the publisher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 9}, {"id": 125, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 10}]}, {"id": 26, "idString": "corporateTraining", "tableKey": "corporateTraining", "title": "4. Revenue generated from corporate training by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of faculty", "Agency seeking / training", "Revenue generated", "Number of trainees", "Link to relevant Proof"], "fields": [{"id": 126, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 127, "idString": "agency_seeking_training", "fieldKey": "agency_seeking_training", "label": "Agency seeking / training", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 128, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 129, "idString": "number_of_trainees", "fieldKey": "number_of_trainees", "label": "Number of trainees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 130, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 27, "idString": "consultancy", "tableKey": "consultancy", "title": "5. Revenue generated from Consultancy by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the faculty", "Title of the consultancy project", "Consulting/Sponsoring Agency", "Revenue generated", "Link to relevant Proof"], "fields": [{"id": 131, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 132, "idString": "title_of_the_consultancy_project", "fieldKey": "title_of_the_consultancy_project", "label": "Title of the consultancy project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 133, "idString": "consulting_sponsoring_agency", "fieldKey": "consulting_sponsoring_agency", "label": "Consulting/Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 134, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 135, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 28, "idString": "researchFunds", "tableKey": "researchFunds", "title": "6. Research funds sanctioned and received from various agencies, industry and other organizations", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Name of the Project / Endowments / Chairs", "Name of the Principal Investigator", "Department of Principal Investigator", "Year of Award", "Funds provided", "Duration of the project", "Link to relevant Proof"], "fields": [{"id": 136, "idString": "name_of_the_project_endowments_chairs", "fieldKey": "name_of_the_project_endowments_chairs", "label": "Name of the Project / Endowments / Chairs", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 137, "idString": "name_of_the_principal_investigator", "fieldKey": "name_of_the_principal_investigator", "label": "Name of the Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 138, "idString": "department_of_principal_investigator", "fieldKey": "department_of_principal_investigator", "label": "Department of Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 139, "idString": "year_of_award", "fieldKey": "year_of_award", "label": "Year of Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 140, "idString": "funds_provided", "fieldKey": "funds_provided", "label": "Funds provided", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 141, "idString": "duration_of_the_project", "fieldKey": "duration_of_the_project", "label": "Duration of the project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 142, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 29, "idString": "eContents", "tableKey": "eContents", "title": "7. E-Contents developed", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Name of the teacher", "Name of the module", "Platform on which module is developed", "Date of launching e content", "Link to relevant Proof"], "fields": [{"id": 143, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 144, "idString": "name_of_the_module", "fieldKey": "name_of_the_module", "label": "Name of the module", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 145, "idString": "platform_on_which_module_is_developed", "fieldKey": "platform_on_which_module_is_developed", "label": "Platform on which module is developed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 146, "idString": "date_of_launching_e_content", "fieldKey": "date_of_launching_e_content", "label": "Date of launching e content", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 147, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 30, "idString": "teacherAwards", "tableKey": "teacherAwards", "title": "8. Teachers who received national / international fellowship / financial support", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Teacher", "National Awards", "International Awards", "Link to relevant Proof"], "fields": [{"id": 148, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the Teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 149, "idString": "national_awards", "fieldKey": "national_awards", "label": "National Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 150, "idString": "international_awards", "fieldKey": "international_awards", "label": "International Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 151, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}]}, {"id": 31, "idString": "patentsCopyrights", "tableKey": "patentsCopyrights", "title": "Number of Patents / copyright filed / published / awarded", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Sr. No", "Name of Faculty / Student", "Application No", "Title of Patent / Copyright", "Date of filing", "Date of publication", "Date of award", "Link to relevant Proof"], "fields": [{"id": 152, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 153, "idString": "name_of_faculty_student", "fieldKey": "name_of_faculty_student", "label": "Name of Faculty / Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 154, "idString": "application_no", "fieldKey": "application_no", "label": "Application No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 155, "idString": "title_of_patent_copyright", "fieldKey": "title_of_patent_copyright", "label": "Title of Patent / Copyright", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 156, "idString": "date_of_filing", "fieldKey": "date_of_filing", "label": "Date of filing", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 157, "idString": "date_of_publication", "fieldKey": "date_of_publication", "label": "Date of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 158, "idString": "date_of_award", "fieldKey": "date_of_award", "label": "Date of award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 159, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": 32, "idString": "fdpOrganized", "tableKey": "fdpOrganized", "title": "9. Details of seminar / symposia / conference / refresher course / training programmes organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Sl. No", "Name of Convener/Coordinator", "Title of seminar/course", "Sponsoring Agency", "Duration with dates", "No. of internal and external participants", "Proceedings published Yes/No", "Link to relevant Proof"], "fields": [{"id": 160, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 161, "idString": "name_of_convener_coordinator", "fieldKey": "name_of_convener_coordinator", "label": "Name of Convener/Coordinator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 162, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 163, "idString": "sponsoring_agency", "fieldKey": "sponsoring_agency", "label": "Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 164, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 165, "idString": "no_of_internal_and_external_participants", "fieldKey": "no_of_internal_and_external_participants", "label": "No. of internal and external participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 166, "idString": "proceedings_published_yes_no", "fieldKey": "proceedings_published_yes_no", "label": "Proceedings published Yes/No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 167, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": 33, "idString": "fdpAttended", "tableKey": "fdpAttended", "title": "Details of seminar / symposia / conference / refresher course / training programmes attended by faculty", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Sl. No", "Name of Faculty", "Title of seminar/course", "Sponsoring Agency / organization", "Duration with dates", "Date", "Link to relevant Proof"], "fields": [{"id": 168, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 169, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 170, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 171, "idString": "sponsoring_agency_organization", "fieldKey": "sponsoring_agency_organization", "label": "Sponsoring Agency / organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 172, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 173, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 174, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 34, "idString": "functionalMous", "tableKey": "functionalMous", "title": "11. Functional MoUs", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Name of the Organization / Institution / Industry with whom MoU is signed", "Year of signing MoU", "Duration of MoU", "List the actual activities under each MoU", "Link to relevant Proof"], "fields": [{"id": 175, "idString": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "fieldKey": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "label": "Name of the Organization / Institution / Industry with whom MoU is signed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 176, "idString": "year_of_signing_mou", "fieldKey": "year_of_signing_mou", "label": "Year of signing MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 177, "idString": "duration_of_mou", "fieldKey": "duration_of_mou", "label": "Duration of MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 178, "idString": "list_the_actual_activities_under_each_mou", "fieldKey": "list_the_actual_activities_under_each_mou", "label": "List the actual activities under each MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 179, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}], "blocks": [{"type": "tables", "tables": [{"id": "facultySpecialization", "idString": "facultySpecialization", "tableKey": "facultySpecialization", "title": "1. Profile of the Teachers with qualifications and area of specialization", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name", "Designation", "Qualifications", "Specialization", "No. of Ph.D supervised"], "fields": [{"id": 102, "idString": "name", "fieldKey": "name", "label": "Name", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 103, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 104, "idString": "qualifications", "fieldKey": "qualifications", "label": "Qualifications", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 105, "idString": "specialization", "fieldKey": "specialization", "label": "Specialization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 106, "idString": "no_of_ph_d_supervised", "fieldKey": "no_of_ph_d_supervised", "label": "No. of Ph.D supervised", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}]}, {"id": "researchPublications", "idString": "researchPublications", "tableKey": "researchPublications", "title": "2. Research Publications in the Journals notified on UGC CARE list", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Title of paper", "Name of author(s)", "Name of Journal", "Year of Publication with Volume and Page numbers", "ISBN/ISSN", "Indicate UGC Approved Journal", "National/International Journal", "Impact Factor", "Link to relevant Proof"], "fields": [{"id": 107, "idString": "title_of_paper", "fieldKey": "title_of_paper", "label": "Title of paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 108, "idString": "name_of_author_s", "fieldKey": "name_of_author_s", "label": "Name of author(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 109, "idString": "name_of_journal", "fieldKey": "name_of_journal", "label": "Name of Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 110, "idString": "year_of_publication_with_volume_and_page_numbers", "fieldKey": "year_of_publication_with_volume_and_page_numbers", "label": "Year of Publication with Volume and Page numbers", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 111, "idString": "isbn_issn", "fieldKey": "isbn_issn", "label": "ISBN/ISSN", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 112, "idString": "indicate_ugc_approved_journal", "fieldKey": "indicate_ugc_approved_journal", "label": "Indicate UGC Approved Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 113, "idString": "national_international_journal", "fieldKey": "national_international_journal", "label": "National/International Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 114, "idString": "impact_factor", "fieldKey": "impact_factor", "label": "Impact Factor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 115, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 9}]}, {"id": "booksChapters", "idString": "booksChapters", "tableKey": "booksChapters", "title": "3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Name of the teacher", "Title of the book/chapters published", "Title of the paper", "Title of the proceedings of the conference", "Name of the conference", "National / international", "Year of publication", "ISBN/ISSN number", "Name of the publisher", "Link to relevant Proof"], "fields": [{"id": 116, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 117, "idString": "title_of_the_book_chapters_published", "fieldKey": "title_of_the_book_chapters_published", "label": "Title of the book/chapters published", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 118, "idString": "title_of_the_paper", "fieldKey": "title_of_the_paper", "label": "Title of the paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 119, "idString": "title_of_the_proceedings_of_the_conference", "fieldKey": "title_of_the_proceedings_of_the_conference", "label": "Title of the proceedings of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 120, "idString": "name_of_the_conference", "fieldKey": "name_of_the_conference", "label": "Name of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 121, "idString": "national_international", "fieldKey": "national_international", "label": "National / international", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 122, "idString": "year_of_publication", "fieldKey": "year_of_publication", "label": "Year of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 123, "idString": "isbn_issn_number", "fieldKey": "isbn_issn_number", "label": "ISBN/ISSN number", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 124, "idString": "name_of_the_publisher", "fieldKey": "name_of_the_publisher", "label": "Name of the publisher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 9}, {"id": 125, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 10}]}, {"id": "corporateTraining", "idString": "corporateTraining", "tableKey": "corporateTraining", "title": "4. Revenue generated from corporate training by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of faculty", "Agency seeking / training", "Revenue generated", "Number of trainees", "Link to relevant Proof"], "fields": [{"id": 126, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 127, "idString": "agency_seeking_training", "fieldKey": "agency_seeking_training", "label": "Agency seeking / training", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 128, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 129, "idString": "number_of_trainees", "fieldKey": "number_of_trainees", "label": "Number of trainees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 130, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "consultancy", "idString": "consultancy", "tableKey": "consultancy", "title": "5. Revenue generated from Consultancy by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the faculty", "Title of the consultancy project", "Consulting/Sponsoring Agency", "Revenue generated", "Link to relevant Proof"], "fields": [{"id": 131, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 132, "idString": "title_of_the_consultancy_project", "fieldKey": "title_of_the_consultancy_project", "label": "Title of the consultancy project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 133, "idString": "consulting_sponsoring_agency", "fieldKey": "consulting_sponsoring_agency", "label": "Consulting/Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 134, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 135, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "researchFunds", "idString": "researchFunds", "tableKey": "researchFunds", "title": "6. Research funds sanctioned and received from various agencies, industry and other organizations", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Name of the Project / Endowments / Chairs", "Name of the Principal Investigator", "Department of Principal Investigator", "Year of Award", "Funds provided", "Duration of the project", "Link to relevant Proof"], "fields": [{"id": 136, "idString": "name_of_the_project_endowments_chairs", "fieldKey": "name_of_the_project_endowments_chairs", "label": "Name of the Project / Endowments / Chairs", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 137, "idString": "name_of_the_principal_investigator", "fieldKey": "name_of_the_principal_investigator", "label": "Name of the Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 138, "idString": "department_of_principal_investigator", "fieldKey": "department_of_principal_investigator", "label": "Department of Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 139, "idString": "year_of_award", "fieldKey": "year_of_award", "label": "Year of Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 140, "idString": "funds_provided", "fieldKey": "funds_provided", "label": "Funds provided", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 141, "idString": "duration_of_the_project", "fieldKey": "duration_of_the_project", "label": "Duration of the project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 142, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "eContents", "idString": "eContents", "tableKey": "eContents", "title": "7. E-Contents developed", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Name of the teacher", "Name of the module", "Platform on which module is developed", "Date of launching e content", "Link to relevant Proof"], "fields": [{"id": 143, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 144, "idString": "name_of_the_module", "fieldKey": "name_of_the_module", "label": "Name of the module", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 145, "idString": "platform_on_which_module_is_developed", "fieldKey": "platform_on_which_module_is_developed", "label": "Platform on which module is developed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 146, "idString": "date_of_launching_e_content", "fieldKey": "date_of_launching_e_content", "label": "Date of launching e content", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 147, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "teacherAwards", "idString": "teacherAwards", "tableKey": "teacherAwards", "title": "8. Teachers who received national / international fellowship / financial support", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Teacher", "National Awards", "International Awards", "Link to relevant Proof"], "fields": [{"id": 148, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the Teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 149, "idString": "national_awards", "fieldKey": "national_awards", "label": "National Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 150, "idString": "international_awards", "fieldKey": "international_awards", "label": "International Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 151, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}]}, {"id": "patentsCopyrights", "idString": "patentsCopyrights", "tableKey": "patentsCopyrights", "title": "Number of Patents / copyright filed / published / awarded", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Sr. No", "Name of Faculty / Student", "Application No", "Title of Patent / Copyright", "Date of filing", "Date of publication", "Date of award", "Link to relevant Proof"], "fields": [{"id": 152, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 153, "idString": "name_of_faculty_student", "fieldKey": "name_of_faculty_student", "label": "Name of Faculty / Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 154, "idString": "application_no", "fieldKey": "application_no", "label": "Application No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 155, "idString": "title_of_patent_copyright", "fieldKey": "title_of_patent_copyright", "label": "Title of Patent / Copyright", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 156, "idString": "date_of_filing", "fieldKey": "date_of_filing", "label": "Date of filing", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 157, "idString": "date_of_publication", "fieldKey": "date_of_publication", "label": "Date of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 158, "idString": "date_of_award", "fieldKey": "date_of_award", "label": "Date of award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 159, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": "fdpOrganized", "idString": "fdpOrganized", "tableKey": "fdpOrganized", "title": "9. Details of seminar / symposia / conference / refresher course / training programmes organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Sl. No", "Name of Convener/Coordinator", "Title of seminar/course", "Sponsoring Agency", "Duration with dates", "No. of internal and external participants", "Proceedings published Yes/No", "Link to relevant Proof"], "fields": [{"id": 160, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 161, "idString": "name_of_convener_coordinator", "fieldKey": "name_of_convener_coordinator", "label": "Name of Convener/Coordinator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 162, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 163, "idString": "sponsoring_agency", "fieldKey": "sponsoring_agency", "label": "Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 164, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 165, "idString": "no_of_internal_and_external_participants", "fieldKey": "no_of_internal_and_external_participants", "label": "No. of internal and external participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 166, "idString": "proceedings_published_yes_no", "fieldKey": "proceedings_published_yes_no", "label": "Proceedings published Yes/No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 167, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": "fdpAttended", "idString": "fdpAttended", "tableKey": "fdpAttended", "title": "Details of seminar / symposia / conference / refresher course / training programmes attended by faculty", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Sl. No", "Name of Faculty", "Title of seminar/course", "Sponsoring Agency / organization", "Duration with dates", "Date", "Link to relevant Proof"], "fields": [{"id": 168, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 169, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 170, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 171, "idString": "sponsoring_agency_organization", "fieldKey": "sponsoring_agency_organization", "label": "Sponsoring Agency / organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 172, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 173, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 174, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}]}, {"type": "fields", "fields": [{"id": "collabHeading", "kind": "heading", "label": "10. Collaborations"}, {"id": "foreignCollaborations", "idString": "foreignCollaborations", "fieldKey": "foreignCollaborations", "label": "(a) No. of foreign collaborations either in the form of publications / research", "fieldType": "TEXTAREA"}, {"id": "nationalCollaborations", "idString": "nationalCollaborations", "fieldKey": "nationalCollaborations", "label": "(b) No. of collaborations with other national institutions", "fieldType": "TEXTAREA"}, {"id": "mouHeading", "kind": "heading", "label": "11. Functional MoUs"}, {"id": "functionalMousCount", "idString": "functionalMousCount", "fieldKey": "functionalMousCount", "label": "No. of Functional MoUs", "fieldType": "TEXT"}]}, {"type": "tables", "tables": [{"id": "functionalMous", "idString": "functionalMous", "tableKey": "functionalMous", "title": "11. Functional MoUs", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Name of the Organization / Institution / Industry with whom MoU is signed", "Year of signing MoU", "Duration of MoU", "List the actual activities under each MoU", "Link to relevant Proof"], "fields": [{"id": 175, "idString": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "fieldKey": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "label": "Name of the Organization / Institution / Industry with whom MoU is signed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 176, "idString": "year_of_signing_mou", "fieldKey": "year_of_signing_mou", "label": "Year of signing MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 177, "idString": "duration_of_mou", "fieldKey": "duration_of_mou", "label": "Duration of MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 178, "idString": "list_the_actual_activities_under_each_mou", "fieldKey": "list_the_actual_activities_under_each_mou", "label": "List the actual activities under each MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 179, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}]}]}, {"id": 5, "idString": "part-d-swoc", "sectionKey": "part-d-swoc", "title": "Part D - SWOC Analysis", "number": "D", "ownerRole": "director-schools", "displayOrder": 5, "fields": [], "tables": [{"id": 35, "idString": "swocStrength", "tableKey": "swocStrength", "title": "Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Details"], "fields": [{"id": 180, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 36, "idString": "swocWeaknesses", "tableKey": "swocWeaknesses", "title": "Weaknesses", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Details"], "fields": [{"id": 181, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 37, "idString": "swocOpportunities", "tableKey": "swocOpportunities", "title": "Opportunities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Details"], "fields": [{"id": 182, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 38, "idString": "swocChallenges", "tableKey": "swocChallenges", "title": "Challenges", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Details"], "fields": [{"id": 183, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 39, "idString": "swocOtherInformation", "tableKey": "swocOtherInformation", "title": "Any other information, which is not covered above", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Details"], "fields": [{"id": 184, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}], "blocks": [{"type": "tables", "tables": [{"id": "swocStrength", "idString": "swocStrength", "tableKey": "swocStrength", "title": "Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Details"], "fields": [{"id": 180, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocWeaknesses", "idString": "swocWeaknesses", "tableKey": "swocWeaknesses", "title": "Weaknesses", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Details"], "fields": [{"id": 181, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocOpportunities", "idString": "swocOpportunities", "tableKey": "swocOpportunities", "title": "Opportunities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Details"], "fields": [{"id": 182, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocChallenges", "idString": "swocChallenges", "tableKey": "swocChallenges", "title": "Challenges", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Details"], "fields": [{"id": 183, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocOtherInformation", "idString": "swocOtherInformation", "tableKey": "swocOtherInformation", "title": "Any other information, which is not covered above", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Details"], "fields": [{"id": 184, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}]}]}, {"id": 6, "idString": "part-e-observations", "sectionKey": "part-e-observations", "title": "Part E - Observations & Recommendations of the Audit", "number": "E", "ownerRole": "auditor", "displayOrder": 6, "fields": [{"id": 185, "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 186, "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 187, "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [], "blocks": [{"type": "fields", "fields": [{"id": "auditObservations", "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "auditRecommendations", "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "auditDocumentation", "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}]}]}]}', 'system-provision', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(2, 2, 1, 'PUBLISHED', '2025-26', 'Internal Administrative Audit', 'registrar', '{"id": "administrative-audit-2025-26", "schemaId": 2, "versionId": 2, "versionNumber": 1, "auditType": "administrative", "title": "Internal Administrative Audit", "academicYear": "2025-26", "ownerRole": "registrar", "status": "PUBLISHED", "header": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png"}, "universityInfo": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png", "code": "dypiu", "slug": "dypiu", "domain": "dypiu.ac.in", "primaryColor": "#1e3a8a"}, "sections": [{"id": 7, "idString": "section-a-university-information", "sectionKey": "section-a-university-information", "title": "Section A - University Information", "number": "A", "ownerRole": "registrar", "displayOrder": 1, "fields": [{"id": 188, "idString": "universityName", "fieldKey": "universityName", "label": "Name of the University", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 189, "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 190, "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 191, "idString": "pinCode", "fieldKey": "pinCode", "label": "Pin Code", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 192, "idString": "website", "fieldKey": "website", "label": "Website", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": 193, "idString": "viceChancellor", "fieldKey": "viceChancellor", "label": "Name of the Vice Chancellor", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": 194, "idString": "vcEmail", "fieldKey": "vcEmail", "label": "Vice Chancellor e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": 195, "idString": "registrar", "fieldKey": "registrar", "label": "Name of Registrar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}, {"id": 196, "idString": "registrarEmail", "fieldKey": "registrarEmail", "label": "Registrar e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 9}, {"id": 197, "idString": "accreditation", "fieldKey": "accreditation", "label": "Accreditation status & Agency", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 10}], "tables": [{"id": 40, "idString": "coursesOffered", "tableKey": "coursesOffered", "title": "1. Courses Offered", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name of the Program", "Level (UG/PG)", "Intake", "No. of Students Admitted", "Year of Commencement of the program", "Attachment (Attach List of the Students)"], "fields": [{"id": 198, "idString": "name_of_the_program", "fieldKey": "name_of_the_program", "label": "Name of the Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 199, "idString": "level_ug_pg", "fieldKey": "level_ug_pg", "label": "Level (UG/PG)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 200, "idString": "intake", "fieldKey": "intake", "label": "Intake", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 201, "idString": "no_of_students_admitted", "fieldKey": "no_of_students_admitted", "label": "No. of Students Admitted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 202, "idString": "year_of_commencement_of_the_program", "fieldKey": "year_of_commencement_of_the_program", "label": "Year of Commencement of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 203, "idString": "attachment_attach_list_of_the_students", "fieldKey": "attachment_attach_list_of_the_students", "label": "Attachment (Attach List of the Students)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 41, "idString": "studentStatistics", "tableKey": "studentStatistics", "title": "2. Total Number of Students in the university", "showTitle": true, "isRepeatable": false, "displayOrder": 2, "columns": ["Category", "U.G.", "P.G.", "Ph.D.", "Value added / skill Courses"], "fields": [{"id": 204, "idString": "category", "fieldKey": "category", "label": "Category", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 205, "idString": "u_g", "fieldKey": "u_g", "label": "U.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 206, "idString": "p_g", "fieldKey": "p_g", "label": "P.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 207, "idString": "ph_d", "fieldKey": "ph_d", "label": "Ph.D.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 208, "idString": "value_added_skill_courses", "fieldKey": "value_added_skill_courses", "label": "Value added / skill Courses", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}], "initialRows": [{"Sr No": "1", "Category": "SC"}, {"Sr No": "2", "Category": "ST"}, {"Sr No": "3", "Category": "OBC"}, {"Sr No": "4", "Category": "General"}], "selectOptions": {"Category": ["SC", "ST", "OBC", "General"]}}, {"id": 42, "idString": "statutoryBodies", "tableKey": "statutoryBodies", "title": "3. Statutory Body Meetings and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Body / Cell", "Meetings Conducted", "ATR Status", "Remarks / Link"], "fields": [{"id": 209, "idString": "body_cell", "fieldKey": "body_cell", "label": "Body / Cell", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 210, "idString": "meetings_conducted", "fieldKey": "meetings_conducted", "label": "Meetings Conducted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 211, "idString": "atr_status", "fieldKey": "atr_status", "label": "ATR Status", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 212, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Body / Cell": "Governing Body"}, {"Sr No": "2", "Body / Cell": "Board of Management"}, {"Sr No": "3", "Body / Cell": "Academic Council"}, {"Sr No": "4", "Body / Cell": "Finance Committee"}, {"Sr No": "5", "Body / Cell": "ICC"}, {"Sr No": "6", "Body / Cell": "Student Grievance Cell"}, {"Sr No": "7", "Body / Cell": "Faculty / Staff Grievance Cell"}, {"Sr No": "8", "Body / Cell": "Anti Ragging Committee"}, {"Sr No": "9", "Body / Cell": "Equal opportunity Cell"}, {"Sr No": "10", "Body / Cell": "IQAC"}, {"Sr No": "11", "Body / Cell": "Any Other Body / Cell"}]}, {"id": 43, "idString": "auditRecords", "tableKey": "auditRecords", "title": "4. Audits Completed", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Audit Type", "Completed Yes / No", "Date", "Remarks / Link"], "fields": [{"id": 213, "idString": "audit_type", "fieldKey": "audit_type", "label": "Audit Type", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 214, "idString": "completed_yes_no", "fieldKey": "completed_yes_no", "label": "Completed Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 215, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 216, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Audit Type": "Financial Audit"}, {"Sr No": "2", "Audit Type": "Energy Audit"}, {"Sr No": "3", "Audit Type": "Environmental Audit"}, {"Sr No": "4", "Audit Type": "Green Audit"}, {"Sr No": "5", "Audit Type": "Gender Audit"}, {"Sr No": "6", "Audit Type": "Academic and Administrative Audit"}]}, {"id": 44, "idString": "scholarshipSummary", "tableKey": "scholarshipSummary", "title": "5. Scholarship Details", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Year", "Title of Scholarship", "Number of the Students", "Amount received", "Awarding Agency", "Awarding Organization", "Attachment"], "fields": [{"id": 217, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 218, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 219, "idString": "number_of_the_students", "fieldKey": "number_of_the_students", "label": "Number of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 220, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 221, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 222, "idString": "awarding_organization", "fieldKey": "awarding_organization", "label": "Awarding Organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 223, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 45, "idString": "scholarshipStudents", "tableKey": "scholarshipStudents", "title": "6. Scholarship Student Details", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Year", "Title of Scholarship", "Name of the Students", "Amount received", "Awarding Agency", "Attachment"], "fields": [{"id": 224, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 225, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 226, "idString": "name_of_the_students", "fieldKey": "name_of_the_students", "label": "Name of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 227, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 228, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 229, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "fields", "fields": [{"id": "universityName", "idString": "universityName", "fieldKey": "universityName", "label": "Name of the University", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "establishmentYear", "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "address", "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "pinCode", "idString": "pinCode", "fieldKey": "pinCode", "label": "Pin Code", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "website", "idString": "website", "fieldKey": "website", "label": "Website", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": "viceChancellor", "idString": "viceChancellor", "fieldKey": "viceChancellor", "label": "Name of the Vice Chancellor", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": "vcEmail", "idString": "vcEmail", "fieldKey": "vcEmail", "label": "Vice Chancellor e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": "registrar", "idString": "registrar", "fieldKey": "registrar", "label": "Name of Registrar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}, {"id": "registrarEmail", "idString": "registrarEmail", "fieldKey": "registrarEmail", "label": "Registrar e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 9}, {"id": "accreditation", "idString": "accreditation", "fieldKey": "accreditation", "label": "Accreditation status & Agency", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 10}]}, {"type": "tables", "tables": [{"id": "coursesOffered", "idString": "coursesOffered", "tableKey": "coursesOffered", "title": "1. Courses Offered", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name of the Program", "Level (UG/PG)", "Intake", "No. of Students Admitted", "Year of Commencement of the program", "Attachment (Attach List of the Students)"], "fields": [{"id": 198, "idString": "name_of_the_program", "fieldKey": "name_of_the_program", "label": "Name of the Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 199, "idString": "level_ug_pg", "fieldKey": "level_ug_pg", "label": "Level (UG/PG)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 200, "idString": "intake", "fieldKey": "intake", "label": "Intake", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 201, "idString": "no_of_students_admitted", "fieldKey": "no_of_students_admitted", "label": "No. of Students Admitted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 202, "idString": "year_of_commencement_of_the_program", "fieldKey": "year_of_commencement_of_the_program", "label": "Year of Commencement of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 203, "idString": "attachment_attach_list_of_the_students", "fieldKey": "attachment_attach_list_of_the_students", "label": "Attachment (Attach List of the Students)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "studentStatistics", "idString": "studentStatistics", "tableKey": "studentStatistics", "title": "2. Total Number of Students in the university", "showTitle": true, "isRepeatable": false, "displayOrder": 2, "columns": ["Category", "U.G.", "P.G.", "Ph.D.", "Value added / skill Courses"], "fields": [{"id": 204, "idString": "category", "fieldKey": "category", "label": "Category", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 205, "idString": "u_g", "fieldKey": "u_g", "label": "U.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 206, "idString": "p_g", "fieldKey": "p_g", "label": "P.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 207, "idString": "ph_d", "fieldKey": "ph_d", "label": "Ph.D.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 208, "idString": "value_added_skill_courses", "fieldKey": "value_added_skill_courses", "label": "Value added / skill Courses", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}], "initialRows": [{"Sr No": "1", "Category": "SC"}, {"Sr No": "2", "Category": "ST"}, {"Sr No": "3", "Category": "OBC"}, {"Sr No": "4", "Category": "General"}], "selectOptions": {"Category": ["SC", "ST", "OBC", "General"]}}, {"id": "statutoryBodies", "idString": "statutoryBodies", "tableKey": "statutoryBodies", "title": "3. Statutory Body Meetings and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Body / Cell", "Meetings Conducted", "ATR Status", "Remarks / Link"], "fields": [{"id": 209, "idString": "body_cell", "fieldKey": "body_cell", "label": "Body / Cell", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 210, "idString": "meetings_conducted", "fieldKey": "meetings_conducted", "label": "Meetings Conducted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 211, "idString": "atr_status", "fieldKey": "atr_status", "label": "ATR Status", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 212, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Body / Cell": "Governing Body"}, {"Sr No": "2", "Body / Cell": "Board of Management"}, {"Sr No": "3", "Body / Cell": "Academic Council"}, {"Sr No": "4", "Body / Cell": "Finance Committee"}, {"Sr No": "5", "Body / Cell": "ICC"}, {"Sr No": "6", "Body / Cell": "Student Grievance Cell"}, {"Sr No": "7", "Body / Cell": "Faculty / Staff Grievance Cell"}, {"Sr No": "8", "Body / Cell": "Anti Ragging Committee"}, {"Sr No": "9", "Body / Cell": "Equal opportunity Cell"}, {"Sr No": "10", "Body / Cell": "IQAC"}, {"Sr No": "11", "Body / Cell": "Any Other Body / Cell"}]}, {"id": "auditRecords", "idString": "auditRecords", "tableKey": "auditRecords", "title": "4. Audits Completed", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Audit Type", "Completed Yes / No", "Date", "Remarks / Link"], "fields": [{"id": 213, "idString": "audit_type", "fieldKey": "audit_type", "label": "Audit Type", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 214, "idString": "completed_yes_no", "fieldKey": "completed_yes_no", "label": "Completed Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 215, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 216, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Audit Type": "Financial Audit"}, {"Sr No": "2", "Audit Type": "Energy Audit"}, {"Sr No": "3", "Audit Type": "Environmental Audit"}, {"Sr No": "4", "Audit Type": "Green Audit"}, {"Sr No": "5", "Audit Type": "Gender Audit"}, {"Sr No": "6", "Audit Type": "Academic and Administrative Audit"}]}, {"id": "scholarshipSummary", "idString": "scholarshipSummary", "tableKey": "scholarshipSummary", "title": "5. Scholarship Details", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Year", "Title of Scholarship", "Number of the Students", "Amount received", "Awarding Agency", "Awarding Organization", "Attachment"], "fields": [{"id": 217, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 218, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 219, "idString": "number_of_the_students", "fieldKey": "number_of_the_students", "label": "Number of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 220, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 221, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 222, "idString": "awarding_organization", "fieldKey": "awarding_organization", "label": "Awarding Organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 223, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "scholarshipStudents", "idString": "scholarshipStudents", "tableKey": "scholarshipStudents", "title": "6. Scholarship Student Details", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Year", "Title of Scholarship", "Name of the Students", "Amount received", "Awarding Agency", "Attachment"], "fields": [{"id": 224, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 225, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 226, "idString": "name_of_the_students", "fieldKey": "name_of_the_students", "label": "Name of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 227, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 228, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 229, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 8, "idString": "section-b-faculty-staff-details", "sectionKey": "section-b-faculty-staff-details", "title": "Section B - Faculty and Staff Details", "number": "B", "ownerRole": "hr", "displayOrder": 2, "fields": [{"id": 230, "idString": "bogMomSanctionedPostsAttachment", "fieldKey": "bogMomSanctionedPostsAttachment", "label": "BoG MoM Extract showing Sanctioned Posts", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 231, "idString": "phdQualification", "fieldKey": "phdQualification", "label": "(a)(i) Faculty members with Ph.D qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 232, "idString": "pgQualification", "fieldKey": "pgQualification", "label": "(a)(ii) Post Graduation Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 233, "idString": "otherQualification", "fieldKey": "otherQualification", "label": "(a)(iii) Any Other Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 234, "idString": "studentFacultyRatio", "fieldKey": "studentFacultyRatio", "label": "(b) Student Faculty Ratio", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}], "tables": [{"id": 46, "idString": "facultyInformation", "tableKey": "facultyInformation", "title": "Faculty Information", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Cadre", "Required", "Regular", "Contract"], "fields": [{"id": 235, "idString": "cadre", "fieldKey": "cadre", "label": "Cadre", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 236, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 237, "idString": "regular", "fieldKey": "regular", "label": "Regular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 238, "idString": "contract", "fieldKey": "contract", "label": "Contract", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Cadre": "Professors"}, {"Sr No": "2", "Cadre": "Associate Professors"}, {"Sr No": "3", "Cadre": "Assistant Professor"}, {"Sr No": "4", "Cadre": "Total"}], "selectOptions": {"Cadre": ["Professor", "Associate Professor", "Assistant Professor"]}}, {"id": 47, "idString": "facultyTenure", "tableKey": "facultyTenure", "title": "(c) Teaching Experience of the Faculty in DYPIU", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Tenure", "No. of Faculty"], "fields": [{"id": 239, "idString": "tenure", "fieldKey": "tenure", "label": "Tenure", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 240, "idString": "no_of_faculty", "fieldKey": "no_of_faculty", "label": "No. of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Tenure": "More than 5 Years"}, {"Sr No": "2", "Tenure": "Between 3 to 5 Years"}, {"Sr No": "3", "Tenure": "Between 1 to 3 Years"}, {"Sr No": "4", "Tenure": "Below 1 Year"}]}, {"id": 48, "idString": "facultyExperience", "tableKey": "facultyExperience", "title": "(d) Consolidated Experience of the teaching faculty considering outside experience", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["S.No", "Name of the Faculty", "Designation", "Highest Qualification", "Date of Joining", "Experience in DYPIU", "Experience before joining DYPIU (Teaching)", "Total Experience"], "fields": [{"id": 241, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 242, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 243, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 244, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 245, "idString": "date_of_joining", "fieldKey": "date_of_joining", "label": "Date of Joining", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 246, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 247, "idString": "experience_before_joining_dypiu_teaching", "fieldKey": "experience_before_joining_dypiu_teaching", "label": "Experience before joining DYPIU (Teaching)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 248, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": 49, "idString": "supportingStaff", "tableKey": "supportingStaff", "title": "Details of Admin and Supporting Staff", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["S.No", "Name of the Supporting Staff", "Designation", "Highest Qualification", "Date of Joining in DYPIU", "Experience in DYPIU", "Experience before joining DYPIU", "Total Experience"], "fields": [{"id": 249, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 250, "idString": "name_of_the_supporting_staff", "fieldKey": "name_of_the_supporting_staff", "label": "Name of the Supporting Staff", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 251, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 252, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 253, "idString": "date_of_joining_in_dypiu", "fieldKey": "date_of_joining_in_dypiu", "label": "Date of Joining in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 254, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 255, "idString": "experience_before_joining_dypiu", "fieldKey": "experience_before_joining_dypiu", "label": "Experience before joining DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 256, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": 50, "idString": "staffTraining", "tableKey": "staffTraining", "title": "Administrative training / professional development program organized for non-teaching staff", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Attachment (Report of the Event)"], "fields": [{"id": 257, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 258, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 259, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 260, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 261, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 262, "idString": "attachment_report_of_the_event", "fieldKey": "attachment_report_of_the_event", "label": "Attachment (Report of the Event)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "tables", "tables": [{"id": "facultyInformation", "idString": "facultyInformation", "tableKey": "facultyInformation", "title": "Faculty Information", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Cadre", "Required", "Regular", "Contract"], "fields": [{"id": 235, "idString": "cadre", "fieldKey": "cadre", "label": "Cadre", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 236, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 237, "idString": "regular", "fieldKey": "regular", "label": "Regular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 238, "idString": "contract", "fieldKey": "contract", "label": "Contract", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Cadre": "Professors"}, {"Sr No": "2", "Cadre": "Associate Professors"}, {"Sr No": "3", "Cadre": "Assistant Professor"}, {"Sr No": "4", "Cadre": "Total"}], "selectOptions": {"Cadre": ["Professor", "Associate Professor", "Assistant Professor"]}}]}, {"type": "attachment-field", "id": "bogMomSanctionedPostsAttachment", "label": "BoG MoM Extract showing Sanctioned Posts"}, {"type": "fields", "fields": [{"id": "phdQualification", "idString": "phdQualification", "fieldKey": "phdQualification", "label": "(a)(i) Faculty members with Ph.D qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "pgQualification", "idString": "pgQualification", "fieldKey": "pgQualification", "label": "(a)(ii) Post Graduation Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "otherQualification", "idString": "otherQualification", "fieldKey": "otherQualification", "label": "(a)(iii) Any Other Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "studentFacultyRatio", "idString": "studentFacultyRatio", "fieldKey": "studentFacultyRatio", "label": "(b) Student Faculty Ratio", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}]}, {"type": "tables", "tables": [{"id": "facultyTenure", "idString": "facultyTenure", "tableKey": "facultyTenure", "title": "(c) Teaching Experience of the Faculty in DYPIU", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Tenure", "No. of Faculty"], "fields": [{"id": 239, "idString": "tenure", "fieldKey": "tenure", "label": "Tenure", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 240, "idString": "no_of_faculty", "fieldKey": "no_of_faculty", "label": "No. of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Tenure": "More than 5 Years"}, {"Sr No": "2", "Tenure": "Between 3 to 5 Years"}, {"Sr No": "3", "Tenure": "Between 1 to 3 Years"}, {"Sr No": "4", "Tenure": "Below 1 Year"}]}, {"id": "facultyExperience", "idString": "facultyExperience", "tableKey": "facultyExperience", "title": "(d) Consolidated Experience of the teaching faculty considering outside experience", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["S.No", "Name of the Faculty", "Designation", "Highest Qualification", "Date of Joining", "Experience in DYPIU", "Experience before joining DYPIU (Teaching)", "Total Experience"], "fields": [{"id": 241, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 242, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 243, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 244, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 245, "idString": "date_of_joining", "fieldKey": "date_of_joining", "label": "Date of Joining", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 246, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 247, "idString": "experience_before_joining_dypiu_teaching", "fieldKey": "experience_before_joining_dypiu_teaching", "label": "Experience before joining DYPIU (Teaching)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 248, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": "supportingStaff", "idString": "supportingStaff", "tableKey": "supportingStaff", "title": "Details of Admin and Supporting Staff", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["S.No", "Name of the Supporting Staff", "Designation", "Highest Qualification", "Date of Joining in DYPIU", "Experience in DYPIU", "Experience before joining DYPIU", "Total Experience"], "fields": [{"id": 249, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 250, "idString": "name_of_the_supporting_staff", "fieldKey": "name_of_the_supporting_staff", "label": "Name of the Supporting Staff", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 251, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 252, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 253, "idString": "date_of_joining_in_dypiu", "fieldKey": "date_of_joining_in_dypiu", "label": "Date of Joining in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 254, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 255, "idString": "experience_before_joining_dypiu", "fieldKey": "experience_before_joining_dypiu", "label": "Experience before joining DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 256, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": "staffTraining", "idString": "staffTraining", "tableKey": "staffTraining", "title": "Administrative training / professional development program organized for non-teaching staff", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Attachment (Report of the Event)"], "fields": [{"id": 257, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 258, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 259, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 260, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 261, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 262, "idString": "attachment_report_of_the_event", "fieldKey": "attachment_report_of_the_event", "label": "Attachment (Report of the Event)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 9, "idString": "section-c-infrastructure-details", "sectionKey": "section-c-infrastructure-details", "title": "Section C - Infrastructure Details", "number": "C", "ownerRole": "registrar", "displayOrder": 3, "fields": [], "tables": [{"id": 51, "idString": "buildingInfrastructure", "tableKey": "buildingInfrastructure", "title": "1. Building Infrastructure", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Facilities", "No."], "fields": [{"id": 263, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 264, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Classrooms"}, {"Sr No": "2", "Facilities": "Laboratories"}, {"Sr No": "3", "Facilities": "Classroom with Smart Panel"}, {"Sr No": "4", "Facilities": "Classroom with Wi-Fi"}, {"Sr No": "5", "Facilities": "Seminar Hall with ICT Facilities"}, {"Sr No": "6", "Facilities": "Computer with ICT Facilities"}, {"Sr No": "7", "Facilities": "Play area facilities"}, {"Sr No": "8", "Facilities": "Common Rooms"}, {"Sr No": "9", "Facilities": "Staff rooms"}, {"Sr No": "10", "Facilities": "Others"}]}, {"id": 52, "idString": "libraryInfrastructure", "tableKey": "libraryInfrastructure", "title": "2. Library & Research Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Facilities", "No."], "fields": [{"id": 265, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 266, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Books (Title and Volumes)"}, {"Sr No": "2", "Facilities": "E-books and Journals"}, {"Sr No": "3", "Facilities": "Journals"}, {"Sr No": "4", "Facilities": "Digital Data base"}, {"Sr No": "5", "Facilities": "CD / Video"}, {"Sr No": "6", "Facilities": "Library Automation"}, {"Sr No": "7", "Facilities": "Others"}]}, {"id": 53, "idString": "eResources", "tableKey": "eResources", "title": "E-resource Availability", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 267, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 268, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 269, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"Sr No": "1", "Facilities": "e-journals"}, {"Sr No": "2", "Facilities": "Membership / subscription of e-ShodhSindhu"}, {"Sr No": "3", "Facilities": "Membership / subscription of Shodhganga"}, {"Sr No": "4", "Facilities": "Discipline-specific Databases"}, {"Sr No": "5", "Facilities": "Plagiarism Check software"}, {"Sr No": "6", "Facilities": "Licensed statistical software"}, {"Sr No": "7", "Facilities": "Discipline specific simulation software"}]}, {"id": 54, "idString": "itInfrastructure", "tableKey": "itInfrastructure", "title": "3. I.T. (Computer) Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Facilities", "No."], "fields": [{"id": 270, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 271, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "No. of Computers in Institute"}, {"Sr No": "2", "Facilities": "No. of Computer exclusively for students only"}, {"Sr No": "3", "Facilities": "No. of Servers"}, {"Sr No": "4", "Facilities": "No. of System Software''s"}, {"Sr No": "5", "Facilities": "No. of Application Software''s"}, {"Sr No": "6", "Facilities": "Internet Bandwidth"}, {"Sr No": "7", "Facilities": "No. of Wi-Fi Units"}, {"Sr No": "8", "Facilities": "Internet Connectivity"}]}, {"id": 55, "idString": "sportsFacilities", "tableKey": "sportsFacilities", "title": "4. Facilities for cultural activities, yoga, games, sports etc", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Facilities", "No."], "fields": [{"id": 272, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 273, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}, {"id": 56, "idString": "divyangajanFacilities", "tableKey": "divyangajanFacilities", "title": "5. Facilities for Divyangajan", "showTitle": true, "isRepeatable": false, "displayOrder": 6, "columns": ["Facilities", "Available Yes / No"], "fields": [{"id": 274, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 275, "idString": "available_yes_no", "fieldKey": "available_yes_no", "label": "Available Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Built environment with ramps / lifts for easy access to classrooms"}, {"Sr No": "2", "Facilities": "Divyangan friendly washrooms"}, {"Sr No": "3", "Facilities": "Signage including tactile path, lights, display boards and signposts"}, {"Sr No": "4", "Facilities": "Assistive technology and facilities for Divyangjan"}, {"Sr No": "5", "Facilities": "Provision for enquiry and information"}]}, {"id": 57, "idString": "researchResources", "tableKey": "researchResources", "title": "6. Research Resources", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 276, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 277, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 278, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}], "blocks": [{"type": "tables", "tables": [{"id": "buildingInfrastructure", "idString": "buildingInfrastructure", "tableKey": "buildingInfrastructure", "title": "1. Building Infrastructure", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Facilities", "No."], "fields": [{"id": 263, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 264, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Classrooms"}, {"Sr No": "2", "Facilities": "Laboratories"}, {"Sr No": "3", "Facilities": "Classroom with Smart Panel"}, {"Sr No": "4", "Facilities": "Classroom with Wi-Fi"}, {"Sr No": "5", "Facilities": "Seminar Hall with ICT Facilities"}, {"Sr No": "6", "Facilities": "Computer with ICT Facilities"}, {"Sr No": "7", "Facilities": "Play area facilities"}, {"Sr No": "8", "Facilities": "Common Rooms"}, {"Sr No": "9", "Facilities": "Staff rooms"}, {"Sr No": "10", "Facilities": "Others"}]}, {"id": "libraryInfrastructure", "idString": "libraryInfrastructure", "tableKey": "libraryInfrastructure", "title": "2. Library & Research Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Facilities", "No."], "fields": [{"id": 265, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 266, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Books (Title and Volumes)"}, {"Sr No": "2", "Facilities": "E-books and Journals"}, {"Sr No": "3", "Facilities": "Journals"}, {"Sr No": "4", "Facilities": "Digital Data base"}, {"Sr No": "5", "Facilities": "CD / Video"}, {"Sr No": "6", "Facilities": "Library Automation"}, {"Sr No": "7", "Facilities": "Others"}]}, {"id": "eResources", "idString": "eResources", "tableKey": "eResources", "title": "E-resource Availability", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 267, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 268, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 269, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"Sr No": "1", "Facilities": "e-journals"}, {"Sr No": "2", "Facilities": "Membership / subscription of e-ShodhSindhu"}, {"Sr No": "3", "Facilities": "Membership / subscription of Shodhganga"}, {"Sr No": "4", "Facilities": "Discipline-specific Databases"}, {"Sr No": "5", "Facilities": "Plagiarism Check software"}, {"Sr No": "6", "Facilities": "Licensed statistical software"}, {"Sr No": "7", "Facilities": "Discipline specific simulation software"}]}, {"id": "itInfrastructure", "idString": "itInfrastructure", "tableKey": "itInfrastructure", "title": "3. I.T. (Computer) Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Facilities", "No."], "fields": [{"id": 270, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 271, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "No. of Computers in Institute"}, {"Sr No": "2", "Facilities": "No. of Computer exclusively for students only"}, {"Sr No": "3", "Facilities": "No. of Servers"}, {"Sr No": "4", "Facilities": "No. of System Software''s"}, {"Sr No": "5", "Facilities": "No. of Application Software''s"}, {"Sr No": "6", "Facilities": "Internet Bandwidth"}, {"Sr No": "7", "Facilities": "No. of Wi-Fi Units"}, {"Sr No": "8", "Facilities": "Internet Connectivity"}]}, {"id": "sportsFacilities", "idString": "sportsFacilities", "tableKey": "sportsFacilities", "title": "4. Facilities for cultural activities, yoga, games, sports etc", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Facilities", "No."], "fields": [{"id": 272, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 273, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}, {"id": "divyangajanFacilities", "idString": "divyangajanFacilities", "tableKey": "divyangajanFacilities", "title": "5. Facilities for Divyangajan", "showTitle": true, "isRepeatable": false, "displayOrder": 6, "columns": ["Facilities", "Available Yes / No"], "fields": [{"id": 274, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 275, "idString": "available_yes_no", "fieldKey": "available_yes_no", "label": "Available Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Built environment with ramps / lifts for easy access to classrooms"}, {"Sr No": "2", "Facilities": "Divyangan friendly washrooms"}, {"Sr No": "3", "Facilities": "Signage including tactile path, lights, display boards and signposts"}, {"Sr No": "4", "Facilities": "Assistive technology and facilities for Divyangjan"}, {"Sr No": "5", "Facilities": "Provision for enquiry and information"}]}, {"id": "researchResources", "idString": "researchResources", "tableKey": "researchResources", "title": "6. Research Resources", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 276, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 277, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 278, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}]}]}, {"id": 10, "idString": "section-d-student-activities", "sectionKey": "section-d-student-activities", "title": "Section D - Student Activities (Extension and Outreach Activities)", "number": "D", "ownerRole": "dean-student-welfare", "displayOrder": 4, "fields": [], "tables": [{"id": 58, "idString": "hackathons", "tableKey": "hackathons", "title": "1. Hackathons and Ideation workshops", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 279, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 280, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 281, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 282, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 283, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 59, "idString": "culturalActivities", "tableKey": "culturalActivities", "title": "2. Cultural Clubs and activities and festivals", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 284, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 285, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 286, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 287, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 288, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 60, "idString": "sportsActivities", "tableKey": "sportsActivities", "title": "3. Sports clubs / teams and activities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 289, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 290, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 291, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 292, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 293, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 61, "idString": "communityActivities", "tableKey": "communityActivities", "title": "4. Community related activities", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 294, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 295, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 296, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 297, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 298, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 62, "idString": "adminStudentAwards", "tableKey": "adminStudentAwards", "title": "5. Awards / Prizes / Recognitions in curricular and extended curricular areas", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the award", "Team / Individual", "Inter-University / State / National / International", "Name of the event", "Name of the student(s)", "Attachment"], "fields": [{"id": 299, "idString": "name_of_the_award", "fieldKey": "name_of_the_award", "label": "Name of the award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 300, "idString": "team_individual", "fieldKey": "team_individual", "label": "Team / Individual", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 301, "idString": "inter_university_state_national_international", "fieldKey": "inter_university_state_national_international", "label": "Inter-University / State / National / International", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 302, "idString": "name_of_the_event", "fieldKey": "name_of_the_event", "label": "Name of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 303, "idString": "name_of_the_student_s", "fieldKey": "name_of_the_student_s", "label": "Name of the student(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 304, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "tables", "tables": [{"id": "hackathons", "idString": "hackathons", "tableKey": "hackathons", "title": "1. Hackathons and Ideation workshops", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 279, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 280, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 281, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 282, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 283, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "culturalActivities", "idString": "culturalActivities", "tableKey": "culturalActivities", "title": "2. Cultural Clubs and activities and festivals", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 284, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 285, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 286, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 287, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 288, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "sportsActivities", "idString": "sportsActivities", "tableKey": "sportsActivities", "title": "3. Sports clubs / teams and activities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 289, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 290, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 291, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 292, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 293, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "communityActivities", "idString": "communityActivities", "tableKey": "communityActivities", "title": "4. Community related activities", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 294, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 295, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 296, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 297, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 298, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "adminStudentAwards", "idString": "adminStudentAwards", "tableKey": "adminStudentAwards", "title": "5. Awards / Prizes / Recognitions in curricular and extended curricular areas", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the award", "Team / Individual", "Inter-University / State / National / International", "Name of the event", "Name of the student(s)", "Attachment"], "fields": [{"id": 299, "idString": "name_of_the_award", "fieldKey": "name_of_the_award", "label": "Name of the award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 300, "idString": "team_individual", "fieldKey": "team_individual", "label": "Team / Individual", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 301, "idString": "inter_university_state_national_international", "fieldKey": "inter_university_state_national_international", "label": "Inter-University / State / National / International", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 302, "idString": "name_of_the_event", "fieldKey": "name_of_the_event", "label": "Name of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 303, "idString": "name_of_the_student_s", "fieldKey": "name_of_the_student_s", "label": "Name of the student(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 304, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 11, "idString": "section-e-placement-training", "sectionKey": "section-e-placement-training", "title": "Section E - Student Progression", "number": "E", "ownerRole": "dean-placement", "displayOrder": 5, "fields": [{"id": 305, "idString": "partESchools", "fieldKey": "partESchools", "label": "School-wise Placement Programs & Compensation", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}], "tables": [], "blocks": [{"type": "part-e-schools", "fieldId": "partESchools"}]}, {"id": 12, "idString": "section-f-observations-recommendations", "sectionKey": "section-f-observations-recommendations", "title": "Section F - Observations & Recommendations of the Audit", "number": "F", "ownerRole": "auditor", "displayOrder": 6, "fields": [{"id": 306, "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 307, "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 308, "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [], "blocks": [{"type": "fields", "fields": [{"id": "auditObservations", "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "auditRecommendations", "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "auditDocumentation", "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}]}]}]}', 'system-provision', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (id) DO UPDATE SET 
-    compiled_schema = EXCLUDED.compiled_schema,
-    academic_year = EXCLUDED.academic_year,
-    status = EXCLUDED.status;
-
-SELECT pg_catalog.setval('public.form_schemas_id_seq', 2, true);
-SELECT pg_catalog.setval('public.schema_versions_id_seq', 2, true);
-SELECT pg_catalog.setval('public.form_sections_id_seq', (SELECT COALESCE(max(id), 1) FROM public.form_sections), true);
-SELECT pg_catalog.setval('public.form_tables_id_seq', (SELECT COALESCE(max(id), 1) FROM public.form_tables), true);
-SELECT pg_catalog.setval('public.form_fields_id_seq', (SELECT COALESCE(max(id), 1) FROM public.form_fields), true);
--- =============================================================================
--- PART 2: 64 LEGACY NORMALIZED RELATIONAL FORM TABLES & DATA
--- Extracted from: school_appraisal_backup_2026-08-13.sql
--- =============================================================================
-
--- -----------------------------------------------------------------------------
--- 2.1 TABLE & SEQUENCE SCHEMAS
--- -----------------------------------------------------------------------------
 --
--- TOC entry 219 (class 1259 OID 35973)
+-- TOC entry 224 (class 1259 OID 99302)
+-- Name: academic_years_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.academic_years_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.academic_years_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4257 (class 0 OID 0)
+-- Dependencies: 224
+-- Name: academic_years_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.academic_years_id_seq OWNED BY public.academic_years.id;
+
+
+--
+-- TOC entry 235 (class 1259 OID 99373)
 -- Name: admin_student_awards; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1448,7 +154,7 @@ CREATE TABLE public.admin_student_awards (
 ALTER TABLE public.admin_student_awards OWNER TO postgres;
 
 --
--- TOC entry 220 (class 1259 OID 35978)
+-- TOC entry 236 (class 1259 OID 99378)
 -- Name: admin_student_awards_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1463,15 +169,16 @@ CREATE SEQUENCE public.admin_student_awards_id_seq
 ALTER SEQUENCE public.admin_student_awards_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4316 (class 0 OID 0)
--- Dependencies: 220
+-- TOC entry 4260 (class 0 OID 0)
+-- Dependencies: 236
 -- Name: admin_student_awards_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.admin_student_awards_id_seq OWNED BY public.admin_student_awards.id;
 
+
 --
--- TOC entry 221 (class 1259 OID 35979)
+-- TOC entry 237 (class 1259 OID 99379)
 -- Name: alumni_interactions; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1492,7 +199,7 @@ CREATE TABLE public.alumni_interactions (
 ALTER TABLE public.alumni_interactions OWNER TO postgres;
 
 --
--- TOC entry 222 (class 1259 OID 35984)
+-- TOC entry 238 (class 1259 OID 99384)
 -- Name: alumni_interactions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1507,15 +214,16 @@ CREATE SEQUENCE public.alumni_interactions_id_seq
 ALTER SEQUENCE public.alumni_interactions_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4319 (class 0 OID 0)
--- Dependencies: 222
+-- TOC entry 4263 (class 0 OID 0)
+-- Dependencies: 238
 -- Name: alumni_interactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.alumni_interactions_id_seq OWNED BY public.alumni_interactions.id;
 
+
 --
--- TOC entry 223 (class 1259 OID 35985)
+-- TOC entry 239 (class 1259 OID 99385)
 -- Name: audit_records; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1533,7 +241,7 @@ CREATE TABLE public.audit_records (
 ALTER TABLE public.audit_records OWNER TO postgres;
 
 --
--- TOC entry 224 (class 1259 OID 35990)
+-- TOC entry 240 (class 1259 OID 99390)
 -- Name: audit_records_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1548,15 +256,16 @@ CREATE SEQUENCE public.audit_records_id_seq
 ALTER SEQUENCE public.audit_records_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4322 (class 0 OID 0)
--- Dependencies: 224
+-- TOC entry 4266 (class 0 OID 0)
+-- Dependencies: 240
 -- Name: audit_records_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.audit_records_id_seq OWNED BY public.audit_records.id;
 
+
 --
--- TOC entry 225 (class 1259 OID 35991)
+-- TOC entry 241 (class 1259 OID 99391)
 -- Name: best_practices; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1573,7 +282,7 @@ CREATE TABLE public.best_practices (
 ALTER TABLE public.best_practices OWNER TO postgres;
 
 --
--- TOC entry 226 (class 1259 OID 35996)
+-- TOC entry 242 (class 1259 OID 99396)
 -- Name: best_practices_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1588,15 +297,16 @@ CREATE SEQUENCE public.best_practices_id_seq
 ALTER SEQUENCE public.best_practices_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4325 (class 0 OID 0)
--- Dependencies: 226
+-- TOC entry 4269 (class 0 OID 0)
+-- Dependencies: 242
 -- Name: best_practices_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.best_practices_id_seq OWNED BY public.best_practices.id;
 
+
 --
--- TOC entry 227 (class 1259 OID 35997)
+-- TOC entry 243 (class 1259 OID 99397)
 -- Name: board_of_studies; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1612,7 +322,7 @@ CREATE TABLE public.board_of_studies (
 ALTER TABLE public.board_of_studies OWNER TO postgres;
 
 --
--- TOC entry 228 (class 1259 OID 36002)
+-- TOC entry 244 (class 1259 OID 99402)
 -- Name: board_of_studies_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1627,15 +337,16 @@ CREATE SEQUENCE public.board_of_studies_id_seq
 ALTER SEQUENCE public.board_of_studies_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4328 (class 0 OID 0)
--- Dependencies: 228
+-- TOC entry 4272 (class 0 OID 0)
+-- Dependencies: 244
 -- Name: board_of_studies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.board_of_studies_id_seq OWNED BY public.board_of_studies.id;
 
+
 --
--- TOC entry 229 (class 1259 OID 36003)
+-- TOC entry 245 (class 1259 OID 99403)
 -- Name: books_chapters; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1658,7 +369,7 @@ CREATE TABLE public.books_chapters (
 ALTER TABLE public.books_chapters OWNER TO postgres;
 
 --
--- TOC entry 230 (class 1259 OID 36008)
+-- TOC entry 246 (class 1259 OID 99408)
 -- Name: books_chapters_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1673,15 +384,16 @@ CREATE SEQUENCE public.books_chapters_id_seq
 ALTER SEQUENCE public.books_chapters_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4331 (class 0 OID 0)
--- Dependencies: 230
+-- TOC entry 4275 (class 0 OID 0)
+-- Dependencies: 246
 -- Name: books_chapters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.books_chapters_id_seq OWNED BY public.books_chapters.id;
 
+
 --
--- TOC entry 231 (class 1259 OID 36009)
+-- TOC entry 247 (class 1259 OID 99409)
 -- Name: building_infrastructure; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1697,7 +409,7 @@ CREATE TABLE public.building_infrastructure (
 ALTER TABLE public.building_infrastructure OWNER TO postgres;
 
 --
--- TOC entry 232 (class 1259 OID 36014)
+-- TOC entry 248 (class 1259 OID 99414)
 -- Name: building_infrastructure_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1712,15 +424,16 @@ CREATE SEQUENCE public.building_infrastructure_id_seq
 ALTER SEQUENCE public.building_infrastructure_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4334 (class 0 OID 0)
--- Dependencies: 232
+-- TOC entry 4278 (class 0 OID 0)
+-- Dependencies: 248
 -- Name: building_infrastructure_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.building_infrastructure_id_seq OWNED BY public.building_infrastructure.id;
 
+
 --
--- TOC entry 233 (class 1259 OID 36015)
+-- TOC entry 249 (class 1259 OID 99415)
 -- Name: career_guidance; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1739,7 +452,7 @@ CREATE TABLE public.career_guidance (
 ALTER TABLE public.career_guidance OWNER TO postgres;
 
 --
--- TOC entry 234 (class 1259 OID 36020)
+-- TOC entry 250 (class 1259 OID 99420)
 -- Name: career_guidance_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1754,15 +467,16 @@ CREATE SEQUENCE public.career_guidance_id_seq
 ALTER SEQUENCE public.career_guidance_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4337 (class 0 OID 0)
--- Dependencies: 234
+-- TOC entry 4281 (class 0 OID 0)
+-- Dependencies: 250
 -- Name: career_guidance_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.career_guidance_id_seq OWNED BY public.career_guidance.id;
 
+
 --
--- TOC entry 235 (class 1259 OID 36021)
+-- TOC entry 251 (class 1259 OID 99421)
 -- Name: community_activities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1781,7 +495,7 @@ CREATE TABLE public.community_activities (
 ALTER TABLE public.community_activities OWNER TO postgres;
 
 --
--- TOC entry 236 (class 1259 OID 36026)
+-- TOC entry 252 (class 1259 OID 99426)
 -- Name: community_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1796,15 +510,16 @@ CREATE SEQUENCE public.community_activities_id_seq
 ALTER SEQUENCE public.community_activities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4340 (class 0 OID 0)
--- Dependencies: 236
+-- TOC entry 4284 (class 0 OID 0)
+-- Dependencies: 252
 -- Name: community_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.community_activities_id_seq OWNED BY public.community_activities.id;
 
+
 --
--- TOC entry 237 (class 1259 OID 36027)
+-- TOC entry 253 (class 1259 OID 99427)
 -- Name: consultancy; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1822,7 +537,7 @@ CREATE TABLE public.consultancy (
 ALTER TABLE public.consultancy OWNER TO postgres;
 
 --
--- TOC entry 238 (class 1259 OID 36032)
+-- TOC entry 254 (class 1259 OID 99432)
 -- Name: consultancy_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1837,15 +552,16 @@ CREATE SEQUENCE public.consultancy_id_seq
 ALTER SEQUENCE public.consultancy_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4343 (class 0 OID 0)
--- Dependencies: 238
+-- TOC entry 4287 (class 0 OID 0)
+-- Dependencies: 254
 -- Name: consultancy_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.consultancy_id_seq OWNED BY public.consultancy.id;
 
+
 --
--- TOC entry 239 (class 1259 OID 36033)
+-- TOC entry 255 (class 1259 OID 99433)
 -- Name: corporate_training; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1864,7 +580,7 @@ CREATE TABLE public.corporate_training (
 ALTER TABLE public.corporate_training OWNER TO postgres;
 
 --
--- TOC entry 240 (class 1259 OID 36038)
+-- TOC entry 256 (class 1259 OID 99438)
 -- Name: corporate_training_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1879,15 +595,16 @@ CREATE SEQUENCE public.corporate_training_id_seq
 ALTER SEQUENCE public.corporate_training_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4346 (class 0 OID 0)
--- Dependencies: 240
+-- TOC entry 4290 (class 0 OID 0)
+-- Dependencies: 256
 -- Name: corporate_training_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.corporate_training_id_seq OWNED BY public.corporate_training.id;
 
+
 --
--- TOC entry 241 (class 1259 OID 36039)
+-- TOC entry 257 (class 1259 OID 99439)
 -- Name: courses_offered; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1907,7 +624,7 @@ CREATE TABLE public.courses_offered (
 ALTER TABLE public.courses_offered OWNER TO postgres;
 
 --
--- TOC entry 242 (class 1259 OID 36044)
+-- TOC entry 258 (class 1259 OID 99444)
 -- Name: courses_offered_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1922,15 +639,16 @@ CREATE SEQUENCE public.courses_offered_id_seq
 ALTER SEQUENCE public.courses_offered_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4349 (class 0 OID 0)
--- Dependencies: 242
+-- TOC entry 4293 (class 0 OID 0)
+-- Dependencies: 258
 -- Name: courses_offered_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.courses_offered_id_seq OWNED BY public.courses_offered.id;
 
+
 --
--- TOC entry 243 (class 1259 OID 36045)
+-- TOC entry 259 (class 1259 OID 99445)
 -- Name: cultural_activities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1949,7 +667,7 @@ CREATE TABLE public.cultural_activities (
 ALTER TABLE public.cultural_activities OWNER TO postgres;
 
 --
--- TOC entry 244 (class 1259 OID 36050)
+-- TOC entry 260 (class 1259 OID 99450)
 -- Name: cultural_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1964,15 +682,16 @@ CREATE SEQUENCE public.cultural_activities_id_seq
 ALTER SEQUENCE public.cultural_activities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4352 (class 0 OID 0)
--- Dependencies: 244
+-- TOC entry 4296 (class 0 OID 0)
+-- Dependencies: 260
 -- Name: cultural_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.cultural_activities_id_seq OWNED BY public.cultural_activities.id;
 
+
 --
--- TOC entry 245 (class 1259 OID 36051)
+-- TOC entry 261 (class 1259 OID 99451)
 -- Name: divyangajan_facilities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1988,7 +707,7 @@ CREATE TABLE public.divyangajan_facilities (
 ALTER TABLE public.divyangajan_facilities OWNER TO postgres;
 
 --
--- TOC entry 246 (class 1259 OID 36056)
+-- TOC entry 262 (class 1259 OID 99456)
 -- Name: divyangajan_facilities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2003,15 +722,16 @@ CREATE SEQUENCE public.divyangajan_facilities_id_seq
 ALTER SEQUENCE public.divyangajan_facilities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4355 (class 0 OID 0)
--- Dependencies: 246
+-- TOC entry 4299 (class 0 OID 0)
+-- Dependencies: 262
 -- Name: divyangajan_facilities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.divyangajan_facilities_id_seq OWNED BY public.divyangajan_facilities.id;
 
+
 --
--- TOC entry 247 (class 1259 OID 36057)
+-- TOC entry 263 (class 1259 OID 99457)
 -- Name: e_contents; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2030,7 +750,7 @@ CREATE TABLE public.e_contents (
 ALTER TABLE public.e_contents OWNER TO postgres;
 
 --
--- TOC entry 248 (class 1259 OID 36062)
+-- TOC entry 264 (class 1259 OID 99462)
 -- Name: e_contents_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2045,15 +765,16 @@ CREATE SEQUENCE public.e_contents_id_seq
 ALTER SEQUENCE public.e_contents_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4358 (class 0 OID 0)
--- Dependencies: 248
+-- TOC entry 4302 (class 0 OID 0)
+-- Dependencies: 264
 -- Name: e_contents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.e_contents_id_seq OWNED BY public.e_contents.id;
 
+
 --
--- TOC entry 249 (class 1259 OID 36063)
+-- TOC entry 265 (class 1259 OID 99463)
 -- Name: e_resources; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2070,7 +791,7 @@ CREATE TABLE public.e_resources (
 ALTER TABLE public.e_resources OWNER TO postgres;
 
 --
--- TOC entry 250 (class 1259 OID 36068)
+-- TOC entry 266 (class 1259 OID 99468)
 -- Name: e_resources_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2085,15 +806,16 @@ CREATE SEQUENCE public.e_resources_id_seq
 ALTER SEQUENCE public.e_resources_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4361 (class 0 OID 0)
--- Dependencies: 250
+-- TOC entry 4305 (class 0 OID 0)
+-- Dependencies: 266
 -- Name: e_resources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.e_resources_id_seq OWNED BY public.e_resources.id;
 
+
 --
--- TOC entry 251 (class 1259 OID 36069)
+-- TOC entry 267 (class 1259 OID 99469)
 -- Name: extension_activities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2112,7 +834,7 @@ CREATE TABLE public.extension_activities (
 ALTER TABLE public.extension_activities OWNER TO postgres;
 
 --
--- TOC entry 252 (class 1259 OID 36074)
+-- TOC entry 268 (class 1259 OID 99474)
 -- Name: extension_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2127,15 +849,16 @@ CREATE SEQUENCE public.extension_activities_id_seq
 ALTER SEQUENCE public.extension_activities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4364 (class 0 OID 0)
--- Dependencies: 252
+-- TOC entry 4308 (class 0 OID 0)
+-- Dependencies: 268
 -- Name: extension_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.extension_activities_id_seq OWNED BY public.extension_activities.id;
 
+
 --
--- TOC entry 253 (class 1259 OID 36075)
+-- TOC entry 269 (class 1259 OID 99475)
 -- Name: faculty_experience; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2156,7 +879,7 @@ CREATE TABLE public.faculty_experience (
 ALTER TABLE public.faculty_experience OWNER TO postgres;
 
 --
--- TOC entry 254 (class 1259 OID 36080)
+-- TOC entry 270 (class 1259 OID 99480)
 -- Name: faculty_experience_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2171,15 +894,16 @@ CREATE SEQUENCE public.faculty_experience_id_seq
 ALTER SEQUENCE public.faculty_experience_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4367 (class 0 OID 0)
--- Dependencies: 254
+-- TOC entry 4311 (class 0 OID 0)
+-- Dependencies: 270
 -- Name: faculty_experience_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.faculty_experience_id_seq OWNED BY public.faculty_experience.id;
 
+
 --
--- TOC entry 255 (class 1259 OID 36081)
+-- TOC entry 271 (class 1259 OID 99481)
 -- Name: faculty_information; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2197,7 +921,7 @@ CREATE TABLE public.faculty_information (
 ALTER TABLE public.faculty_information OWNER TO postgres;
 
 --
--- TOC entry 256 (class 1259 OID 36086)
+-- TOC entry 272 (class 1259 OID 99486)
 -- Name: faculty_information_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2212,15 +936,16 @@ CREATE SEQUENCE public.faculty_information_id_seq
 ALTER SEQUENCE public.faculty_information_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4370 (class 0 OID 0)
--- Dependencies: 256
+-- TOC entry 4314 (class 0 OID 0)
+-- Dependencies: 272
 -- Name: faculty_information_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.faculty_information_id_seq OWNED BY public.faculty_information.id;
 
+
 --
--- TOC entry 257 (class 1259 OID 36087)
+-- TOC entry 273 (class 1259 OID 99487)
 -- Name: faculty_specialization; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2239,7 +964,7 @@ CREATE TABLE public.faculty_specialization (
 ALTER TABLE public.faculty_specialization OWNER TO postgres;
 
 --
--- TOC entry 258 (class 1259 OID 36092)
+-- TOC entry 274 (class 1259 OID 99492)
 -- Name: faculty_specialization_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2254,15 +979,16 @@ CREATE SEQUENCE public.faculty_specialization_id_seq
 ALTER SEQUENCE public.faculty_specialization_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4373 (class 0 OID 0)
--- Dependencies: 258
+-- TOC entry 4317 (class 0 OID 0)
+-- Dependencies: 274
 -- Name: faculty_specialization_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.faculty_specialization_id_seq OWNED BY public.faculty_specialization.id;
 
+
 --
--- TOC entry 259 (class 1259 OID 36093)
+-- TOC entry 275 (class 1259 OID 99493)
 -- Name: faculty_strength; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2277,7 +1003,7 @@ CREATE TABLE public.faculty_strength (
 ALTER TABLE public.faculty_strength OWNER TO postgres;
 
 --
--- TOC entry 260 (class 1259 OID 36098)
+-- TOC entry 276 (class 1259 OID 99498)
 -- Name: faculty_strength_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2292,15 +1018,16 @@ CREATE SEQUENCE public.faculty_strength_id_seq
 ALTER SEQUENCE public.faculty_strength_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4376 (class 0 OID 0)
--- Dependencies: 260
+-- TOC entry 4320 (class 0 OID 0)
+-- Dependencies: 276
 -- Name: faculty_strength_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.faculty_strength_id_seq OWNED BY public.faculty_strength.id;
 
+
 --
--- TOC entry 261 (class 1259 OID 36099)
+-- TOC entry 277 (class 1259 OID 99499)
 -- Name: faculty_tenure; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2316,7 +1043,7 @@ CREATE TABLE public.faculty_tenure (
 ALTER TABLE public.faculty_tenure OWNER TO postgres;
 
 --
--- TOC entry 262 (class 1259 OID 36104)
+-- TOC entry 278 (class 1259 OID 99504)
 -- Name: faculty_tenure_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2331,15 +1058,16 @@ CREATE SEQUENCE public.faculty_tenure_id_seq
 ALTER SEQUENCE public.faculty_tenure_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4379 (class 0 OID 0)
--- Dependencies: 262
+-- TOC entry 4323 (class 0 OID 0)
+-- Dependencies: 278
 -- Name: faculty_tenure_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.faculty_tenure_id_seq OWNED BY public.faculty_tenure.id;
 
+
 --
--- TOC entry 263 (class 1259 OID 36105)
+-- TOC entry 279 (class 1259 OID 99505)
 -- Name: fdp_attended; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2359,7 +1087,7 @@ CREATE TABLE public.fdp_attended (
 ALTER TABLE public.fdp_attended OWNER TO postgres;
 
 --
--- TOC entry 264 (class 1259 OID 36110)
+-- TOC entry 280 (class 1259 OID 99510)
 -- Name: fdp_attended_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2374,15 +1102,16 @@ CREATE SEQUENCE public.fdp_attended_id_seq
 ALTER SEQUENCE public.fdp_attended_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4382 (class 0 OID 0)
--- Dependencies: 264
+-- TOC entry 4326 (class 0 OID 0)
+-- Dependencies: 280
 -- Name: fdp_attended_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.fdp_attended_id_seq OWNED BY public.fdp_attended.id;
 
+
 --
--- TOC entry 265 (class 1259 OID 36111)
+-- TOC entry 281 (class 1259 OID 99511)
 -- Name: fdp_organized; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2403,7 +1132,7 @@ CREATE TABLE public.fdp_organized (
 ALTER TABLE public.fdp_organized OWNER TO postgres;
 
 --
--- TOC entry 266 (class 1259 OID 36116)
+-- TOC entry 282 (class 1259 OID 99516)
 -- Name: fdp_organized_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2418,15 +1147,210 @@ CREATE SEQUENCE public.fdp_organized_id_seq
 ALTER SEQUENCE public.fdp_organized_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4385 (class 0 OID 0)
--- Dependencies: 266
+-- TOC entry 4329 (class 0 OID 0)
+-- Dependencies: 282
 -- Name: fdp_organized_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.fdp_organized_id_seq OWNED BY public.fdp_organized.id;
 
+
 --
--- TOC entry 268 (class 1259 OID 36123)
+-- TOC entry 233 (class 1259 OID 99352)
+-- Name: form_fields; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.form_fields (
+    id bigint NOT NULL,
+    section_id bigint NOT NULL,
+    table_id bigint,
+    field_key character varying(100) NOT NULL,
+    label character varying(500) NOT NULL,
+    field_type character varying(50) DEFAULT 'TEXT'::character varying,
+    kind character varying(50) DEFAULT 'field'::character varying,
+    is_required boolean DEFAULT false,
+    placeholder character varying(255),
+    default_value character varying(255),
+    validation_rules text,
+    options text,
+    attachment_rules text,
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.form_fields OWNER TO postgres;
+
+--
+-- TOC entry 234 (class 1259 OID 99361)
+-- Name: form_fields_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.form_fields_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.form_fields_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4332 (class 0 OID 0)
+-- Dependencies: 234
+-- Name: form_fields_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.form_fields_id_seq OWNED BY public.form_fields.id;
+
+
+--
+-- TOC entry 225 (class 1259 OID 99306)
+-- Name: form_schemas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.form_schemas (
+    id bigint NOT NULL,
+    university_id bigint,
+    audit_type character varying(50) NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    assigned_schools text DEFAULT 'ALL'::text,
+    active_version_id bigint,
+    status character varying(20) DEFAULT 'ACTIVE'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    active_version_number integer
+);
+
+
+ALTER TABLE public.form_schemas OWNER TO postgres;
+
+--
+-- TOC entry 226 (class 1259 OID 99315)
+-- Name: form_schemas_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.form_schemas_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.form_schemas_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4335 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: form_schemas_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.form_schemas_id_seq OWNED BY public.form_schemas.id;
+
+
+--
+-- TOC entry 229 (class 1259 OID 99330)
+-- Name: form_sections; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.form_sections (
+    id bigint NOT NULL,
+    version_id bigint NOT NULL,
+    section_key character varying(100) NOT NULL,
+    title character varying(255) NOT NULL,
+    section_number character varying(20),
+    owner_role character varying(100),
+    description text,
+    display_order integer DEFAULT 0,
+    table_buttons text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.form_sections OWNER TO postgres;
+
+--
+-- TOC entry 230 (class 1259 OID 99336)
+-- Name: form_sections_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.form_sections_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.form_sections_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4338 (class 0 OID 0)
+-- Dependencies: 230
+-- Name: form_sections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.form_sections_id_seq OWNED BY public.form_sections.id;
+
+
+--
+-- TOC entry 231 (class 1259 OID 99340)
+-- Name: form_tables; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.form_tables (
+    id bigint NOT NULL,
+    section_id bigint NOT NULL,
+    table_key character varying(100) NOT NULL,
+    title character varying(255) NOT NULL,
+    show_title boolean DEFAULT true,
+    is_repeatable boolean DEFAULT true,
+    display_order integer DEFAULT 0,
+    initial_rows text,
+    select_options text,
+    date_columns text,
+    number_columns text,
+    textarea_columns text,
+    textarea_max_lengths text,
+    validation_rules text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.form_tables OWNER TO postgres;
+
+--
+-- TOC entry 232 (class 1259 OID 99348)
+-- Name: form_tables_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.form_tables_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.form_tables_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4341 (class 0 OID 0)
+-- Dependencies: 232
+-- Name: form_tables_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.form_tables_id_seq OWNED BY public.form_tables.id;
+
+
+--
+-- TOC entry 283 (class 1259 OID 99517)
 -- Name: functional_mous; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2445,7 +1369,7 @@ CREATE TABLE public.functional_mous (
 ALTER TABLE public.functional_mous OWNER TO postgres;
 
 --
--- TOC entry 269 (class 1259 OID 36128)
+-- TOC entry 284 (class 1259 OID 99522)
 -- Name: functional_mous_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2460,15 +1384,16 @@ CREATE SEQUENCE public.functional_mous_id_seq
 ALTER SEQUENCE public.functional_mous_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4389 (class 0 OID 0)
--- Dependencies: 269
+-- TOC entry 4344 (class 0 OID 0)
+-- Dependencies: 284
 -- Name: functional_mous_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.functional_mous_id_seq OWNED BY public.functional_mous.id;
 
+
 --
--- TOC entry 270 (class 1259 OID 36129)
+-- TOC entry 285 (class 1259 OID 99523)
 -- Name: graduating_students; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2485,7 +1410,7 @@ CREATE TABLE public.graduating_students (
 ALTER TABLE public.graduating_students OWNER TO postgres;
 
 --
--- TOC entry 271 (class 1259 OID 36134)
+-- TOC entry 286 (class 1259 OID 99528)
 -- Name: graduating_students_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2500,15 +1425,16 @@ CREATE SEQUENCE public.graduating_students_id_seq
 ALTER SEQUENCE public.graduating_students_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4392 (class 0 OID 0)
--- Dependencies: 271
+-- TOC entry 4347 (class 0 OID 0)
+-- Dependencies: 286
 -- Name: graduating_students_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.graduating_students_id_seq OWNED BY public.graduating_students.id;
 
+
 --
--- TOC entry 272 (class 1259 OID 36135)
+-- TOC entry 287 (class 1259 OID 99529)
 -- Name: guest_lectures; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2528,7 +1454,7 @@ CREATE TABLE public.guest_lectures (
 ALTER TABLE public.guest_lectures OWNER TO postgres;
 
 --
--- TOC entry 273 (class 1259 OID 36140)
+-- TOC entry 288 (class 1259 OID 99534)
 -- Name: guest_lectures_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2543,15 +1469,16 @@ CREATE SEQUENCE public.guest_lectures_id_seq
 ALTER SEQUENCE public.guest_lectures_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4395 (class 0 OID 0)
--- Dependencies: 273
+-- TOC entry 4350 (class 0 OID 0)
+-- Dependencies: 288
 -- Name: guest_lectures_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.guest_lectures_id_seq OWNED BY public.guest_lectures.id;
 
+
 --
--- TOC entry 274 (class 1259 OID 36141)
+-- TOC entry 289 (class 1259 OID 99535)
 -- Name: hackathons; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2570,7 +1497,7 @@ CREATE TABLE public.hackathons (
 ALTER TABLE public.hackathons OWNER TO postgres;
 
 --
--- TOC entry 275 (class 1259 OID 36146)
+-- TOC entry 290 (class 1259 OID 99540)
 -- Name: hackathons_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2585,15 +1512,16 @@ CREATE SEQUENCE public.hackathons_id_seq
 ALTER SEQUENCE public.hackathons_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4398 (class 0 OID 0)
--- Dependencies: 275
+-- TOC entry 4353 (class 0 OID 0)
+-- Dependencies: 290
 -- Name: hackathons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.hackathons_id_seq OWNED BY public.hackathons.id;
 
+
 --
--- TOC entry 276 (class 1259 OID 36147)
+-- TOC entry 291 (class 1259 OID 99541)
 -- Name: higher_studies; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2610,7 +1538,7 @@ CREATE TABLE public.higher_studies (
 ALTER TABLE public.higher_studies OWNER TO postgres;
 
 --
--- TOC entry 277 (class 1259 OID 36152)
+-- TOC entry 292 (class 1259 OID 99546)
 -- Name: higher_studies_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2625,15 +1553,16 @@ CREATE SEQUENCE public.higher_studies_id_seq
 ALTER SEQUENCE public.higher_studies_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4401 (class 0 OID 0)
--- Dependencies: 277
+-- TOC entry 4356 (class 0 OID 0)
+-- Dependencies: 292
 -- Name: higher_studies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.higher_studies_id_seq OWNED BY public.higher_studies.id;
 
+
 --
--- TOC entry 278 (class 1259 OID 36153)
+-- TOC entry 293 (class 1259 OID 99547)
 -- Name: industry_collaborations; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2651,7 +1580,7 @@ CREATE TABLE public.industry_collaborations (
 ALTER TABLE public.industry_collaborations OWNER TO postgres;
 
 --
--- TOC entry 279 (class 1259 OID 36158)
+-- TOC entry 294 (class 1259 OID 99552)
 -- Name: industry_collaborations_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2666,15 +1595,16 @@ CREATE SEQUENCE public.industry_collaborations_id_seq
 ALTER SEQUENCE public.industry_collaborations_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4404 (class 0 OID 0)
--- Dependencies: 279
+-- TOC entry 4359 (class 0 OID 0)
+-- Dependencies: 294
 -- Name: industry_collaborations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.industry_collaborations_id_seq OWNED BY public.industry_collaborations.id;
 
+
 --
--- TOC entry 280 (class 1259 OID 36159)
+-- TOC entry 295 (class 1259 OID 99553)
 -- Name: it_infrastructure; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2690,7 +1620,7 @@ CREATE TABLE public.it_infrastructure (
 ALTER TABLE public.it_infrastructure OWNER TO postgres;
 
 --
--- TOC entry 281 (class 1259 OID 36164)
+-- TOC entry 296 (class 1259 OID 99558)
 -- Name: it_infrastructure_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2705,15 +1635,16 @@ CREATE SEQUENCE public.it_infrastructure_id_seq
 ALTER SEQUENCE public.it_infrastructure_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4407 (class 0 OID 0)
--- Dependencies: 281
+-- TOC entry 4362 (class 0 OID 0)
+-- Dependencies: 296
 -- Name: it_infrastructure_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.it_infrastructure_id_seq OWNED BY public.it_infrastructure.id;
 
+
 --
--- TOC entry 282 (class 1259 OID 36165)
+-- TOC entry 297 (class 1259 OID 99559)
 -- Name: library_infrastructure; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2729,7 +1660,7 @@ CREATE TABLE public.library_infrastructure (
 ALTER TABLE public.library_infrastructure OWNER TO postgres;
 
 --
--- TOC entry 283 (class 1259 OID 36170)
+-- TOC entry 298 (class 1259 OID 99564)
 -- Name: library_infrastructure_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2744,15 +1675,16 @@ CREATE SEQUENCE public.library_infrastructure_id_seq
 ALTER SEQUENCE public.library_infrastructure_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4410 (class 0 OID 0)
--- Dependencies: 283
+-- TOC entry 4365 (class 0 OID 0)
+-- Dependencies: 298
 -- Name: library_infrastructure_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.library_infrastructure_id_seq OWNED BY public.library_infrastructure.id;
 
+
 --
--- TOC entry 284 (class 1259 OID 36171)
+-- TOC entry 299 (class 1259 OID 99565)
 -- Name: nep_status; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2769,7 +1701,7 @@ CREATE TABLE public.nep_status (
 ALTER TABLE public.nep_status OWNER TO postgres;
 
 --
--- TOC entry 285 (class 1259 OID 36176)
+-- TOC entry 300 (class 1259 OID 99570)
 -- Name: nep_status_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2784,15 +1716,16 @@ CREATE SEQUENCE public.nep_status_id_seq
 ALTER SEQUENCE public.nep_status_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4413 (class 0 OID 0)
--- Dependencies: 285
+-- TOC entry 4368 (class 0 OID 0)
+-- Dependencies: 300
 -- Name: nep_status_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.nep_status_id_seq OWNED BY public.nep_status.id;
 
+
 --
--- TOC entry 286 (class 1259 OID 36177)
+-- TOC entry 301 (class 1259 OID 99571)
 -- Name: obe_implementation; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2808,7 +1741,7 @@ CREATE TABLE public.obe_implementation (
 ALTER TABLE public.obe_implementation OWNER TO postgres;
 
 --
--- TOC entry 287 (class 1259 OID 36182)
+-- TOC entry 302 (class 1259 OID 99576)
 -- Name: obe_implementation_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2823,15 +1756,16 @@ CREATE SEQUENCE public.obe_implementation_id_seq
 ALTER SEQUENCE public.obe_implementation_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4416 (class 0 OID 0)
--- Dependencies: 287
+-- TOC entry 4371 (class 0 OID 0)
+-- Dependencies: 302
 -- Name: obe_implementation_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.obe_implementation_id_seq OWNED BY public.obe_implementation.id;
 
+
 --
--- TOC entry 290 (class 1259 OID 36191)
+-- TOC entry 303 (class 1259 OID 99577)
 -- Name: patents_copyrights; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2852,7 +1786,7 @@ CREATE TABLE public.patents_copyrights (
 ALTER TABLE public.patents_copyrights OWNER TO postgres;
 
 --
--- TOC entry 291 (class 1259 OID 36196)
+-- TOC entry 304 (class 1259 OID 99582)
 -- Name: patents_copyrights_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2867,15 +1801,16 @@ CREATE SEQUENCE public.patents_copyrights_id_seq
 ALTER SEQUENCE public.patents_copyrights_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4422 (class 0 OID 0)
--- Dependencies: 291
+-- TOC entry 4374 (class 0 OID 0)
+-- Dependencies: 304
 -- Name: patents_copyrights_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.patents_copyrights_id_seq OWNED BY public.patents_copyrights.id;
 
+
 --
--- TOC entry 292 (class 1259 OID 36197)
+-- TOC entry 305 (class 1259 OID 99583)
 -- Name: professional_bodies; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2894,7 +1829,7 @@ CREATE TABLE public.professional_bodies (
 ALTER TABLE public.professional_bodies OWNER TO postgres;
 
 --
--- TOC entry 293 (class 1259 OID 36202)
+-- TOC entry 306 (class 1259 OID 99588)
 -- Name: professional_bodies_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2909,15 +1844,16 @@ CREATE SEQUENCE public.professional_bodies_id_seq
 ALTER SEQUENCE public.professional_bodies_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4425 (class 0 OID 0)
--- Dependencies: 293
+-- TOC entry 4377 (class 0 OID 0)
+-- Dependencies: 306
 -- Name: professional_bodies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.professional_bodies_id_seq OWNED BY public.professional_bodies.id;
 
+
 --
--- TOC entry 294 (class 1259 OID 36203)
+-- TOC entry 307 (class 1259 OID 99589)
 -- Name: qualifying_exams; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2934,7 +1870,7 @@ CREATE TABLE public.qualifying_exams (
 ALTER TABLE public.qualifying_exams OWNER TO postgres;
 
 --
--- TOC entry 295 (class 1259 OID 36208)
+-- TOC entry 308 (class 1259 OID 99594)
 -- Name: qualifying_exams_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2949,15 +1885,16 @@ CREATE SEQUENCE public.qualifying_exams_id_seq
 ALTER SEQUENCE public.qualifying_exams_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4428 (class 0 OID 0)
--- Dependencies: 295
+-- TOC entry 4380 (class 0 OID 0)
+-- Dependencies: 308
 -- Name: qualifying_exams_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.qualifying_exams_id_seq OWNED BY public.qualifying_exams.id;
 
+
 --
--- TOC entry 296 (class 1259 OID 36209)
+-- TOC entry 309 (class 1259 OID 99595)
 -- Name: research_funds; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2978,7 +1915,7 @@ CREATE TABLE public.research_funds (
 ALTER TABLE public.research_funds OWNER TO postgres;
 
 --
--- TOC entry 297 (class 1259 OID 36214)
+-- TOC entry 310 (class 1259 OID 99600)
 -- Name: research_funds_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2993,15 +1930,16 @@ CREATE SEQUENCE public.research_funds_id_seq
 ALTER SEQUENCE public.research_funds_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4431 (class 0 OID 0)
--- Dependencies: 297
+-- TOC entry 4383 (class 0 OID 0)
+-- Dependencies: 310
 -- Name: research_funds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.research_funds_id_seq OWNED BY public.research_funds.id;
 
+
 --
--- TOC entry 298 (class 1259 OID 36215)
+-- TOC entry 311 (class 1259 OID 99601)
 -- Name: research_publications; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3023,7 +1961,7 @@ CREATE TABLE public.research_publications (
 ALTER TABLE public.research_publications OWNER TO postgres;
 
 --
--- TOC entry 299 (class 1259 OID 36220)
+-- TOC entry 312 (class 1259 OID 99606)
 -- Name: research_publications_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3038,15 +1976,16 @@ CREATE SEQUENCE public.research_publications_id_seq
 ALTER SEQUENCE public.research_publications_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4434 (class 0 OID 0)
--- Dependencies: 299
+-- TOC entry 4386 (class 0 OID 0)
+-- Dependencies: 312
 -- Name: research_publications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.research_publications_id_seq OWNED BY public.research_publications.id;
 
+
 --
--- TOC entry 300 (class 1259 OID 36221)
+-- TOC entry 313 (class 1259 OID 99607)
 -- Name: research_resources; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3063,7 +2002,7 @@ CREATE TABLE public.research_resources (
 ALTER TABLE public.research_resources OWNER TO postgres;
 
 --
--- TOC entry 301 (class 1259 OID 36226)
+-- TOC entry 314 (class 1259 OID 99612)
 -- Name: research_resources_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3078,15 +2017,64 @@ CREATE SEQUENCE public.research_resources_id_seq
 ALTER SEQUENCE public.research_resources_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4437 (class 0 OID 0)
--- Dependencies: 301
+-- TOC entry 4389 (class 0 OID 0)
+-- Dependencies: 314
 -- Name: research_resources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.research_resources_id_seq OWNED BY public.research_resources.id;
 
+
 --
--- TOC entry 302 (class 1259 OID 36227)
+-- TOC entry 227 (class 1259 OID 99319)
+-- Name: schema_versions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.schema_versions (
+    id bigint NOT NULL,
+    schema_id bigint NOT NULL,
+    version_number integer NOT NULL,
+    status character varying(20) DEFAULT 'PUBLISHED'::character varying,
+    academic_year character varying(50) NOT NULL,
+    title character varying(255),
+    owner_role character varying(100),
+    compiled_schema text,
+    created_by character varying(255),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    published_by character varying(255),
+    published_at timestamp without time zone,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.schema_versions OWNER TO postgres;
+
+--
+-- TOC entry 228 (class 1259 OID 99326)
+-- Name: schema_versions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.schema_versions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.schema_versions_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4392 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: schema_versions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.schema_versions_id_seq OWNED BY public.schema_versions.id;
+
+
+--
+-- TOC entry 315 (class 1259 OID 99613)
 -- Name: scholarship_students; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3106,7 +2094,7 @@ CREATE TABLE public.scholarship_students (
 ALTER TABLE public.scholarship_students OWNER TO postgres;
 
 --
--- TOC entry 303 (class 1259 OID 36232)
+-- TOC entry 316 (class 1259 OID 99618)
 -- Name: scholarship_students_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3121,15 +2109,16 @@ CREATE SEQUENCE public.scholarship_students_id_seq
 ALTER SEQUENCE public.scholarship_students_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4440 (class 0 OID 0)
--- Dependencies: 303
+-- TOC entry 4395 (class 0 OID 0)
+-- Dependencies: 316
 -- Name: scholarship_students_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.scholarship_students_id_seq OWNED BY public.scholarship_students.id;
 
+
 --
--- TOC entry 304 (class 1259 OID 36233)
+-- TOC entry 317 (class 1259 OID 99619)
 -- Name: scholarship_summary; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3150,7 +2139,7 @@ CREATE TABLE public.scholarship_summary (
 ALTER TABLE public.scholarship_summary OWNER TO postgres;
 
 --
--- TOC entry 305 (class 1259 OID 36238)
+-- TOC entry 318 (class 1259 OID 99624)
 -- Name: scholarship_summary_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3165,15 +2154,16 @@ CREATE SEQUENCE public.scholarship_summary_id_seq
 ALTER SEQUENCE public.scholarship_summary_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4443 (class 0 OID 0)
--- Dependencies: 305
+-- TOC entry 4398 (class 0 OID 0)
+-- Dependencies: 318
 -- Name: scholarship_summary_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.scholarship_summary_id_seq OWNED BY public.scholarship_summary.id;
 
+
 --
--- TOC entry 308 (class 1259 OID 36248)
+-- TOC entry 319 (class 1259 OID 99625)
 -- Name: sports_activities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3192,7 +2182,7 @@ CREATE TABLE public.sports_activities (
 ALTER TABLE public.sports_activities OWNER TO postgres;
 
 --
--- TOC entry 309 (class 1259 OID 36253)
+-- TOC entry 320 (class 1259 OID 99630)
 -- Name: sports_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3207,15 +2197,16 @@ CREATE SEQUENCE public.sports_activities_id_seq
 ALTER SEQUENCE public.sports_activities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4449 (class 0 OID 0)
--- Dependencies: 309
+-- TOC entry 4401 (class 0 OID 0)
+-- Dependencies: 320
 -- Name: sports_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.sports_activities_id_seq OWNED BY public.sports_activities.id;
 
+
 --
--- TOC entry 310 (class 1259 OID 36254)
+-- TOC entry 321 (class 1259 OID 99631)
 -- Name: sports_facilities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3231,7 +2222,7 @@ CREATE TABLE public.sports_facilities (
 ALTER TABLE public.sports_facilities OWNER TO postgres;
 
 --
--- TOC entry 311 (class 1259 OID 36259)
+-- TOC entry 322 (class 1259 OID 99636)
 -- Name: sports_facilities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3246,15 +2237,16 @@ CREATE SEQUENCE public.sports_facilities_id_seq
 ALTER SEQUENCE public.sports_facilities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4452 (class 0 OID 0)
--- Dependencies: 311
+-- TOC entry 4404 (class 0 OID 0)
+-- Dependencies: 322
 -- Name: sports_facilities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.sports_facilities_id_seq OWNED BY public.sports_facilities.id;
 
+
 --
--- TOC entry 312 (class 1259 OID 36260)
+-- TOC entry 323 (class 1259 OID 99637)
 -- Name: staff_training; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3273,7 +2265,7 @@ CREATE TABLE public.staff_training (
 ALTER TABLE public.staff_training OWNER TO postgres;
 
 --
--- TOC entry 313 (class 1259 OID 36265)
+-- TOC entry 324 (class 1259 OID 99642)
 -- Name: staff_training_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3288,15 +2280,16 @@ CREATE SEQUENCE public.staff_training_id_seq
 ALTER SEQUENCE public.staff_training_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4455 (class 0 OID 0)
--- Dependencies: 313
+-- TOC entry 4407 (class 0 OID 0)
+-- Dependencies: 324
 -- Name: staff_training_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.staff_training_id_seq OWNED BY public.staff_training.id;
 
+
 --
--- TOC entry 314 (class 1259 OID 36266)
+-- TOC entry 325 (class 1259 OID 99643)
 -- Name: statutory_bodies; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3314,7 +2307,7 @@ CREATE TABLE public.statutory_bodies (
 ALTER TABLE public.statutory_bodies OWNER TO postgres;
 
 --
--- TOC entry 315 (class 1259 OID 36271)
+-- TOC entry 326 (class 1259 OID 99648)
 -- Name: statutory_bodies_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3329,15 +2322,16 @@ CREATE SEQUENCE public.statutory_bodies_id_seq
 ALTER SEQUENCE public.statutory_bodies_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4458 (class 0 OID 0)
--- Dependencies: 315
+-- TOC entry 4410 (class 0 OID 0)
+-- Dependencies: 326
 -- Name: statutory_bodies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.statutory_bodies_id_seq OWNED BY public.statutory_bodies.id;
 
+
 --
--- TOC entry 316 (class 1259 OID 36272)
+-- TOC entry 327 (class 1259 OID 99649)
 -- Name: student_awards; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3354,7 +2348,7 @@ CREATE TABLE public.student_awards (
 ALTER TABLE public.student_awards OWNER TO postgres;
 
 --
--- TOC entry 317 (class 1259 OID 36277)
+-- TOC entry 328 (class 1259 OID 99654)
 -- Name: student_awards_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3369,15 +2363,16 @@ CREATE SEQUENCE public.student_awards_id_seq
 ALTER SEQUENCE public.student_awards_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4461 (class 0 OID 0)
--- Dependencies: 317
+-- TOC entry 4413 (class 0 OID 0)
+-- Dependencies: 328
 -- Name: student_awards_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_awards_id_seq OWNED BY public.student_awards.id;
 
+
 --
--- TOC entry 318 (class 1259 OID 36278)
+-- TOC entry 329 (class 1259 OID 99655)
 -- Name: student_courses; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3396,7 +2391,7 @@ CREATE TABLE public.student_courses (
 ALTER TABLE public.student_courses OWNER TO postgres;
 
 --
--- TOC entry 319 (class 1259 OID 36283)
+-- TOC entry 330 (class 1259 OID 99660)
 -- Name: student_courses_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3411,15 +2406,16 @@ CREATE SEQUENCE public.student_courses_id_seq
 ALTER SEQUENCE public.student_courses_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4464 (class 0 OID 0)
--- Dependencies: 319
+-- TOC entry 4416 (class 0 OID 0)
+-- Dependencies: 330
 -- Name: student_courses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_courses_id_seq OWNED BY public.student_courses.id;
 
+
 --
--- TOC entry 320 (class 1259 OID 36284)
+-- TOC entry 331 (class 1259 OID 99661)
 -- Name: student_mentoring; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3436,7 +2432,7 @@ CREATE TABLE public.student_mentoring (
 ALTER TABLE public.student_mentoring OWNER TO postgres;
 
 --
--- TOC entry 321 (class 1259 OID 36289)
+-- TOC entry 332 (class 1259 OID 99666)
 -- Name: student_mentoring_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3451,15 +2447,16 @@ CREATE SEQUENCE public.student_mentoring_id_seq
 ALTER SEQUENCE public.student_mentoring_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4467 (class 0 OID 0)
--- Dependencies: 321
+-- TOC entry 4419 (class 0 OID 0)
+-- Dependencies: 332
 -- Name: student_mentoring_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_mentoring_id_seq OWNED BY public.student_mentoring.id;
 
+
 --
--- TOC entry 322 (class 1259 OID 36290)
+-- TOC entry 333 (class 1259 OID 99667)
 -- Name: student_placements; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3477,7 +2474,7 @@ CREATE TABLE public.student_placements (
 ALTER TABLE public.student_placements OWNER TO postgres;
 
 --
--- TOC entry 323 (class 1259 OID 36295)
+-- TOC entry 334 (class 1259 OID 99672)
 -- Name: student_placements_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3492,15 +2489,16 @@ CREATE SEQUENCE public.student_placements_id_seq
 ALTER SEQUENCE public.student_placements_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4470 (class 0 OID 0)
--- Dependencies: 323
+-- TOC entry 4422 (class 0 OID 0)
+-- Dependencies: 334
 -- Name: student_placements_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_placements_id_seq OWNED BY public.student_placements.id;
 
+
 --
--- TOC entry 324 (class 1259 OID 36296)
+-- TOC entry 335 (class 1259 OID 99673)
 -- Name: student_startups; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3517,7 +2515,7 @@ CREATE TABLE public.student_startups (
 ALTER TABLE public.student_startups OWNER TO postgres;
 
 --
--- TOC entry 325 (class 1259 OID 36301)
+-- TOC entry 336 (class 1259 OID 99678)
 -- Name: student_startups_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3532,15 +2530,16 @@ CREATE SEQUENCE public.student_startups_id_seq
 ALTER SEQUENCE public.student_startups_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4473 (class 0 OID 0)
--- Dependencies: 325
+-- TOC entry 4425 (class 0 OID 0)
+-- Dependencies: 336
 -- Name: student_startups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_startups_id_seq OWNED BY public.student_startups.id;
 
+
 --
--- TOC entry 326 (class 1259 OID 36302)
+-- TOC entry 337 (class 1259 OID 99680)
 -- Name: student_statistics; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3559,7 +2558,7 @@ CREATE TABLE public.student_statistics (
 ALTER TABLE public.student_statistics OWNER TO postgres;
 
 --
--- TOC entry 327 (class 1259 OID 36307)
+-- TOC entry 338 (class 1259 OID 99687)
 -- Name: student_statistics_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3574,15 +2573,16 @@ CREATE SEQUENCE public.student_statistics_id_seq
 ALTER SEQUENCE public.student_statistics_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4476 (class 0 OID 0)
--- Dependencies: 327
+-- TOC entry 4428 (class 0 OID 0)
+-- Dependencies: 338
 -- Name: student_statistics_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_statistics_id_seq OWNED BY public.student_statistics.id;
 
+
 --
--- TOC entry 328 (class 1259 OID 36308)
+-- TOC entry 339 (class 1259 OID 99688)
 -- Name: student_strength; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3598,7 +2598,7 @@ CREATE TABLE public.student_strength (
 ALTER TABLE public.student_strength OWNER TO postgres;
 
 --
--- TOC entry 329 (class 1259 OID 36313)
+-- TOC entry 340 (class 1259 OID 99695)
 -- Name: student_strength_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3613,15 +2613,16 @@ CREATE SEQUENCE public.student_strength_id_seq
 ALTER SEQUENCE public.student_strength_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4479 (class 0 OID 0)
--- Dependencies: 329
+-- TOC entry 4431 (class 0 OID 0)
+-- Dependencies: 340
 -- Name: student_strength_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.student_strength_id_seq OWNED BY public.student_strength.id;
 
+
 --
--- TOC entry 334 (class 1259 OID 36333)
+-- TOC entry 341 (class 1259 OID 99699)
 -- Name: success_rate; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3638,7 +2639,7 @@ CREATE TABLE public.success_rate (
 ALTER TABLE public.success_rate OWNER TO postgres;
 
 --
--- TOC entry 335 (class 1259 OID 36338)
+-- TOC entry 342 (class 1259 OID 99704)
 -- Name: success_rate_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3653,15 +2654,16 @@ CREATE SEQUENCE public.success_rate_id_seq
 ALTER SEQUENCE public.success_rate_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4486 (class 0 OID 0)
--- Dependencies: 335
+-- TOC entry 4434 (class 0 OID 0)
+-- Dependencies: 342
 -- Name: success_rate_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.success_rate_id_seq OWNED BY public.success_rate.id;
 
+
 --
--- TOC entry 336 (class 1259 OID 36339)
+-- TOC entry 343 (class 1259 OID 99705)
 -- Name: supporting_staff; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3682,7 +2684,7 @@ CREATE TABLE public.supporting_staff (
 ALTER TABLE public.supporting_staff OWNER TO postgres;
 
 --
--- TOC entry 337 (class 1259 OID 36344)
+-- TOC entry 344 (class 1259 OID 99710)
 -- Name: supporting_staff_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3697,15 +2699,16 @@ CREATE SEQUENCE public.supporting_staff_id_seq
 ALTER SEQUENCE public.supporting_staff_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4489 (class 0 OID 0)
--- Dependencies: 337
+-- TOC entry 4437 (class 0 OID 0)
+-- Dependencies: 344
 -- Name: supporting_staff_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.supporting_staff_id_seq OWNED BY public.supporting_staff.id;
 
+
 --
--- TOC entry 338 (class 1259 OID 36345)
+-- TOC entry 345 (class 1259 OID 99711)
 -- Name: swoc_challenges; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3720,7 +2723,7 @@ CREATE TABLE public.swoc_challenges (
 ALTER TABLE public.swoc_challenges OWNER TO postgres;
 
 --
--- TOC entry 339 (class 1259 OID 36350)
+-- TOC entry 346 (class 1259 OID 99716)
 -- Name: swoc_challenges_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3735,15 +2738,16 @@ CREATE SEQUENCE public.swoc_challenges_id_seq
 ALTER SEQUENCE public.swoc_challenges_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4492 (class 0 OID 0)
--- Dependencies: 339
+-- TOC entry 4440 (class 0 OID 0)
+-- Dependencies: 346
 -- Name: swoc_challenges_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.swoc_challenges_id_seq OWNED BY public.swoc_challenges.id;
 
+
 --
--- TOC entry 340 (class 1259 OID 36351)
+-- TOC entry 347 (class 1259 OID 99717)
 -- Name: swoc_opportunities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3758,7 +2762,7 @@ CREATE TABLE public.swoc_opportunities (
 ALTER TABLE public.swoc_opportunities OWNER TO postgres;
 
 --
--- TOC entry 341 (class 1259 OID 36356)
+-- TOC entry 348 (class 1259 OID 99722)
 -- Name: swoc_opportunities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3773,15 +2777,16 @@ CREATE SEQUENCE public.swoc_opportunities_id_seq
 ALTER SEQUENCE public.swoc_opportunities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4495 (class 0 OID 0)
--- Dependencies: 341
+-- TOC entry 4443 (class 0 OID 0)
+-- Dependencies: 348
 -- Name: swoc_opportunities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.swoc_opportunities_id_seq OWNED BY public.swoc_opportunities.id;
 
+
 --
--- TOC entry 342 (class 1259 OID 36357)
+-- TOC entry 349 (class 1259 OID 99723)
 -- Name: swoc_other_information; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3796,7 +2801,7 @@ CREATE TABLE public.swoc_other_information (
 ALTER TABLE public.swoc_other_information OWNER TO postgres;
 
 --
--- TOC entry 343 (class 1259 OID 36362)
+-- TOC entry 350 (class 1259 OID 99728)
 -- Name: swoc_other_information_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3811,15 +2816,16 @@ CREATE SEQUENCE public.swoc_other_information_id_seq
 ALTER SEQUENCE public.swoc_other_information_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4498 (class 0 OID 0)
--- Dependencies: 343
+-- TOC entry 4446 (class 0 OID 0)
+-- Dependencies: 350
 -- Name: swoc_other_information_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.swoc_other_information_id_seq OWNED BY public.swoc_other_information.id;
 
+
 --
--- TOC entry 344 (class 1259 OID 36363)
+-- TOC entry 351 (class 1259 OID 99729)
 -- Name: swoc_strength; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3834,7 +2840,7 @@ CREATE TABLE public.swoc_strength (
 ALTER TABLE public.swoc_strength OWNER TO postgres;
 
 --
--- TOC entry 345 (class 1259 OID 36368)
+-- TOC entry 352 (class 1259 OID 99734)
 -- Name: swoc_strength_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3849,15 +2855,16 @@ CREATE SEQUENCE public.swoc_strength_id_seq
 ALTER SEQUENCE public.swoc_strength_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4501 (class 0 OID 0)
--- Dependencies: 345
+-- TOC entry 4449 (class 0 OID 0)
+-- Dependencies: 352
 -- Name: swoc_strength_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.swoc_strength_id_seq OWNED BY public.swoc_strength.id;
 
+
 --
--- TOC entry 346 (class 1259 OID 36369)
+-- TOC entry 353 (class 1259 OID 99735)
 -- Name: swoc_weaknesses; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3872,7 +2879,7 @@ CREATE TABLE public.swoc_weaknesses (
 ALTER TABLE public.swoc_weaknesses OWNER TO postgres;
 
 --
--- TOC entry 347 (class 1259 OID 36374)
+-- TOC entry 354 (class 1259 OID 99740)
 -- Name: swoc_weaknesses_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3887,15 +2894,16 @@ CREATE SEQUENCE public.swoc_weaknesses_id_seq
 ALTER SEQUENCE public.swoc_weaknesses_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4504 (class 0 OID 0)
--- Dependencies: 347
+-- TOC entry 4452 (class 0 OID 0)
+-- Dependencies: 354
 -- Name: swoc_weaknesses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.swoc_weaknesses_id_seq OWNED BY public.swoc_weaknesses.id;
 
+
 --
--- TOC entry 348 (class 1259 OID 36375)
+-- TOC entry 355 (class 1259 OID 99741)
 -- Name: syllabus_revision; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3911,7 +2919,7 @@ CREATE TABLE public.syllabus_revision (
 ALTER TABLE public.syllabus_revision OWNER TO postgres;
 
 --
--- TOC entry 349 (class 1259 OID 36380)
+-- TOC entry 356 (class 1259 OID 99746)
 -- Name: syllabus_revision_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3926,15 +2934,16 @@ CREATE SEQUENCE public.syllabus_revision_id_seq
 ALTER SEQUENCE public.syllabus_revision_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4507 (class 0 OID 0)
--- Dependencies: 349
+-- TOC entry 4455 (class 0 OID 0)
+-- Dependencies: 356
 -- Name: syllabus_revision_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.syllabus_revision_id_seq OWNED BY public.syllabus_revision.id;
 
+
 --
--- TOC entry 350 (class 1259 OID 36381)
+-- TOC entry 357 (class 1259 OID 99747)
 -- Name: teacher_awards; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3951,7 +2960,7 @@ CREATE TABLE public.teacher_awards (
 ALTER TABLE public.teacher_awards OWNER TO postgres;
 
 --
--- TOC entry 351 (class 1259 OID 36386)
+-- TOC entry 358 (class 1259 OID 99752)
 -- Name: teacher_awards_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -3966,15 +2975,16 @@ CREATE SEQUENCE public.teacher_awards_id_seq
 ALTER SEQUENCE public.teacher_awards_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4510 (class 0 OID 0)
--- Dependencies: 351
+-- TOC entry 4458 (class 0 OID 0)
+-- Dependencies: 358
 -- Name: teacher_awards_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.teacher_awards_id_seq OWNED BY public.teacher_awards.id;
 
+
 --
--- TOC entry 352 (class 1259 OID 36387)
+-- TOC entry 359 (class 1259 OID 99753)
 -- Name: training_activities; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -3992,7 +3002,7 @@ CREATE TABLE public.training_activities (
 ALTER TABLE public.training_activities OWNER TO postgres;
 
 --
--- TOC entry 353 (class 1259 OID 36392)
+-- TOC entry 360 (class 1259 OID 99758)
 -- Name: training_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -4007,15 +3017,153 @@ CREATE SEQUENCE public.training_activities_id_seq
 ALTER SEQUENCE public.training_activities_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4513 (class 0 OID 0)
--- Dependencies: 353
+-- TOC entry 4461 (class 0 OID 0)
+-- Dependencies: 360
 -- Name: training_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.training_activities_id_seq OWNED BY public.training_activities.id;
 
+
 --
--- TOC entry 358 (class 1259 OID 36404)
+-- TOC entry 217 (class 1259 OID 99255)
+-- Name: universities; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.universities (
+    id bigint NOT NULL,
+    code character varying(50) NOT NULL,
+    slug character varying(50) DEFAULT 'dypiu'::character varying,
+    name character varying(255) NOT NULL,
+    domain character varying(100),
+    status character varying(20) DEFAULT 'ACTIVE'::character varying,
+    address text,
+    establishment_act text,
+    logo_url text,
+    iqac_logo_url text,
+    primary_color character varying(20) DEFAULT '#1e3a8a'::character varying,
+    theme_branding text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.universities OWNER TO postgres;
+
+--
+-- TOC entry 218 (class 1259 OID 99265)
+-- Name: universities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.universities_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.universities_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4464 (class 0 OID 0)
+-- Dependencies: 218
+-- Name: universities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.universities_id_seq OWNED BY public.universities.id;
+
+
+--
+-- TOC entry 221 (class 1259 OID 99284)
+-- Name: university_posts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.university_posts (
+    id bigint NOT NULL,
+    university_id bigint DEFAULT 1 NOT NULL,
+    code character varying(60) NOT NULL,
+    name character varying(255) NOT NULL,
+    description character varying(255),
+    status character varying(50) DEFAULT 'ACTIVE'::character varying,
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.university_posts OWNER TO postgres;
+
+--
+-- TOC entry 222 (class 1259 OID 99294)
+-- Name: university_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.university_posts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.university_posts_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4467 (class 0 OID 0)
+-- Dependencies: 222
+-- Name: university_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.university_posts_id_seq OWNED BY public.university_posts.id;
+
+
+--
+-- TOC entry 219 (class 1259 OID 99271)
+-- Name: university_schools; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.university_schools (
+    id bigint NOT NULL,
+    university_id bigint DEFAULT 1 NOT NULL,
+    code character varying(50) NOT NULL,
+    name character varying(255) NOT NULL,
+    group_name character varying(50) DEFAULT 'general'::character varying,
+    status character varying(50) DEFAULT 'ACTIVE'::character varying,
+    display_order integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.university_schools OWNER TO postgres;
+
+--
+-- TOC entry 220 (class 1259 OID 99280)
+-- Name: university_schools_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.university_schools_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.university_schools_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 4470 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: university_schools_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.university_schools_id_seq OWNED BY public.university_schools.id;
+
+
+--
+-- TOC entry 361 (class 1259 OID 99759)
 -- Name: value_added_courses; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -4034,7 +3182,7 @@ CREATE TABLE public.value_added_courses (
 ALTER TABLE public.value_added_courses OWNER TO postgres;
 
 --
--- TOC entry 359 (class 1259 OID 36409)
+-- TOC entry 362 (class 1259 OID 99764)
 -- Name: value_added_courses_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -4049,464 +3197,615 @@ CREATE SEQUENCE public.value_added_courses_id_seq
 ALTER SEQUENCE public.value_added_courses_id_seq OWNER TO postgres;
 
 --
--- TOC entry 4520 (class 0 OID 0)
--- Dependencies: 359
+-- TOC entry 4473 (class 0 OID 0)
+-- Dependencies: 362
 -- Name: value_added_courses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.value_added_courses_id_seq OWNED BY public.value_added_courses.id;
 
+
 --
--- TOC entry 3687 (class 2604 OID 49574)
+-- TOC entry 3712 (class 2604 OID 99303)
+-- Name: academic_years id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.academic_years ALTER COLUMN id SET DEFAULT nextval('public.academic_years_id_seq'::regclass);
+
+
+--
+-- TOC entry 3740 (class 2604 OID 99765)
 -- Name: admin_student_awards id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.admin_student_awards ALTER COLUMN id SET DEFAULT nextval('public.admin_student_awards_id_seq'::regclass);
 
+
 --
--- TOC entry 3688 (class 2604 OID 49575)
+-- TOC entry 3741 (class 2604 OID 99766)
 -- Name: alumni_interactions id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.alumni_interactions ALTER COLUMN id SET DEFAULT nextval('public.alumni_interactions_id_seq'::regclass);
 
+
 --
--- TOC entry 3689 (class 2604 OID 49576)
+-- TOC entry 3742 (class 2604 OID 99767)
 -- Name: audit_records id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.audit_records ALTER COLUMN id SET DEFAULT nextval('public.audit_records_id_seq'::regclass);
 
+
 --
--- TOC entry 3690 (class 2604 OID 49577)
+-- TOC entry 3743 (class 2604 OID 99768)
 -- Name: best_practices id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.best_practices ALTER COLUMN id SET DEFAULT nextval('public.best_practices_id_seq'::regclass);
 
+
 --
--- TOC entry 3691 (class 2604 OID 49578)
+-- TOC entry 3744 (class 2604 OID 99769)
 -- Name: board_of_studies id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.board_of_studies ALTER COLUMN id SET DEFAULT nextval('public.board_of_studies_id_seq'::regclass);
 
+
 --
--- TOC entry 3692 (class 2604 OID 49579)
+-- TOC entry 3745 (class 2604 OID 99770)
 -- Name: books_chapters id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.books_chapters ALTER COLUMN id SET DEFAULT nextval('public.books_chapters_id_seq'::regclass);
 
+
 --
--- TOC entry 3693 (class 2604 OID 49580)
+-- TOC entry 3746 (class 2604 OID 99771)
 -- Name: building_infrastructure id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.building_infrastructure ALTER COLUMN id SET DEFAULT nextval('public.building_infrastructure_id_seq'::regclass);
 
+
 --
--- TOC entry 3694 (class 2604 OID 49581)
+-- TOC entry 3747 (class 2604 OID 99772)
 -- Name: career_guidance id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.career_guidance ALTER COLUMN id SET DEFAULT nextval('public.career_guidance_id_seq'::regclass);
 
+
 --
--- TOC entry 3695 (class 2604 OID 49582)
+-- TOC entry 3748 (class 2604 OID 99773)
 -- Name: community_activities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.community_activities ALTER COLUMN id SET DEFAULT nextval('public.community_activities_id_seq'::regclass);
 
+
 --
--- TOC entry 3696 (class 2604 OID 49583)
+-- TOC entry 3749 (class 2604 OID 99774)
 -- Name: consultancy id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.consultancy ALTER COLUMN id SET DEFAULT nextval('public.consultancy_id_seq'::regclass);
 
+
 --
--- TOC entry 3697 (class 2604 OID 49584)
+-- TOC entry 3750 (class 2604 OID 99775)
 -- Name: corporate_training id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.corporate_training ALTER COLUMN id SET DEFAULT nextval('public.corporate_training_id_seq'::regclass);
 
+
 --
--- TOC entry 3698 (class 2604 OID 49585)
+-- TOC entry 3751 (class 2604 OID 99776)
 -- Name: courses_offered id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.courses_offered ALTER COLUMN id SET DEFAULT nextval('public.courses_offered_id_seq'::regclass);
 
+
 --
--- TOC entry 3699 (class 2604 OID 49586)
+-- TOC entry 3752 (class 2604 OID 99777)
 -- Name: cultural_activities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.cultural_activities ALTER COLUMN id SET DEFAULT nextval('public.cultural_activities_id_seq'::regclass);
 
+
 --
--- TOC entry 3700 (class 2604 OID 49587)
+-- TOC entry 3753 (class 2604 OID 99778)
 -- Name: divyangajan_facilities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.divyangajan_facilities ALTER COLUMN id SET DEFAULT nextval('public.divyangajan_facilities_id_seq'::regclass);
 
+
 --
--- TOC entry 3701 (class 2604 OID 49588)
+-- TOC entry 3754 (class 2604 OID 99779)
 -- Name: e_contents id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.e_contents ALTER COLUMN id SET DEFAULT nextval('public.e_contents_id_seq'::regclass);
 
+
 --
--- TOC entry 3702 (class 2604 OID 49589)
+-- TOC entry 3755 (class 2604 OID 99780)
 -- Name: e_resources id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.e_resources ALTER COLUMN id SET DEFAULT nextval('public.e_resources_id_seq'::regclass);
 
+
 --
--- TOC entry 3703 (class 2604 OID 49590)
+-- TOC entry 3756 (class 2604 OID 99781)
 -- Name: extension_activities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.extension_activities ALTER COLUMN id SET DEFAULT nextval('public.extension_activities_id_seq'::regclass);
 
+
 --
--- TOC entry 3704 (class 2604 OID 49591)
+-- TOC entry 3757 (class 2604 OID 99782)
 -- Name: faculty_experience id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_experience ALTER COLUMN id SET DEFAULT nextval('public.faculty_experience_id_seq'::regclass);
 
+
 --
--- TOC entry 3705 (class 2604 OID 49592)
+-- TOC entry 3758 (class 2604 OID 99783)
 -- Name: faculty_information id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_information ALTER COLUMN id SET DEFAULT nextval('public.faculty_information_id_seq'::regclass);
 
+
 --
--- TOC entry 3706 (class 2604 OID 49593)
+-- TOC entry 3759 (class 2604 OID 99784)
 -- Name: faculty_specialization id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_specialization ALTER COLUMN id SET DEFAULT nextval('public.faculty_specialization_id_seq'::regclass);
 
+
 --
--- TOC entry 3707 (class 2604 OID 49594)
+-- TOC entry 3760 (class 2604 OID 99785)
 -- Name: faculty_strength id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_strength ALTER COLUMN id SET DEFAULT nextval('public.faculty_strength_id_seq'::regclass);
 
+
 --
--- TOC entry 3708 (class 2604 OID 49595)
+-- TOC entry 3761 (class 2604 OID 99786)
 -- Name: faculty_tenure id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_tenure ALTER COLUMN id SET DEFAULT nextval('public.faculty_tenure_id_seq'::regclass);
 
+
 --
--- TOC entry 3709 (class 2604 OID 49596)
+-- TOC entry 3762 (class 2604 OID 99787)
 -- Name: fdp_attended id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.fdp_attended ALTER COLUMN id SET DEFAULT nextval('public.fdp_attended_id_seq'::regclass);
 
+
 --
--- TOC entry 3710 (class 2604 OID 49597)
+-- TOC entry 3763 (class 2604 OID 99788)
 -- Name: fdp_organized id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.fdp_organized ALTER COLUMN id SET DEFAULT nextval('public.fdp_organized_id_seq'::regclass);
 
+
 --
--- TOC entry 3712 (class 2604 OID 49598)
+-- TOC entry 3733 (class 2604 OID 99362)
+-- Name: form_fields id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_fields ALTER COLUMN id SET DEFAULT nextval('public.form_fields_id_seq'::regclass);
+
+
+--
+-- TOC entry 3714 (class 2604 OID 99316)
+-- Name: form_schemas id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_schemas ALTER COLUMN id SET DEFAULT nextval('public.form_schemas_id_seq'::regclass);
+
+
+--
+-- TOC entry 3723 (class 2604 OID 99337)
+-- Name: form_sections id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_sections ALTER COLUMN id SET DEFAULT nextval('public.form_sections_id_seq'::regclass);
+
+
+--
+-- TOC entry 3727 (class 2604 OID 99349)
+-- Name: form_tables id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_tables ALTER COLUMN id SET DEFAULT nextval('public.form_tables_id_seq'::regclass);
+
+
+--
+-- TOC entry 3764 (class 2604 OID 99789)
 -- Name: functional_mous id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.functional_mous ALTER COLUMN id SET DEFAULT nextval('public.functional_mous_id_seq'::regclass);
 
+
 --
--- TOC entry 3713 (class 2604 OID 49599)
+-- TOC entry 3765 (class 2604 OID 99790)
 -- Name: graduating_students id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.graduating_students ALTER COLUMN id SET DEFAULT nextval('public.graduating_students_id_seq'::regclass);
 
+
 --
--- TOC entry 3714 (class 2604 OID 49600)
+-- TOC entry 3766 (class 2604 OID 99791)
 -- Name: guest_lectures id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.guest_lectures ALTER COLUMN id SET DEFAULT nextval('public.guest_lectures_id_seq'::regclass);
 
+
 --
--- TOC entry 3715 (class 2604 OID 49601)
+-- TOC entry 3767 (class 2604 OID 99792)
 -- Name: hackathons id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.hackathons ALTER COLUMN id SET DEFAULT nextval('public.hackathons_id_seq'::regclass);
 
+
 --
--- TOC entry 3716 (class 2604 OID 49602)
+-- TOC entry 3768 (class 2604 OID 99793)
 -- Name: higher_studies id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.higher_studies ALTER COLUMN id SET DEFAULT nextval('public.higher_studies_id_seq'::regclass);
 
+
 --
--- TOC entry 3717 (class 2604 OID 49603)
+-- TOC entry 3769 (class 2604 OID 99794)
 -- Name: industry_collaborations id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.industry_collaborations ALTER COLUMN id SET DEFAULT nextval('public.industry_collaborations_id_seq'::regclass);
 
+
 --
--- TOC entry 3718 (class 2604 OID 49604)
+-- TOC entry 3770 (class 2604 OID 99795)
 -- Name: it_infrastructure id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.it_infrastructure ALTER COLUMN id SET DEFAULT nextval('public.it_infrastructure_id_seq'::regclass);
 
+
 --
--- TOC entry 3719 (class 2604 OID 49605)
+-- TOC entry 3771 (class 2604 OID 99796)
 -- Name: library_infrastructure id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.library_infrastructure ALTER COLUMN id SET DEFAULT nextval('public.library_infrastructure_id_seq'::regclass);
 
+
 --
--- TOC entry 3720 (class 2604 OID 49606)
+-- TOC entry 3772 (class 2604 OID 99797)
 -- Name: nep_status id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.nep_status ALTER COLUMN id SET DEFAULT nextval('public.nep_status_id_seq'::regclass);
 
+
 --
--- TOC entry 3721 (class 2604 OID 49607)
+-- TOC entry 3773 (class 2604 OID 99798)
 -- Name: obe_implementation id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.obe_implementation ALTER COLUMN id SET DEFAULT nextval('public.obe_implementation_id_seq'::regclass);
 
+
 --
--- TOC entry 3725 (class 2604 OID 49609)
+-- TOC entry 3774 (class 2604 OID 99799)
 -- Name: patents_copyrights id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.patents_copyrights ALTER COLUMN id SET DEFAULT nextval('public.patents_copyrights_id_seq'::regclass);
 
+
 --
--- TOC entry 3726 (class 2604 OID 49610)
+-- TOC entry 3775 (class 2604 OID 99800)
 -- Name: professional_bodies id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.professional_bodies ALTER COLUMN id SET DEFAULT nextval('public.professional_bodies_id_seq'::regclass);
 
+
 --
--- TOC entry 3727 (class 2604 OID 49611)
+-- TOC entry 3776 (class 2604 OID 99801)
 -- Name: qualifying_exams id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.qualifying_exams ALTER COLUMN id SET DEFAULT nextval('public.qualifying_exams_id_seq'::regclass);
 
+
 --
--- TOC entry 3728 (class 2604 OID 49612)
+-- TOC entry 3777 (class 2604 OID 99802)
 -- Name: research_funds id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.research_funds ALTER COLUMN id SET DEFAULT nextval('public.research_funds_id_seq'::regclass);
 
+
 --
--- TOC entry 3729 (class 2604 OID 49613)
+-- TOC entry 3778 (class 2604 OID 99803)
 -- Name: research_publications id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.research_publications ALTER COLUMN id SET DEFAULT nextval('public.research_publications_id_seq'::regclass);
 
+
 --
--- TOC entry 3730 (class 2604 OID 49614)
+-- TOC entry 3779 (class 2604 OID 99804)
 -- Name: research_resources id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.research_resources ALTER COLUMN id SET DEFAULT nextval('public.research_resources_id_seq'::regclass);
 
+
 --
--- TOC entry 3731 (class 2604 OID 49615)
+-- TOC entry 3719 (class 2604 OID 99327)
+-- Name: schema_versions id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.schema_versions ALTER COLUMN id SET DEFAULT nextval('public.schema_versions_id_seq'::regclass);
+
+
+--
+-- TOC entry 3780 (class 2604 OID 99805)
 -- Name: scholarship_students id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.scholarship_students ALTER COLUMN id SET DEFAULT nextval('public.scholarship_students_id_seq'::regclass);
 
+
 --
--- TOC entry 3732 (class 2604 OID 49616)
+-- TOC entry 3781 (class 2604 OID 99806)
 -- Name: scholarship_summary id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.scholarship_summary ALTER COLUMN id SET DEFAULT nextval('public.scholarship_summary_id_seq'::regclass);
 
+
 --
--- TOC entry 3737 (class 2604 OID 49618)
+-- TOC entry 3782 (class 2604 OID 99807)
 -- Name: sports_activities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sports_activities ALTER COLUMN id SET DEFAULT nextval('public.sports_activities_id_seq'::regclass);
 
+
 --
--- TOC entry 3738 (class 2604 OID 49619)
+-- TOC entry 3783 (class 2604 OID 99808)
 -- Name: sports_facilities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sports_facilities ALTER COLUMN id SET DEFAULT nextval('public.sports_facilities_id_seq'::regclass);
 
+
 --
--- TOC entry 3739 (class 2604 OID 49620)
+-- TOC entry 3784 (class 2604 OID 99809)
 -- Name: staff_training id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.staff_training ALTER COLUMN id SET DEFAULT nextval('public.staff_training_id_seq'::regclass);
 
+
 --
--- TOC entry 3740 (class 2604 OID 49621)
+-- TOC entry 3785 (class 2604 OID 99810)
 -- Name: statutory_bodies id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.statutory_bodies ALTER COLUMN id SET DEFAULT nextval('public.statutory_bodies_id_seq'::regclass);
 
+
 --
--- TOC entry 3741 (class 2604 OID 49622)
+-- TOC entry 3786 (class 2604 OID 99811)
 -- Name: student_awards id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_awards ALTER COLUMN id SET DEFAULT nextval('public.student_awards_id_seq'::regclass);
 
+
 --
--- TOC entry 3742 (class 2604 OID 49623)
+-- TOC entry 3787 (class 2604 OID 99812)
 -- Name: student_courses id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_courses ALTER COLUMN id SET DEFAULT nextval('public.student_courses_id_seq'::regclass);
 
+
 --
--- TOC entry 3743 (class 2604 OID 49624)
+-- TOC entry 3788 (class 2604 OID 99813)
 -- Name: student_mentoring id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_mentoring ALTER COLUMN id SET DEFAULT nextval('public.student_mentoring_id_seq'::regclass);
 
+
 --
--- TOC entry 3744 (class 2604 OID 49625)
+-- TOC entry 3789 (class 2604 OID 99814)
 -- Name: student_placements id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_placements ALTER COLUMN id SET DEFAULT nextval('public.student_placements_id_seq'::regclass);
 
+
 --
--- TOC entry 3745 (class 2604 OID 49626)
+-- TOC entry 3790 (class 2604 OID 99815)
 -- Name: student_startups id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_startups ALTER COLUMN id SET DEFAULT nextval('public.student_startups_id_seq'::regclass);
 
+
 --
--- TOC entry 3746 (class 2604 OID 49627)
+-- TOC entry 3791 (class 2604 OID 99816)
 -- Name: student_statistics id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_statistics ALTER COLUMN id SET DEFAULT nextval('public.student_statistics_id_seq'::regclass);
 
+
 --
--- TOC entry 3747 (class 2604 OID 49628)
+-- TOC entry 3792 (class 2604 OID 99817)
 -- Name: student_strength id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_strength ALTER COLUMN id SET DEFAULT nextval('public.student_strength_id_seq'::regclass);
 
+
 --
--- TOC entry 3760 (class 2604 OID 49631)
+-- TOC entry 3793 (class 2604 OID 99818)
 -- Name: success_rate id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.success_rate ALTER COLUMN id SET DEFAULT nextval('public.success_rate_id_seq'::regclass);
 
+
 --
--- TOC entry 3761 (class 2604 OID 49632)
+-- TOC entry 3794 (class 2604 OID 99819)
 -- Name: supporting_staff id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.supporting_staff ALTER COLUMN id SET DEFAULT nextval('public.supporting_staff_id_seq'::regclass);
 
+
 --
--- TOC entry 3762 (class 2604 OID 49633)
+-- TOC entry 3795 (class 2604 OID 99820)
 -- Name: swoc_challenges id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_challenges ALTER COLUMN id SET DEFAULT nextval('public.swoc_challenges_id_seq'::regclass);
 
+
 --
--- TOC entry 3763 (class 2604 OID 49634)
+-- TOC entry 3796 (class 2604 OID 99821)
 -- Name: swoc_opportunities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_opportunities ALTER COLUMN id SET DEFAULT nextval('public.swoc_opportunities_id_seq'::regclass);
 
+
 --
--- TOC entry 3764 (class 2604 OID 49635)
+-- TOC entry 3797 (class 2604 OID 99822)
 -- Name: swoc_other_information id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_other_information ALTER COLUMN id SET DEFAULT nextval('public.swoc_other_information_id_seq'::regclass);
 
+
 --
--- TOC entry 3765 (class 2604 OID 49636)
+-- TOC entry 3798 (class 2604 OID 99823)
 -- Name: swoc_strength id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_strength ALTER COLUMN id SET DEFAULT nextval('public.swoc_strength_id_seq'::regclass);
 
+
 --
--- TOC entry 3766 (class 2604 OID 49637)
+-- TOC entry 3799 (class 2604 OID 99824)
 -- Name: swoc_weaknesses id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_weaknesses ALTER COLUMN id SET DEFAULT nextval('public.swoc_weaknesses_id_seq'::regclass);
 
+
 --
--- TOC entry 3767 (class 2604 OID 49638)
+-- TOC entry 3800 (class 2604 OID 99825)
 -- Name: syllabus_revision id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.syllabus_revision ALTER COLUMN id SET DEFAULT nextval('public.syllabus_revision_id_seq'::regclass);
 
+
 --
--- TOC entry 3768 (class 2604 OID 49639)
+-- TOC entry 3801 (class 2604 OID 99826)
 -- Name: teacher_awards id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.teacher_awards ALTER COLUMN id SET DEFAULT nextval('public.teacher_awards_id_seq'::regclass);
 
+
 --
--- TOC entry 3769 (class 2604 OID 49640)
+-- TOC entry 3802 (class 2604 OID 99827)
 -- Name: training_activities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.training_activities ALTER COLUMN id SET DEFAULT nextval('public.training_activities_id_seq'::regclass);
 
+
 --
--- TOC entry 3774 (class 2604 OID 49643)
+-- TOC entry 3693 (class 2604 OID 99266)
+-- Name: universities id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.universities ALTER COLUMN id SET DEFAULT nextval('public.universities_id_seq'::regclass);
+
+
+--
+-- TOC entry 3706 (class 2604 OID 99295)
+-- Name: university_posts id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.university_posts ALTER COLUMN id SET DEFAULT nextval('public.university_posts_id_seq'::regclass);
+
+
+--
+-- TOC entry 3699 (class 2604 OID 99281)
+-- Name: university_schools id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.university_schools ALTER COLUMN id SET DEFAULT nextval('public.university_schools_id_seq'::regclass);
+
+
+--
+-- TOC entry 3803 (class 2604 OID 99828)
 -- Name: value_added_courses id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.value_added_courses ALTER COLUMN id SET DEFAULT nextval('public.value_added_courses_id_seq'::regclass);
 
--- -----------------------------------------------------------------------------
--- 2.2 TABLE DATA INSERTS (COPY BLOCKS)
--- -----------------------------------------------------------------------------
+
+--
+-- TOC entry 4107 (class 0 OID 99298)
+-- Dependencies: 223
+-- Data for Name: academic_years; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.academic_years (id, year_label, active, started_at, closed_at) FROM stdin;
+3	2025-2026	t	2026-06-29 07:15:48.018905	\N
+\.
+
+
+--
+-- TOC entry 4119 (class 0 OID 99373)
+-- Dependencies: 235
+-- Data for Name: admin_student_awards; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.admin_student_awards (id, submission_id, sr_no, award_name, team_individual, level_type, event_name, student_name, attachment) FROM stdin;
 180	79	1	Sports - Kabaddi	Team	National	19th National level Inter-collegiate Kabaddi Tournament SUMMIT 2026	\N	[{"name":"MIT SUMEET NATIONAL KABADDI 2025-26 30-Nov-2025 13-28-26.pdf","fileName":"MIT SUMEET NATIONAL KABADDI 2025-26 30-Nov-2025 13-28-26.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/413e05e7-e1d3-425c-bd76-398399d4d923-MIT_SUMEET_NATIONAL_KABADDI_2025-26_30-Nov-2025_13-28-26.pdf"}]
 181	79	2	Sports- Kabaddi	Team	State	MMCOE EVOLVE Championship 2026	\N	[{"name":"Screenshot 2026-02-24 160047.pdf","fileName":"Screenshot 2026-02-24 160047.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/684c2ea3-d085-4fa2-9593-2ba759f05d61-Screenshot_2026-02-24_160047.pdf"}]
@@ -4548,6 +3847,13 @@ COPY public.admin_student_awards (id, submission_id, sr_no, award_name, team_ind
 84	62	19	All Awards /Prizes Schoolwise 	Team and Individual Both	All	Listed	\N	[{"name":"AAA- Awards - Prizes - Recognitions in curricular and extended curricular areas- 2025-2026 1.docx.pdf","fileName":"AAA- Awards - Prizes - Recognitions in curricular and extended curricular areas- 2025-2026 1.docx.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/19f89b93-9835-40dd-8e37-b07cece1a722-AAA-_Awards_-_Prizes_-_Recognitions_in_curricular_and_extended_curricular_areas-_2025-2026_1.docx.pdf"}]
 \.
 
+
+--
+-- TOC entry 4121 (class 0 OID 99379)
+-- Dependencies: 237
+-- Data for Name: alumni_interactions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.alumni_interactions (id, submission_id, sr_no, alumni_name, designation, present_employer, interaction_date, topic, no_of_beneficiaries, link_proof) FROM stdin;
 108	77	1	All M Tech Students	Sr Manager 	TML	06/02/2026	Valedictory Function of the First M.Tech (Electric Vehicles) Pass-out Batch	25	[{"name":"Valedictory Function Report.docx.pdf","fileName":"Valedictory Function Report.docx.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/d291669ed87e0b9f/attachments/3a1fd7c1-70c3-45c6-a746-09ccea6529f6-Valedictory_Function_Report.docx.pdf"}]
 109	78	1	SoCSEA Summary Sheet Attached						[{"name":"10.pdf","fileName":"10.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/22c068b7-e3b1-4bb7-8fef-5f4f66561ee4-10.pdf"}]
@@ -4558,6 +3864,13 @@ COPY public.alumni_interactions (id, submission_id, sr_no, alumni_name, designat
 122	75	1	NA	NA	NA	NA	NA	NA	
 123	74	1	Summary sheet attached						[{"name":"Alumni  interactions SoBB 25-26.pdf","fileName":"Alumni  interactions SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/97fcf32b-90ad-48bb-a92e-c572ec7516a0-Alumni__interactions_SoBB_25-26.pdf"}]
 \.
+
+
+--
+-- TOC entry 4123 (class 0 OID 99385)
+-- Dependencies: 239
+-- Data for Name: audit_records; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.audit_records (id, submission_id, sr_no, audit_type, completed_yes_no, date, remarks_link) FROM stdin;
 72	62	1	Financial Audit 	Inprocess		
@@ -4573,6 +3886,13 @@ COPY public.audit_records (id, submission_id, sr_no, audit_type, completed_yes_n
 112	79	5	Gender Audit 	Yes		[{"name":"Gender Audit  Certificate  (Valid Upto November 2028).pdf","fileName":"Gender Audit  Certificate  (Valid Upto November 2028).pdf","url":"/uploads/users/afaf2480e4a15372/attachments/105778ca-2a9e-45a0-8317-85acc10313a6-Gender_Audit__Certificate___Valid_Upto_November_2028_.pdf"}]
 113	79	6	Library Audit 	Yes		[{"name":"Library Audit Certificate (Valid Upto November 2028).pdf","fileName":"Library Audit Certificate (Valid Upto November 2028).pdf","url":"/uploads/users/afaf2480e4a15372/attachments/a9de11ac-a09e-446e-8a15-fde509e041ed-Library_Audit_Certificate__Valid_Upto_November_2028_.pdf"}]
 \.
+
+
+--
+-- TOC entry 4125 (class 0 OID 99391)
+-- Dependencies: 241
+-- Data for Name: best_practices; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.best_practices (id, submission_id, sn, check_points, availability, link_document) FROM stdin;
 710	77	1	Best Practice Identification	Yes	[{"name":"Best Practices.pptx.pdf","fileName":"Best Practices.pptx.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/d291669ed87e0b9f/attachments/b027319e-4a77-4e94-a215-ca82c8e99297-Best_Practices.pptx.pdf"}]
@@ -4619,6 +3939,13 @@ COPY public.best_practices (id, submission_id, sn, check_points, availability, l
 807	74	1	Best Practice Identification		[{"name":"Best Practice_NAAC SoBB 25-26.pdf","fileName":"Best Practice_NAAC SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/d0ae4061-5bf0-447e-99b8-6e30f272fe76-Best_Practice_NAAC_SoBB_25-26.pdf"}]
 \.
 
+
+--
+-- TOC entry 4127 (class 0 OID 99397)
+-- Dependencies: 243
+-- Data for Name: board_of_studies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.board_of_studies (id, submission_id, sr_no, meeting_date, link_for_mom) FROM stdin;
 184	73	1	28th November 2025	[{"name":"Summary of 10th BoS 2025-26-SoD .docx.pdf","fileName":"Summary of 10th BoS 2025-26-SoD .docx.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/15e5ad0a-1483-458e-8cc3-f14044c8d1a2-Summary_of_10th_BoS_2025-26-SoD_.docx.pdf"}]
 185	73	2	15th April 2026	[{"name":"Summary of BoS 11 (1).docx.pdf","fileName":"Summary of BoS 11 (1).docx.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/a9f806ea-926d-404c-b830-773e7effb809-Summary_of_BoS_11__1_.docx.pdf"}]
@@ -4636,6 +3963,13 @@ COPY public.board_of_studies (id, submission_id, sr_no, meeting_date, link_for_m
 183	71	4	Chemical Engineering Board of Studies Meeting 1 and 2	[{"name":"Chemical_BOS_MOM 1 & 2.pdf","fileName":"Chemical_BOS_MOM 1 & 2.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/b1c03cfb-6569-41b2-b52a-a5f5afbb1d08-Chemical_BOS_MOM_1___2.pdf"}]
 \.
 
+
+--
+-- TOC entry 4129 (class 0 OID 99403)
+-- Dependencies: 245
+-- Data for Name: books_chapters; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.books_chapters (id, submission_id, teacher_name, book_chapters_title, paper_title, proceedings_title, conference_name, scope, publication_year, isbn_issn, publisher_name, link_proof) FROM stdin;
 100	73	Mr. Ketan M Deore	DEEP DIVE Silver Jubilee Edition AI and its impact on creativity	Study and Analysis of the Importance of AI in Animation	DEEP DIVE Silver Jubilee Edition AI and its impact on creativity	DEEP DIVE Silver Jubilee Edition AI and its impact on creativity	National	Feb -2026	ISBN - 978-93-6726-830-8	DEEP DIVE Book Publication	[{"name":"Book Chapter_Ketan M Deore.pdf","fileName":"Book Chapter_Ketan M Deore.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/c2c677b9-f77d-4b62-a277-122e155f5976-Book_Chapter_Ketan_M_Deore.pdf"}]
 101	75	None 	None 	None 	None 	None 	None 	None 	None 	None 	
@@ -4649,6 +3983,13 @@ COPY public.books_chapters (id, submission_id, teacher_name, book_chapters_title
 98	71	Chemical									[{"name":"C3. Books and Chapters in edited Volumes Books published, and papers in Conference Proceedings (1).pdf","fileName":"C3. Books and Chapters in edited Volumes Books published, and papers in Conference Proceedings (1).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/3eff68a1-da3f-4efd-91d5-b22105418181-C3._Books_and_Chapters_in_edited_Volumes_Books_published__and_papers_in_Conference_Proceedings__1_.pdf"}]
 99	71	Civil Engineering									[{"name":"C3. Books and Chapters in edited Volumes Books published, and papers in Conference Proceedings.docx.pdf","fileName":"C3. Books and Chapters in edited Volumes Books published, and papers in Conference Proceedings.docx.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/48d4da30-d16c-4353-a724-b621cfdd9898-C3._Books_and_Chapters_in_edited_Volumes_Books_published__and_papers_in_Conference_Proceedings.docx.pdf"}]
 \.
+
+
+--
+-- TOC entry 4131 (class 0 OID 99409)
+-- Dependencies: 247
+-- Data for Name: building_infrastructure; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.building_infrastructure (id, submission_id, sr_no, facilities, no) FROM stdin;
 171	79	1	Classrooms\t	48
@@ -4671,6 +4012,13 @@ COPY public.building_infrastructure (id, submission_id, sr_no, facilities, no) F
 125	62	9	Others (specify)\t	01
 \.
 
+
+--
+-- TOC entry 4133 (class 0 OID 99415)
+-- Dependencies: 249
+-- Data for Name: career_guidance; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.career_guidance (id, submission_id, sr_no, session_details, resource_person, conduction_date, no_beneficiaries, link_proof) FROM stdin;
 148	73	1	-	-	-	-	[{"name":"Number of career guidance sessions organized.pdf","fileName":"Number of career guidance sessions organized.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/d379151b-8252-4794-b6c6-5320df490881-Number_of_career_guidance_sessions_organized.pdf"}]
 149	75	1	Abroad Education Awareness Session	Edualliance Educational Consultants Pvt. Ltd (Mr Anand Handur) 	21/01/26	20	[{"name":"Expert Talk Report 2026.pdf","fileName":"Expert Talk Report 2026.pdf","url":"/uploads/users/04e09d7ce5a2501c/attachments/2b2baa03-b518-4229-b94d-877d71a101f9-Expert_Talk_Report_2026.pdf"}]
@@ -4685,10 +4033,24 @@ COPY public.career_guidance (id, submission_id, sr_no, session_details, resource
 147	71	4	Chemical Engineering	Mr S P Singh, Vice President, Technology and Engineering, Praj Industries Ltd, Pune	2025-26	112	[{"name":"B15. Chemical_Number of Career Guidance Sessions organized.pdf","fileName":"B15. Chemical_Number of Career Guidance Sessions organized.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/e56cc649-7d3f-4d5d-90ab-9c7327ac45ed-B15._Chemical_Number_of_Career_Guidance_Sessions_organized.pdf"}]
 \.
 
+
+--
+-- TOC entry 4135 (class 0 OID 99421)
+-- Dependencies: 251
+-- Data for Name: community_activities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.community_activities (id, submission_id, sr_no, activity_details, organized_by, conduction_date, participants_count, attachment) FROM stdin;
 20	62	1	List of all NSS Activities 	DYPIU in association with villages and other social initiatives	1st June 2025 to 30th June 2026	Listed	[{"name":"AAA- Community and Related Activities - NSS - 2025 - 2026) .pdf","fileName":"AAA- Community and Related Activities - NSS - 2025 - 2026) .pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/5a363020-4666-47d8-a477-eddfc798bdec-AAA-_Community_and_Related_Activities_-_NSS_-_2025_-_2026__.pdf"},{"name":"AAA- Community and Related Activities - NSS - 2025 - 2026 1.pdf","fileName":"AAA- Community and Related Activities - NSS - 2025 - 2026 1.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/17e87f1e-40b8-4efb-a966-19c969b8e2ce-AAA-_Community_and_Related_Activities_-_NSS_-_2025_-_2026_1.pdf"},{"name":"AAA- Community and Social Reach Activities Schoolwise- 2025-2026 1.docx.pdf","fileName":"AAA- Community and Social Reach Activities Schoolwise- 2025-2026 1.docx.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/292e9d6f-3131-455d-85fc-9f5470ca5d12-AAA-_Community_and_Social_Reach_Activities_Schoolwise-_2025-2026_1.docx.pdf"}]
 26	79	1	List of all NSS Activities 	DYPIU in association with villages and other social initiatives	1st June 2025 to 30th June 2026	Listed	[{"name":"AAA- Community and Related Activities - NSS - 2025 - 2026) .pdf","fileName":"AAA- Community and Related Activities - NSS - 2025 - 2026) .pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/5a363020-4666-47d8-a477-eddfc798bdec-AAA-_Community_and_Related_Activities_-_NSS_-_2025_-_2026__.pdf"},{"name":"AAA- Community and Related Activities - NSS - 2025 - 2026 1.pdf","fileName":"AAA- Community and Related Activities - NSS - 2025 - 2026 1.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/17e87f1e-40b8-4efb-a966-19c969b8e2ce-AAA-_Community_and_Related_Activities_-_NSS_-_2025_-_2026_1.pdf"},{"name":"AAA- Community and Social Reach Activities Schoolwise- 2025-2026 1.docx.pdf","fileName":"AAA- Community and Social Reach Activities Schoolwise- 2025-2026 1.docx.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/292e9d6f-3131-455d-85fc-9f5470ca5d12-AAA-_Community_and_Social_Reach_Activities_Schoolwise-_2025-2026_1.docx.pdf"}]
 \.
+
+
+--
+-- TOC entry 4137 (class 0 OID 99427)
+-- Dependencies: 253
+-- Data for Name: consultancy; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.consultancy (id, submission_id, faculty_name, project_title, sponsoring_agency, revenue_generated, link_proof) FROM stdin;
 100	73	Prof. Aziz Poonawala Ms. Sri Gayathri Vedula	MoU for Consultancy	 Natural-life Speciality Pvt. Ltd	 In process (75,000/-)	[{"name":"M.O.U In between DYPIU & Natural-Life Speciality Pvt. Ltd_20260129_0001.pdf","fileName":"M.O.U In between DYPIU & Natural-Life Speciality Pvt. Ltd_20260129_0001.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/b02a470c-ab7b-4580-9f1c-ea5d22f74064-M.O.U_In_between_DYPIU___Natural-Life_Speciality_Pvt._Ltd_20260129_0001.pdf"}]
@@ -4704,6 +4066,13 @@ COPY public.consultancy (id, submission_id, faculty_name, project_title, sponsor
 99	71	Dr Sunil Dambhare, Dr Ganesh Jadhav , Dr. Keval Nikam,Dr Amol Mali, Dr. Aniket Kolekar	Job on CNC wood router	Genuine Precision Pvt Ltd.	Rs. 16,604	[{"name":"CNC WOOD ROUTER CONSULTANCY (1).pdf","fileName":"CNC WOOD ROUTER CONSULTANCY (1).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/1403a92a-b823-44f3-8ef5-fe765047dd97-CNC_WOOD_ROUTER_CONSULTANCY__1_.pdf"}]
 \.
 
+
+--
+-- TOC entry 4139 (class 0 OID 99433)
+-- Dependencies: 255
+-- Data for Name: corporate_training; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.corporate_training (id, submission_id, sr_no, faculty_name, training_agency, revenue_generated, number_of_trainees, link_proof) FROM stdin;
 108	77	1	-	-	-	-	
 109	78	1	Nil				[{"name":"C_4.pdf","fileName":"C_4.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/1a2ffde1-d62c-4f7e-b2a5-a5323040d900-C_4.pdf"}]
@@ -4714,6 +4083,13 @@ COPY public.corporate_training (id, submission_id, sr_no, faculty_name, training
 122	75	1	None 	None 	None 	None 	
 123	74	1	None	-	-	-	
 \.
+
+
+--
+-- TOC entry 4141 (class 0 OID 99439)
+-- Dependencies: 257
+-- Data for Name: courses_offered; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.courses_offered (id, submission_id, sr_no, program_name, level_ug_pg, intake, commencement_year, students_admitted, attachment) FROM stdin;
 177	79	1	Bachelor of Technology in Computer Science and Engineering	UG	1300	2019	1291	
@@ -4754,10 +4130,24 @@ COPY public.courses_offered (id, submission_id, sr_no, program_name, level_ug_pg
 86	62	18	Master of Technology in Electric Vehicle (For working professionals)	UG	40	2023	40	
 \.
 
+
+--
+-- TOC entry 4143 (class 0 OID 99445)
+-- Dependencies: 259
+-- Data for Name: cultural_activities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.cultural_activities (id, submission_id, sr_no, activity_details, organized_by, conduction_date, participants_count, attachment) FROM stdin;
 21	62	1	All Cultural Activities 	DYPIU and other Institutions 	1st June 2025 to 30th June 2026	Listed	[{"name":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26 1.pdf","fileName":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26 1.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/31330821-8d43-4fc6-89b8-75fba9fd1422-AAA-_Cultural_Clubs_and_activities_and_festivals_-_Event_Details_2025-26_1.pdf"},{"name":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26.pdf","fileName":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/e3b9597b-4ccf-4c56-8c67-f2653ab3d953-AAA-_Cultural_Clubs_and_activities_and_festivals_-_Event_Details_2025-26.pdf"}]
 27	79	1	All Cultural Activities 	DYPIU and other Institutions 	1st June 2025 to 30th June 2026	Listed	[{"name":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26 1.pdf","fileName":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26 1.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/31330821-8d43-4fc6-89b8-75fba9fd1422-AAA-_Cultural_Clubs_and_activities_and_festivals_-_Event_Details_2025-26_1.pdf"},{"name":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26.pdf","fileName":"AAA- Cultural Clubs and activities and festivals - Event Details_2025-26.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/e3b9597b-4ccf-4c56-8c67-f2653ab3d953-AAA-_Cultural_Clubs_and_activities_and_festivals_-_Event_Details_2025-26.pdf"}]
 \.
+
+
+--
+-- TOC entry 4145 (class 0 OID 99451)
+-- Dependencies: 261
+-- Data for Name: divyangajan_facilities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.divyangajan_facilities (id, submission_id, sr_no, facilities, available_yes_no) FROM stdin;
 64	62	1	Built environment with ramps/lifts for easy access to classrooms. 	Yes
@@ -4771,6 +4161,13 @@ COPY public.divyangajan_facilities (id, submission_id, sr_no, facilities, availa
 97	79	4	Assistive technology and facilities for Divyangjan- accessible website, screen-reading software, mechanized equipment 	No
 98	79	5	Provision for enquiry and information: Human assistance, reader, scribe, soft copies of reading material, screen reading	No
 \.
+
+
+--
+-- TOC entry 4147 (class 0 OID 99457)
+-- Dependencies: 263
+-- Data for Name: e_contents; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.e_contents (id, submission_id, sr_no, teacher_name, module_name, platform, launch_date, link_proof) FROM stdin;
 344	71	1	Semiconductor Engg Faculties	Website	Google site	2025-26	[{"name":"C7. Semiconductor  E-Contents developed.pdf","fileName":"C7. Semiconductor  E-Contents developed.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/17c5aa0f-2d4b-4f61-9a07-317b3496372f-C7._Semiconductor__E-Contents_developed.pdf"}]
@@ -4805,6 +4202,13 @@ COPY public.e_contents (id, submission_id, sr_no, teacher_name, module_name, pla
 291	76	1	All				[{"name":"Part C - 7 - SoMCS SUMMARY Sheet.pdf","fileName":"Part C - 7 - SoMCS SUMMARY Sheet.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/bd7f66e8f7af62de/attachments/52343abc-609f-43f9-9cc5-c985374b121e-Part_C_-_7_-_SoMCS_SUMMARY_Sheet.pdf"}]
 \.
 
+
+--
+-- TOC entry 4149 (class 0 OID 99463)
+-- Dependencies: 265
+-- Data for Name: e_resources; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.e_resources (id, submission_id, sr_no, facilities, availability, remarks) FROM stdin;
 87	62	1	e – journals	Yes	
 88	62	2	Membership/subscription of e – ShodhSindhu	Yes	
@@ -4822,6 +4226,13 @@ COPY public.e_resources (id, submission_id, sr_no, facilities, availability, rem
 135	79	7	Discipline specific simulation software	No	
 \.
 
+
+--
+-- TOC entry 4151 (class 0 OID 99469)
+-- Dependencies: 267
+-- Data for Name: extension_activities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.extension_activities (id, submission_id, sr_no, activity_details, organized_by, conduction_date, no_beneficiaries, link_proof) FROM stdin;
 160	71	1	Social Activity on “E-Waste Management”	Semiconductor Engineering	2025-26	80	[{"name":"B16. Number of Extension conducted  attended  participated (2).pdf","fileName":"B16. Number of Extension conducted  attended  participated (2).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/7692d2dc-edf9-4943-a1cc-1c96207c7014-B16._Number_of_Extension_conducted__attended__participated__2_.pdf"}]
 161	71	2	Industrial Visit	Mechanical Engineering	2025-26	248	[{"name":"B16_SEMR_Mech_Number of extension conducted attended participated.pdf","fileName":"B16_SEMR_Mech_Number of extension conducted attended participated.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/eba4b876-99f1-49db-9961-62ab8df79793-B16_SEMR_Mech_Number_of_extension_conducted_attended_participated.pdf"}]
@@ -4837,6 +4248,13 @@ COPY public.extension_activities (id, submission_id, sr_no, activity_details, or
 140	72	1	Extension  activities 	NA	NA	NA	[{"name":"16. Number of Extension conducted _ attended _ participated (Other than Central Level Clubs and Units).pdf","fileName":"16. Number of Extension conducted _ attended _ participated (Other than Central Level Clubs and Units).pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/3dcc0dd157752392/attachments/93bf1921-c5d1-4f12-aff6-fedb1207ff92-16._Number_of_Extension_conducted___attended___participated__Other_than_Central_Level_Clubs_and_Units_.pdf"}]
 141	76	1	All				[{"name":"Part B - 16 - SoMCS SUMMARY Sheet.pdf","fileName":"Part B - 16 - SoMCS SUMMARY Sheet.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/bd7f66e8f7af62de/attachments/024f44e0-b739-4873-a641-9ff79c52366f-Part_B_-_16_-_SoMCS_SUMMARY_Sheet.pdf"}]
 \.
+
+
+--
+-- TOC entry 4153 (class 0 OID 99475)
+-- Dependencies: 269
+-- Data for Name: faculty_experience; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.faculty_experience (id, submission_id, s_no, faculty_name, designation, qualification, joining_date, experience_dypiu, prior_experience, total_experience) FROM stdin;
 1751	79	1	Dr. Ajit Goraksha Dalvi	Assistant Professor	Ph.D.	01/06/2018	8.1	\N	12.1
@@ -5227,6 +4645,13 @@ COPY public.faculty_experience (id, submission_id, s_no, faculty_name, designati
 1943	79	193	Dr. Shipra Arora	Assistant Professor	Ph.D.	10/07/2026	0.0	\N	1.9
 \.
 
+
+--
+-- TOC entry 4155 (class 0 OID 99481)
+-- Dependencies: 271
+-- Data for Name: faculty_information; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.faculty_information (id, submission_id, sr_no, cadre, required, regular, contract) FROM stdin;
 53	62	1	Professor		21	
 54	62	2	Associate Professor		23	
@@ -5235,6 +4660,13 @@ COPY public.faculty_information (id, submission_id, sr_no, cadre, required, regu
 72	79	2	Associate Professor		23	
 73	79	3	Assistant Professor		148	
 \.
+
+
+--
+-- TOC entry 4157 (class 0 OID 99487)
+-- Dependencies: 273
+-- Data for Name: faculty_specialization; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.faculty_specialization (id, submission_id, sr_no, name, designation, qualifications, specialization, phd_supervised) FROM stdin;
 1374	76	1	Dr. Arvind Kumar	Professor of Practice & Director	PhD	Print, TV & Web Journalism & Cultural Studies	2
@@ -5412,6 +4844,13 @@ COPY public.faculty_specialization (id, submission_id, sr_no, name, designation,
 1330	78	38	Dr. Vandna Srivastava	Associate Professor	PhD (Mathematics-COSMOLOGY)	COSMOLOGY, DARK ENERGY,  OPERATIONS RESERCH, DIFFERENTIAL EQUATIONS	2
 \.
 
+
+--
+-- TOC entry 4159 (class 0 OID 99493)
+-- Dependencies: 275
+-- Data for Name: faculty_strength; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.faculty_strength (id, submission_id, required_faculty, available) FROM stdin;
 105	73	\N	7
 106	75	\N	8
@@ -5426,6 +4865,13 @@ COPY public.faculty_strength (id, submission_id, required_faculty, available) FR
 104	71	\N	7
 \.
 
+
+--
+-- TOC entry 4161 (class 0 OID 99499)
+-- Dependencies: 277
+-- Data for Name: faculty_tenure; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.faculty_tenure (id, submission_id, sr_no, tenure, no_of_faculty) FROM stdin;
 52	62	1	More Than 05 years	14
 53	62	2	Between 3 to 5 years	21
@@ -5436,6 +4882,13 @@ COPY public.faculty_tenure (id, submission_id, sr_no, tenure, no_of_faculty) FRO
 78	79	3	Between 1 to 3 years	71
 79	79	4	Below 1 year	86
 \.
+
+
+--
+-- TOC entry 4163 (class 0 OID 99505)
+-- Dependencies: 279
+-- Data for Name: fdp_attended; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.fdp_attended (id, submission_id, sl_no, faculty_name, seminar_title, sponsoring_org, duration_dates, date, link_proof) FROM stdin;
 564	78	1	SoCSEA Summary Sheet Attached					[{"name":"Details of Seminar_FDP etc. attended by faculty.pdf","fileName":"Details of Seminar_FDP etc. attended by faculty.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/870bde4a-7348-4962-b0c7-03778d258c13-Details_of_Seminar_FDP_etc._attended_by_faculty.pdf"}]
@@ -5505,6 +4958,13 @@ COPY public.fdp_attended (id, submission_id, sl_no, faculty_name, seminar_title,
 739	75	8	Ms. Surabhi Kanchan Gulwelkar	National Conference on Innovation in Architecture technology and Allied Fields	Padmashree Dr D Y Patil College of Architecture, Akurdi	2 days	13/02/2026	[{"name":"Surabhi Gulwelkar.pdf","fileName":"Surabhi Gulwelkar.pdf","url":"/uploads/users/04e09d7ce5a2501c/attachments/6533c4b5-659f-4805-a918-58d40eb9a21f-Surabhi_Gulwelkar.pdf"}]
 \.
 
+
+--
+-- TOC entry 4165 (class 0 OID 99511)
+-- Dependencies: 281
+-- Data for Name: fdp_organized; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.fdp_organized (id, submission_id, sl_no, coordinator, seminar_title, sponsoring_agency, duration_dates, participants_count, published, link_proof) FROM stdin;
 165	71	1	Semiconductor Engg			2025-26			[{"name":"C9.  Semiconductor Details of seminar  symposia   conference  refresher course  training programmes organized (1).pdf","fileName":"C9.  Semiconductor Details of seminar  symposia   conference  refresher course  training programmes organized (1).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/006d8c47-dbdd-49f2-a558-c8952038e051-C9.__Semiconductor_Details_of_seminar__symposia___conference__refresher_course__training_programmes_organized__1_.pdf"}]
 166	71	2	Mechanical Engineering Faculties			2025-26			[{"name":"C9.  Mechanical  Details of seminar  symposia   conference  refresher course  training programmes organized (1).docx.pdf","fileName":"C9.  Mechanical  Details of seminar  symposia   conference  refresher course  training programmes organized (1).docx.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/3d474e42-47ab-4bad-bc10-a22defb81ba4-C9.__Mechanical__Details_of_seminar__symposia___conference__refresher_course__training_programmes_organized__1_.docx.pdf"}]
@@ -5520,6 +4980,681 @@ COPY public.fdp_organized (id, submission_id, sl_no, coordinator, seminar_title,
 172	75	1	Mr Sharad Wadkar 	3D Printing and Engraving  	None 	26th Sept, 25 to 5th October 4, 25 	13	13\tYes 	[{"name":"Report - FDP 2025- 3D Printing and Engraving.pdf","fileName":"Report - FDP 2025- 3D Printing and Engraving.pdf","url":"/uploads/users/04e09d7ce5a2501c/attachments/1c5169a4-5f4b-4990-ac8b-0378aadefd87-Report_-_FDP_2025-_3D_Printing_and_Engraving.pdf"}]
 173	74	1	All faculty	-	-	-	-	-	[{"name":"SeminarConfFDPOrganised.pdf","fileName":"SeminarConfFDPOrganised.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/55464a22-05a4-4f2a-9ce4-17846cff0d65-SeminarConfFDPOrganised.pdf"}]
 \.
+
+
+--
+-- TOC entry 4117 (class 0 OID 99352)
+-- Dependencies: 233
+-- Data for Name: form_fields; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.form_fields (id, section_id, table_id, field_key, label, field_type, kind, is_required, placeholder, default_value, validation_rules, options, attachment_rules, display_order, created_at, updated_at) FROM stdin;
+1	1	\N	schoolName	Name of the School / Department	TEXT	field	t	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+2	1	\N	establishmentYear	Year of Establishment	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+3	1	\N	address	Address	TEXTAREA	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+4	1	\N	directorName	Director's Name	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+5	1	\N	directorEmail	Director's Mail Id	EMAIL	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+6	1	\N	ugIntake	UG Intake	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+7	1	\N	pgIntake	PG Intake	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+8	1	\N	academicCalendar	Academic Calendar	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+9	1	1	class	Class	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+10	1	1	no_of_student	No. of Student	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+11	1	1	total	Total	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+12	1	2	required	Required	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+13	1	2	available	Available	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+14	2	\N	bosMeetingsCount	No. of meetings conducted	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+15	2	\N	stakeholderFeedback	a. Stakeholder feedback	TEXTAREA	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+16	2	\N	feedbackAnalysis	b. Analysis of the feedback	TEXTAREA	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+17	2	\N	actionTakenReport	c. Action taken Report	TEXTAREA	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+18	2	3	date_of_the_meeting	Date of the meeting	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+19	2	3	link_for_mom	Link for MoM	ATTACHMENT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+20	2	4	category_of_feedback	Category of Feedback	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+21	2	4	link_for_analysis_and_atr	Link for Analysis and ATR	ATTACHMENT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+22	2	5	particular	Particular	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+23	2	5	link_for_the_document	Link for the Document	ATTACHMENT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+24	2	6	check_points	Check Points	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+25	2	6	availability	Availability	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+26	2	6	link_for_the_document	Link for the Document	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+27	2	7	check_points	Check Points	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+28	2	7	availability	Availability	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+29	2	7	link_for_the_document	Link for the Document	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+30	3	8	name_of_mentor	Name of Mentor	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+31	3	8	no_of_mentees	No. of Mentees	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+32	3	8	link_to_document	Link to Document	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+33	3	9	program	Program	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+34	3	9	female	Female	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+35	3	9	male	Male	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+36	3	9	total	Total	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+37	3	10	program	Program	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+38	3	10	no_of_students_appeared_for_final_semester_exam	No of Students Appeared for Final Semester Exam	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+39	3	10	number_of_students_cleared_program_in_stipulated_duration_of_the_program	Number of Students cleared Program in stipulated duration of the program	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+40	3	10	success_rate	Success Rate %	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+41	3	11	name_of_the_student	Name of the Student	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+42	3	11	examination_details	Examination Details	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+43	3	11	proof_as_attachment	Proof as attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+44	3	12	name_of_the_student	Name of the Student	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+45	3	12	details_of_the_award	Details of the Award	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+46	3	12	proof_as_an_attachment	Proof as an attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+47	3	13	program	Program	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+48	3	13	no_of_students_appeared_for_final_year_exam	No of Students Appeared for Final Year Exam	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+49	3	13	no_of_students_placed	No of Students Placed	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+50	3	13	placement	% Placement	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+51	3	13	proof_as_attachment	Proof as attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+52	3	14	program	Program	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+53	3	14	no_of_students_appeared_for_final_year_exam	No of Students Appeared for Final Year Exam	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+54	3	14	no_of_students_selected_for_higher_studies	No of Students selected for Higher studies	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+55	3	14	students	% Students	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+56	3	15	name_of_the_student	Name of the Student	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+57	3	15	name_of_the_venture_start_up	Name of the Venture / Start-up	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+58	3	15	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+59	3	16	name_of_student	Name of Student	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+60	3	16	year_of_study	Year of Study	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+61	3	16	name_of_course	Name of course	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+62	3	16	duration	Duration	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+63	3	16	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+64	3	17	name_of_alumni	Name of Alumni	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+65	3	17	designation	Designation	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+66	3	17	present_employer	Present employer	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+67	3	17	date_on_interaction	Date on interaction	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+68	3	17	topic	Topic	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+69	3	17	no_of_beneficiaries	No of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+70	3	17	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+71	3	18	name_of_the_resource_person	Name of the Resource person	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+72	3	18	designation_and_organization	Designation and organization	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+73	3	18	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+74	3	18	topic	Topic	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+75	3	18	number_of_beneficiaries	Number of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+76	3	18	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+77	3	19	sr_no	Sr no	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+78	3	19	name_of_the_professional_body_chapter_student_club	Name of the Professional body / chapter / student club	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+79	3	19	no_of_student_members	No of student members	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+80	3	19	date_of_event_conduction	Date of event conduction	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+81	3	19	title_of_the_event	Title of the event	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+82	3	19	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+83	3	20	sr_no	Sr no	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+84	3	20	title_of_the_course	Title of the Course	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+85	3	20	details_of_resource_person	Details of resource person	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+86	3	20	duration_and_date_of_conduction	Duration and date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+87	3	20	no_of_beneficiaries	No of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+88	3	20	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+89	3	21	session_details	Session details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+90	3	21	resource_person_details	Resource person details	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+91	3	21	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+92	3	21	number_of_beneficiaries	Number of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+93	3	21	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+94	3	22	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+95	3	22	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+96	3	22	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+97	3	22	number_of_beneficiaries	Number of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+98	3	22	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+99	4	\N	foreignCollaborations	(a) No. of foreign collaborations either in the form of publications / research	TEXTAREA	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+100	4	\N	nationalCollaborations	(b) No. of collaborations with other national institutions	TEXTAREA	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+101	4	\N	functionalMousCount	No. of Functional MoUs	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+102	4	23	name	Name	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+103	4	23	designation	Designation	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+104	4	23	qualifications	Qualifications	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+105	4	23	specialization	Specialization	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+106	4	23	no_of_ph_d_supervised	No. of Ph.D supervised	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+107	4	24	title_of_paper	Title of paper	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+108	4	24	name_of_author_s	Name of author(s)	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+109	4	24	name_of_journal	Name of Journal	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+110	4	24	year_of_publication_with_volume_and_page_numbers	Year of Publication with Volume and Page numbers	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+111	4	24	isbn_issn	ISBN/ISSN	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+112	4	24	indicate_ugc_approved_journal	Indicate UGC Approved Journal	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+113	4	24	national_international_journal	National/International Journal	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+114	4	24	impact_factor	Impact Factor	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+115	4	24	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	9	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+116	4	25	name_of_the_teacher	Name of the teacher	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+117	4	25	title_of_the_book_chapters_published	Title of the book/chapters published	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+118	4	25	title_of_the_paper	Title of the paper	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+119	4	25	title_of_the_proceedings_of_the_conference	Title of the proceedings of the conference	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+120	4	25	name_of_the_conference	Name of the conference	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+121	4	25	national_international	National / international	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+122	4	25	year_of_publication	Year of publication	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+123	4	25	isbn_issn_number	ISBN/ISSN number	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+124	4	25	name_of_the_publisher	Name of the publisher	TEXT	field	f	\N	\N	\N	\N	\N	9	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+125	4	25	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	10	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+126	4	26	name_of_faculty	Name of faculty	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+127	4	26	agency_seeking_training	Agency seeking / training	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+128	4	26	revenue_generated	Revenue generated	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+129	4	26	number_of_trainees	Number of trainees	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+130	4	26	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+131	4	27	name_of_the_faculty	Name of the faculty	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+132	4	27	title_of_the_consultancy_project	Title of the consultancy project	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+133	4	27	consulting_sponsoring_agency	Consulting/Sponsoring Agency	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+134	4	27	revenue_generated	Revenue generated	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+135	4	27	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+136	4	28	name_of_the_project_endowments_chairs	Name of the Project / Endowments / Chairs	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+137	4	28	name_of_the_principal_investigator	Name of the Principal Investigator	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+138	4	28	department_of_principal_investigator	Department of Principal Investigator	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+139	4	28	year_of_award	Year of Award	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+140	4	28	funds_provided	Funds provided	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+141	4	28	duration_of_the_project	Duration of the project	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+142	4	28	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+143	4	29	name_of_the_teacher	Name of the teacher	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+144	4	29	name_of_the_module	Name of the module	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+145	4	29	platform_on_which_module_is_developed	Platform on which module is developed	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+146	4	29	date_of_launching_e_content	Date of launching e content	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+147	4	29	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+148	4	30	name_of_the_teacher	Name of the Teacher	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+149	4	30	national_awards	National Awards	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+150	4	30	international_awards	International Awards	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+151	4	30	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+152	4	31	sr_no	Sr. No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+153	4	31	name_of_faculty_student	Name of Faculty / Student	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+154	4	31	application_no	Application No	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+155	4	31	title_of_patent_copyright	Title of Patent / Copyright	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+156	4	31	date_of_filing	Date of filing	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+157	4	31	date_of_publication	Date of publication	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+158	4	31	date_of_award	Date of award	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+159	4	31	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+160	4	32	sl_no	Sl. No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+161	4	32	name_of_convener_coordinator	Name of Convener/Coordinator	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+162	4	32	title_of_seminar_course	Title of seminar/course	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+163	4	32	sponsoring_agency	Sponsoring Agency	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+164	4	32	duration_with_dates	Duration with dates	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+165	4	32	no_of_internal_and_external_participants	No. of internal and external participants	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+166	4	32	proceedings_published_yes_no	Proceedings published Yes/No	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+167	4	32	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+168	4	33	sl_no	Sl. No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+169	4	33	name_of_faculty	Name of Faculty	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+170	4	33	title_of_seminar_course	Title of seminar/course	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+171	4	33	sponsoring_agency_organization	Sponsoring Agency / organization	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+172	4	33	duration_with_dates	Duration with dates	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+173	4	33	date	Date	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+174	4	33	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+175	4	34	name_of_the_organization_institution_industry_with_whom_mou_is_signed	Name of the Organization / Institution / Industry with whom MoU is signed	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+176	4	34	year_of_signing_mou	Year of signing MoU	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+177	4	34	duration_of_mou	Duration of MoU	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+178	4	34	list_the_actual_activities_under_each_mou	List the actual activities under each MoU	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+179	4	34	link_to_relevant_proof	Link to relevant Proof	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+180	5	35	details	Details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+181	5	36	details	Details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+182	5	37	details	Details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+183	5	38	details	Details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+184	5	39	details	Details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+185	6	\N	auditObservations	Observations of the Academic Audit Team	TEXTAREA	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+186	6	\N	auditRecommendations	Recommendations of the Audit Team	TEXTAREA	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+187	6	\N	auditDocumentation	Upload Documentation	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+198	7	40	name_of_the_program	Name of the Program	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+199	7	40	level_ug_pg	Level (UG/PG)	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+200	7	40	intake	Intake	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+201	7	40	no_of_students_admitted	No. of Students Admitted	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+202	7	40	year_of_commencement_of_the_program	Year of Commencement of the program	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+276	9	57	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+203	7	40	attachment_attach_list_of_the_students	Attachment (Attach List of the Students)	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+204	7	41	category	Category	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+205	7	41	u_g	U.G.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+206	7	41	p_g	P.G.	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+207	7	41	ph_d	Ph.D.	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+208	7	41	value_added_skill_courses	Value added / skill Courses	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+209	7	42	body_cell	Body / Cell	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+210	7	42	meetings_conducted	Meetings Conducted	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+211	7	42	atr_status	ATR Status	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+212	7	42	remarks_link	Remarks / Link	ATTACHMENT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+213	7	43	audit_type	Audit Type	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+214	7	43	completed_yes_no	Completed Yes / No	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+215	7	43	date	Date	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+216	7	43	remarks_link	Remarks / Link	ATTACHMENT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+217	7	44	year	Year	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+218	7	44	title_of_scholarship	Title of Scholarship	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+219	7	44	number_of_the_students	Number of the Students	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+220	7	44	amount_received	Amount received	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+221	7	44	awarding_agency	Awarding Agency	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+222	7	44	awarding_organization	Awarding Organization	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+223	7	44	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+224	7	45	year	Year	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+225	7	45	title_of_scholarship	Title of Scholarship	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+226	7	45	name_of_the_students	Name of the Students	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+227	7	45	amount_received	Amount received	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+228	7	45	awarding_agency	Awarding Agency	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+229	7	45	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+230	8	\N	bogMomSanctionedPostsAttachment	BoG MoM Extract showing Sanctioned Posts	ATTACHMENT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+231	8	\N	phdQualification	(a)(i) Faculty members with Ph.D qualification	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+232	8	\N	pgQualification	(a)(ii) Post Graduation Qualification	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+233	8	\N	otherQualification	(a)(iii) Any Other Qualification	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+234	8	\N	studentFacultyRatio	(b) Student Faculty Ratio	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+235	8	46	cadre	Cadre	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+236	8	46	required	Required	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+237	8	46	regular	Regular	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+238	8	46	contract	Contract	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+239	8	47	tenure	Tenure	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+240	8	47	no_of_faculty	No. of Faculty	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+241	8	48	s_no	S.No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+242	8	48	name_of_the_faculty	Name of the Faculty	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+243	8	48	designation	Designation	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+244	8	48	highest_qualification	Highest Qualification	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+245	8	48	date_of_joining	Date of Joining	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+246	8	48	experience_in_dypiu	Experience in DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+247	8	48	experience_before_joining_dypiu_teaching	Experience before joining DYPIU (Teaching)	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+248	8	48	total_experience	Total Experience	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+249	8	49	s_no	S.No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+250	8	49	name_of_the_supporting_staff	Name of the Supporting Staff	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+251	8	49	designation	Designation	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+252	8	49	highest_qualification	Highest Qualification	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+253	8	49	date_of_joining_in_dypiu	Date of Joining in DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+254	8	49	experience_in_dypiu	Experience in DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+255	8	49	experience_before_joining_dypiu	Experience before joining DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+256	8	49	total_experience	Total Experience	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+257	8	50	sr_no	Sr no	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+258	8	50	title_of_the_course	Title of the Course	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+259	8	50	details_of_resource_person	Details of resource person	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+260	8	50	duration_and_date_of_conduction	Duration and date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+261	8	50	no_of_beneficiaries	No of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+262	8	50	attachment_report_of_the_event	Attachment (Report of the Event)	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+263	9	51	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+264	9	51	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+265	9	52	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+266	9	52	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+267	9	53	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+268	9	53	availability	Availability	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+269	9	53	remarks	Remarks	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+270	9	54	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+271	9	54	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+272	9	55	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+273	9	55	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+274	9	56	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+275	9	56	available_yes_no	Available Yes / No	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+277	9	57	availability	Availability	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+278	9	57	remarks	Remarks	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+279	10	58	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+280	10	58	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+281	10	58	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+282	10	58	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+283	10	58	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+284	10	59	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+285	10	59	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+286	10	59	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+287	10	59	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+288	10	59	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+289	10	60	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+290	10	60	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+291	10	60	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+292	10	60	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+293	10	60	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+294	10	61	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+295	10	61	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+296	10	61	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+297	10	61	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+298	10	61	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+299	10	62	name_of_the_award	Name of the award	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+300	10	62	team_individual	Team / Individual	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+301	10	62	inter_university_state_national_international	Inter-University / State / National / International	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+302	10	62	name_of_the_event	Name of the event	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+303	10	62	name_of_the_student_s	Name of the student(s)	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+304	10	62	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+306	12	\N	auditObservations	Observations of the Academic Audit Team	TEXTAREA	field	f	\N	\N	\N	\N	\N	1	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+307	12	\N	auditRecommendations	Recommendations of the Audit Team	TEXTAREA	field	f	\N	\N	\N	\N	\N	2	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+308	12	\N	auditDocumentation	Upload Documentation	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 15:46:26.33898	2026-10-28 15:46:26.343044
+311	11	64	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.221546	2026-10-28 10:27:04.221561
+312	11	64	program	Program	TEXT	\N	t	Enter Program	\N	\N	\N	\N	2	2026-10-28 10:27:04.226921	2026-10-28 10:27:04.226936
+313	11	64	inumberofcompaniesvisited	(i) Number of Companies Visited	NUMBER	\N	t	Enter (i) Number of Companies Visited	\N	\N	\N	\N	3	2026-10-28 10:27:04.230726	2026-10-28 10:27:04.230737
+314	11	64	iinumberofstudentsplaced	(ii) Number of Students Placed	NUMBER	\N	t	Enter (ii) Number of Students Placed	\N	\N	\N	\N	4	2026-10-28 10:27:04.235721	2026-10-28 10:27:04.23574
+315	11	64	iiihighestsalaryoffered	(iii) Highest Salary Offered	TEXT	\N	t	Enter (iii) Highest Salary Offered	\N	\N	\N	\N	5	2026-10-28 10:27:04.240261	2026-10-28 10:27:04.240279
+316	11	64	ivaveragesalaryoffered	(iv) Average Salary Offered	TEXT	\N	t	Enter (iv) Average Salary Offered	\N	\N	\N	\N	6	2026-10-28 10:27:04.268555	2026-10-28 10:27:04.268572
+317	11	64	vmediansalaryoffered	(v) Median Salary Offered	TEXT	\N	t	Enter (v) Median Salary Offered	\N	\N	\N	\N	7	2026-10-28 10:27:04.273566	2026-10-28 10:27:04.273584
+318	11	64	listofstudentsattachment	List of Students Attachment	ATTACHMENT	\N	f	Enter List of Students Attachment	\N	\N	\N	\N	8	2026-10-28 10:27:04.27869	2026-10-28 10:27:04.278703
+319	11	65	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.2864	2026-10-28 10:27:04.286412
+320	11	65	activity	Activity	TEXT	\N	t	Enter Activity	\N	\N	\N	\N	2	2026-10-28 10:27:04.289719	2026-10-28 10:27:04.289731
+321	11	65	inumberoforganizations	(i) Number of Organizations	NUMBER	\N	t	Enter (i) Number of Organizations	\N	\N	\N	\N	3	2026-10-28 10:27:04.29335	2026-10-28 10:27:04.293365
+322	11	65	iinumberofstudents	(ii) Number of Students	NUMBER	\N	t	Enter (ii) Number of Students	\N	\N	\N	\N	4	2026-10-28 10:27:04.296636	2026-10-28 10:27:04.29665
+323	11	65	iiiactivitieswithstipend	(iii) Activities with Stipend	NUMBER	\N	t	Enter (iii) Activities with Stipend	\N	\N	\N	\N	5	2026-10-28 10:27:04.299596	2026-10-28 10:27:04.299606
+324	11	65	ivtotalactivities	(iv) Total Activities	DATE	\N	t	Enter (iv) Total Activities	\N	\N	\N	\N	6	2026-10-28 10:27:04.302551	2026-10-28 10:27:04.302564
+325	11	65	allstudentslistattachment	All Students List Attachment	ATTACHMENT	\N	f	Enter All Students List Attachment	\N	\N	\N	\N	7	2026-10-28 10:27:04.305304	2026-10-28 10:27:04.305314
+326	11	65	certificatesattachment	Certificates Attachment	ATTACHMENT	\N	f	Enter Certificates Attachment	\N	\N	\N	\N	8	2026-10-28 10:27:04.308206	2026-10-28 10:27:04.308218
+327	11	66	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.313632	2026-10-28 10:27:04.313643
+328	11	66	titleofthesession	Title of the Session	DATE	\N	t	Enter Title of the Session	\N	\N	\N	\N	2	2026-10-28 10:27:04.315883	2026-10-28 10:27:04.315892
+329	11	66	nameoftheresourceperson	Name of the Resource Person	TEXT	\N	t	Enter Name of the Resource Person	\N	\N	\N	\N	3	2026-10-28 10:27:04.318202	2026-10-28 10:27:04.318212
+330	11	66	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:27:04.320564	2026-10-28 10:27:04.320573
+331	11	66	noofbeneficiaries	No. of Beneficiaries	NUMBER	\N	t	Enter No. of Beneficiaries	\N	\N	\N	\N	5	2026-10-28 10:27:04.323678	2026-10-28 10:27:04.323688
+332	11	66	linkforproofs	Link for Proofs	ATTACHMENT	\N	f	Enter Link for Proofs	\N	\N	\N	\N	6	2026-10-28 10:27:04.326248	2026-10-28 10:27:04.326258
+333	11	67	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.331988	2026-10-28 10:27:04.331999
+334	11	67	titleofthesession	Title of the Session	DATE	\N	t	Enter Title of the Session	\N	\N	\N	\N	2	2026-10-28 10:27:04.334383	2026-10-28 10:27:04.334391
+335	11	67	nameoftheresourceperson	Name of the Resource Person	TEXT	\N	t	Enter Name of the Resource Person	\N	\N	\N	\N	3	2026-10-28 10:27:04.336865	2026-10-28 10:27:04.336876
+395	14	77	required	Required	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.42769	2026-10-28 10:30:51.427705
+396	14	77	regular	Regular	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.431625	2026-10-28 10:30:51.431638
+397	14	77	contract	Contract	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.434689	2026-10-28 10:30:51.4347
+398	14	78	tenure	Tenure	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.447356	2026-10-28 10:30:51.447369
+336	11	67	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:27:04.339128	2026-10-28 10:27:04.339136
+337	11	67	noofbeneficiaries	No. of Beneficiaries	NUMBER	\N	t	Enter No. of Beneficiaries	\N	\N	\N	\N	5	2026-10-28 10:27:04.34204	2026-10-28 10:27:04.34205
+338	11	67	linkforproofs	Link for Proofs	ATTACHMENT	\N	f	Enter Link for Proofs	\N	\N	\N	\N	6	2026-10-28 10:27:04.344193	2026-10-28 10:27:04.3442
+339	11	68	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.349414	2026-10-28 10:27:04.349424
+340	11	68	titleofthesession	Title of the Session	DATE	\N	t	Enter Title of the Session	\N	\N	\N	\N	2	2026-10-28 10:27:04.352493	2026-10-28 10:27:04.352502
+341	11	68	nameoftheresourceperson	Name of the Resource Person	TEXT	\N	t	Enter Name of the Resource Person	\N	\N	\N	\N	3	2026-10-28 10:27:04.355299	2026-10-28 10:27:04.355307
+342	11	68	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:27:04.358232	2026-10-28 10:27:04.358242
+343	11	68	noofbeneficiaries	No. of Beneficiaries	NUMBER	\N	t	Enter No. of Beneficiaries	\N	\N	\N	\N	5	2026-10-28 10:27:04.361356	2026-10-28 10:27:04.361364
+344	11	68	linkforproofs	Link for Proofs	ATTACHMENT	\N	f	Enter Link for Proofs	\N	\N	\N	\N	6	2026-10-28 10:27:04.364317	2026-10-28 10:27:04.364326
+345	11	69	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.369942	2026-10-28 10:27:04.369949
+346	11	69	academicyear	Academic Year	DATE	\N	t	Enter Academic Year	\N	\N	\N	\N	2	2026-10-28 10:27:04.372066	2026-10-28 10:27:04.372073
+347	11	69	titleoftheevent	Title of the Event	TEXT	\N	t	Enter Title of the Event	\N	\N	\N	\N	3	2026-10-28 10:27:04.37451	2026-10-28 10:27:04.374518
+348	11	69	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:27:04.377386	2026-10-28 10:27:04.377395
+349	11	69	noofstudentsbenefited	No. of Students Benefited	NUMBER	\N	t	Enter No. of Students Benefited	\N	\N	\N	\N	5	2026-10-28 10:27:04.380384	2026-10-28 10:27:04.380394
+350	11	69	attachment	Attachment	ATTACHMENT	\N	f	Enter Attachment	\N	\N	\N	\N	6	2026-10-28 10:27:04.382979	2026-10-28 10:27:04.383011
+351	11	70	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:27:04.38836	2026-10-28 10:27:04.388374
+352	11	70	organizationinstitutionindustry	Organization / Institution / Industry	TEXT	\N	t	Enter Organization / Institution / Industry	\N	\N	\N	\N	2	2026-10-28 10:27:04.391441	2026-10-28 10:27:04.39148
+353	11	70	yearofsigningmou	Year of Signing MoU	DATE	\N	t	Enter Year of Signing MoU	\N	\N	\N	\N	3	2026-10-28 10:27:04.394061	2026-10-28 10:27:04.394068
+354	11	70	durationofmou	Duration of MoU	TEXT	\N	t	Enter Duration of MoU	\N	\N	\N	\N	4	2026-10-28 10:27:04.396646	2026-10-28 10:27:04.396653
+355	11	70	activitiesconductedunderthemou	Activities Conducted Under the MoU	TEXT	\N	t	Enter Activities Conducted Under the MoU	\N	\N	\N	\N	5	2026-10-28 10:27:04.399092	2026-10-28 10:27:04.3991
+356	11	70	attachment	Attachment	ATTACHMENT	\N	f	Enter Attachment	\N	\N	\N	\N	6	2026-10-28 10:27:04.401423	2026-10-28 10:27:04.401432
+357	13	71	name_of_the_program	Name of the Program	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.235103	2026-10-28 10:30:51.235114
+358	13	71	level_ug_pg	Level (UG/PG)	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.240555	2026-10-28 10:30:51.240573
+359	13	71	intake	Intake	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.243138	2026-10-28 10:30:51.243147
+360	13	71	no_of_students_admitted	No. of Students Admitted	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.246014	2026-10-28 10:30:51.24603
+361	13	71	year_of_commencement_of_the_program	Year of Commencement of the program	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.249237	2026-10-28 10:30:51.249254
+362	13	71	attachment_attach_list_of_the_students	Attachment (Attach List of the Students)	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.252248	2026-10-28 10:30:51.252267
+363	13	72	category	Category	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.260168	2026-10-28 10:30:51.260176
+364	13	72	u_g	U.G.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.262855	2026-10-28 10:30:51.262864
+365	13	72	p_g	P.G.	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.265222	2026-10-28 10:30:51.26523
+366	13	72	ph_d	Ph.D.	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.26748	2026-10-28 10:30:51.267487
+367	13	72	value_added_skill_courses	Value added / skill Courses	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.270522	2026-10-28 10:30:51.270531
+368	13	73	body_cell	Body / Cell	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.281958	2026-10-28 10:30:51.281966
+369	13	73	meetings_conducted	Meetings Conducted	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.284488	2026-10-28 10:30:51.284497
+370	13	73	atr_status	ATR Status	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.287283	2026-10-28 10:30:51.287291
+371	13	73	remarks_link	Remarks / Link	ATTACHMENT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.289553	2026-10-28 10:30:51.289561
+372	13	74	audit_type	Audit Type	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.301296	2026-10-28 10:30:51.30131
+373	13	74	completed_yes_no	Completed Yes / No	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.305351	2026-10-28 10:30:51.305364
+374	13	74	date	Date	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.309169	2026-10-28 10:30:51.309183
+375	13	74	remarks_link	Remarks / Link	ATTACHMENT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.313206	2026-10-28 10:30:51.31322
+376	13	75	year	Year	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.325225	2026-10-28 10:30:51.325242
+377	13	75	title_of_scholarship	Title of Scholarship	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.329041	2026-10-28 10:30:51.329056
+378	13	75	number_of_the_students	Number of the Students	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.332538	2026-10-28 10:30:51.33255
+379	13	75	amount_received	Amount received	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.336323	2026-10-28 10:30:51.336339
+380	13	75	awarding_agency	Awarding Agency	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.340064	2026-10-28 10:30:51.340079
+381	13	75	awarding_organization	Awarding Organization	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.344136	2026-10-28 10:30:51.344151
+382	13	75	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 10:30:51.348136	2026-10-28 10:30:51.34815
+383	13	76	year	Year	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.359938	2026-10-28 10:30:51.359953
+384	13	76	title_of_scholarship	Title of Scholarship	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.363391	2026-10-28 10:30:51.363449
+385	13	76	name_of_the_students	Name of the Students	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.367233	2026-10-28 10:30:51.367249
+386	13	76	amount_received	Amount received	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.370761	2026-10-28 10:30:51.370772
+387	13	76	awarding_agency	Awarding Agency	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.374722	2026-10-28 10:30:51.374757
+388	13	76	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.378257	2026-10-28 10:30:51.378269
+389	14	\N	bogMomSanctionedPostsAttachment	BoG MoM Extract showing Sanctioned Posts	ATTACHMENT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.390931	2026-10-28 10:30:51.390945
+390	14	\N	phdQualification	(a)(i) Faculty members with Ph.D qualification	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.3951	2026-10-28 10:30:51.395114
+391	14	\N	pgQualification	(a)(ii) Post Graduation Qualification	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.398752	2026-10-28 10:30:51.398766
+392	14	\N	otherQualification	(a)(iii) Any Other Qualification	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.402723	2026-10-28 10:30:51.402736
+393	14	\N	studentFacultyRatio	(b) Student Faculty Ratio	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.406632	2026-10-28 10:30:51.406646
+394	14	77	cadre	Cadre	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.424028	2026-10-28 10:30:51.424051
+515	13	\N	address	Address	TEXT	\N	f		\N	\N	\N	\N	3	2026-10-28 10:32:10.361189	2026-10-28 10:32:10.361203
+399	14	78	no_of_faculty	No. of Faculty	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.450777	2026-10-28 10:30:51.450869
+400	14	79	s_no	S.No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.466433	2026-10-28 10:30:51.466445
+401	14	79	name_of_the_faculty	Name of the Faculty	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.469984	2026-10-28 10:30:51.469995
+402	14	79	designation	Designation	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.472951	2026-10-28 10:30:51.472962
+403	14	79	highest_qualification	Highest Qualification	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.476285	2026-10-28 10:30:51.476295
+404	14	79	date_of_joining	Date of Joining	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.479378	2026-10-28 10:30:51.479388
+405	14	79	experience_in_dypiu	Experience in DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.482105	2026-10-28 10:30:51.482114
+406	14	79	experience_before_joining_dypiu_teaching	Experience before joining DYPIU (Teaching)	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 10:30:51.484864	2026-10-28 10:30:51.484875
+407	14	79	total_experience	Total Experience	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 10:30:51.487657	2026-10-28 10:30:51.487667
+408	14	80	s_no	S.No	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.497709	2026-10-28 10:30:51.49772
+409	14	80	name_of_the_supporting_staff	Name of the Supporting Staff	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.501644	2026-10-28 10:30:51.501653
+410	14	80	designation	Designation	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.504301	2026-10-28 10:30:51.50431
+411	14	80	highest_qualification	Highest Qualification	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.507036	2026-10-28 10:30:51.507045
+412	14	80	date_of_joining_in_dypiu	Date of Joining in DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.509747	2026-10-28 10:30:51.509756
+413	14	80	experience_in_dypiu	Experience in DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.513151	2026-10-28 10:30:51.513161
+414	14	80	experience_before_joining_dypiu	Experience before joining DYPIU	TEXT	field	f	\N	\N	\N	\N	\N	7	2026-10-28 10:30:51.516384	2026-10-28 10:30:51.516425
+415	14	80	total_experience	Total Experience	TEXT	field	f	\N	\N	\N	\N	\N	8	2026-10-28 10:30:51.520395	2026-10-28 10:30:51.520408
+416	14	81	sr_no	Sr no	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.531218	2026-10-28 10:30:51.531222
+417	14	81	title_of_the_course	Title of the Course	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.534066	2026-10-28 10:30:51.53407
+418	14	81	details_of_resource_person	Details of resource person	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.536127	2026-10-28 10:30:51.536131
+419	14	81	duration_and_date_of_conduction	Duration and date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.53857	2026-10-28 10:30:51.538575
+420	14	81	no_of_beneficiaries	No of beneficiaries	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.540989	2026-10-28 10:30:51.540994
+421	14	81	attachment_report_of_the_event	Attachment (Report of the Event)	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.543565	2026-10-28 10:30:51.54357
+422	15	82	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.560929	2026-10-28 10:30:51.560934
+423	15	82	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.563617	2026-10-28 10:30:51.563621
+424	15	83	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.571584	2026-10-28 10:30:51.571589
+425	15	83	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.574295	2026-10-28 10:30:51.574299
+426	15	84	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.581775	2026-10-28 10:30:51.581857
+427	15	84	availability	Availability	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.584351	2026-10-28 10:30:51.584355
+428	15	84	remarks	Remarks	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.587071	2026-10-28 10:30:51.587076
+429	15	85	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.595328	2026-10-28 10:30:51.595333
+430	15	85	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.59754	2026-10-28 10:30:51.597543
+431	15	86	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.604202	2026-10-28 10:30:51.604207
+432	15	86	no	No.	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.605842	2026-10-28 10:30:51.605846
+433	15	87	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.612668	2026-10-28 10:30:51.612672
+434	15	87	available_yes_no	Available Yes / No	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.614826	2026-10-28 10:30:51.61483
+435	15	88	facilities	Facilities	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.6209	2026-10-28 10:30:51.620904
+436	15	88	availability	Availability	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.622656	2026-10-28 10:30:51.62266
+437	15	88	remarks	Remarks	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.624274	2026-10-28 10:30:51.624278
+438	16	89	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.63595	2026-10-28 10:30:51.635955
+439	16	89	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.637259	2026-10-28 10:30:51.637263
+440	16	89	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.638887	2026-10-28 10:30:51.638892
+441	16	89	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.640213	2026-10-28 10:30:51.640216
+442	16	89	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.641733	2026-10-28 10:30:51.641737
+443	16	90	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.646431	2026-10-28 10:30:51.646435
+444	16	90	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.647683	2026-10-28 10:30:51.647687
+445	16	90	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.64875	2026-10-28 10:30:51.648753
+446	16	90	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.649896	2026-10-28 10:30:51.649899
+447	16	90	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.651038	2026-10-28 10:30:51.651041
+448	16	91	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.655302	2026-10-28 10:30:51.655306
+449	16	91	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.656464	2026-10-28 10:30:51.656467
+450	16	91	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.657495	2026-10-28 10:30:51.657498
+451	16	91	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.658564	2026-10-28 10:30:51.658567
+452	16	91	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.660184	2026-10-28 10:30:51.660188
+453	16	92	activity_details	Activity details	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.667026	2026-10-28 10:30:51.667034
+454	16	92	organized_by	Organized by	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.669064	2026-10-28 10:30:51.669068
+455	16	92	date_of_conduction	Date of conduction	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.670954	2026-10-28 10:30:51.670958
+456	16	92	number_of_beneficiaries_participants	Number of beneficiaries / Participants	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.672375	2026-10-28 10:30:51.672378
+457	16	92	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.673527	2026-10-28 10:30:51.67353
+458	16	93	name_of_the_award	Name of the award	TEXT	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.679128	2026-10-28 10:30:51.679131
+459	16	93	team_individual	Team / Individual	TEXT	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.680672	2026-10-28 10:30:51.680675
+460	16	93	inter_university_state_national_international	Inter-University / State / National / International	TEXT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.681956	2026-10-28 10:30:51.681959
+461	16	93	name_of_the_event	Name of the event	TEXT	field	f	\N	\N	\N	\N	\N	4	2026-10-28 10:30:51.683854	2026-10-28 10:30:51.683857
+462	16	93	name_of_the_student_s	Name of the student(s)	TEXT	field	f	\N	\N	\N	\N	\N	5	2026-10-28 10:30:51.685881	2026-10-28 10:30:51.685883
+463	16	93	attachment	Attachment	ATTACHMENT	field	f	\N	\N	\N	\N	\N	6	2026-10-28 10:30:51.68714	2026-10-28 10:30:51.687143
+464	17	94	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.700368	2026-10-28 10:30:51.700372
+465	17	94	program	Program	TEXT	\N	t	Enter Program	\N	\N	\N	\N	2	2026-10-28 10:30:51.702023	2026-10-28 10:30:51.702027
+466	17	94	inumberofcompaniesvisited	(i) Number of Companies Visited	NUMBER	\N	t	Enter (i) Number of Companies Visited	\N	\N	\N	\N	3	2026-10-28 10:30:51.703692	2026-10-28 10:30:51.703695
+467	17	94	iinumberofstudentsplaced	(ii) Number of Students Placed	NUMBER	\N	t	Enter (ii) Number of Students Placed	\N	\N	\N	\N	4	2026-10-28 10:30:51.705013	2026-10-28 10:30:51.705016
+468	17	94	iiihighestsalaryoffered	(iii) Highest Salary Offered	TEXT	\N	t	Enter (iii) Highest Salary Offered	\N	\N	\N	\N	5	2026-10-28 10:30:51.706708	2026-10-28 10:30:51.706711
+469	17	94	ivaveragesalaryoffered	(iv) Average Salary Offered	TEXT	\N	t	Enter (iv) Average Salary Offered	\N	\N	\N	\N	6	2026-10-28 10:30:51.708434	2026-10-28 10:30:51.708437
+470	17	94	vmediansalaryoffered	(v) Median Salary Offered	TEXT	\N	t	Enter (v) Median Salary Offered	\N	\N	\N	\N	7	2026-10-28 10:30:51.71072	2026-10-28 10:30:51.710727
+471	17	94	listofstudentsattachment	List of Students Attachment	ATTACHMENT	\N	f	Enter List of Students Attachment	\N	\N	\N	\N	8	2026-10-28 10:30:51.714971	2026-10-28 10:30:51.71498
+472	17	95	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.7295	2026-10-28 10:30:51.729508
+473	17	95	activity	Activity	TEXT	\N	t	Enter Activity	\N	\N	\N	\N	2	2026-10-28 10:30:51.733268	2026-10-28 10:30:51.733276
+474	17	95	inumberoforganizations	(i) Number of Organizations	NUMBER	\N	t	Enter (i) Number of Organizations	\N	\N	\N	\N	3	2026-10-28 10:30:51.737077	2026-10-28 10:30:51.737085
+475	17	95	iinumberofstudents	(ii) Number of Students	NUMBER	\N	t	Enter (ii) Number of Students	\N	\N	\N	\N	4	2026-10-28 10:30:51.740481	2026-10-28 10:30:51.740488
+476	17	95	iiiactivitieswithstipend	(iii) Activities with Stipend	NUMBER	\N	t	Enter (iii) Activities with Stipend	\N	\N	\N	\N	5	2026-10-28 10:30:51.74422	2026-10-28 10:30:51.744229
+477	17	95	ivtotalactivities	(iv) Total Activities	DATE	\N	t	Enter (iv) Total Activities	\N	\N	\N	\N	6	2026-10-28 10:30:51.747988	2026-10-28 10:30:51.747996
+478	17	95	allstudentslistattachment	All Students List Attachment	ATTACHMENT	\N	f	Enter All Students List Attachment	\N	\N	\N	\N	7	2026-10-28 10:30:51.751711	2026-10-28 10:30:51.751719
+479	17	95	certificatesattachment	Certificates Attachment	ATTACHMENT	\N	f	Enter Certificates Attachment	\N	\N	\N	\N	8	2026-10-28 10:30:51.755535	2026-10-28 10:30:51.755544
+480	17	96	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.770285	2026-10-28 10:30:51.770294
+481	17	96	titleofthesession	Title of the Session	DATE	\N	t	Enter Title of the Session	\N	\N	\N	\N	2	2026-10-28 10:30:51.774229	2026-10-28 10:30:51.774237
+482	17	96	nameoftheresourceperson	Name of the Resource Person	TEXT	\N	t	Enter Name of the Resource Person	\N	\N	\N	\N	3	2026-10-28 10:30:51.778178	2026-10-28 10:30:51.778185
+483	17	96	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:30:51.782048	2026-10-28 10:30:51.782056
+484	17	96	noofbeneficiaries	No. of Beneficiaries	NUMBER	\N	t	Enter No. of Beneficiaries	\N	\N	\N	\N	5	2026-10-28 10:30:51.785621	2026-10-28 10:30:51.785628
+485	17	96	linkforproofs	Link for Proofs	ATTACHMENT	\N	f	Enter Link for Proofs	\N	\N	\N	\N	6	2026-10-28 10:30:51.788758	2026-10-28 10:30:51.788765
+486	17	97	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.802508	2026-10-28 10:30:51.802516
+487	17	97	titleofthesession	Title of the Session	DATE	\N	t	Enter Title of the Session	\N	\N	\N	\N	2	2026-10-28 10:30:51.805722	2026-10-28 10:30:51.805729
+488	17	97	nameoftheresourceperson	Name of the Resource Person	TEXT	\N	t	Enter Name of the Resource Person	\N	\N	\N	\N	3	2026-10-28 10:30:51.808468	2026-10-28 10:30:51.808474
+489	17	97	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:30:51.811709	2026-10-28 10:30:51.811715
+490	17	97	noofbeneficiaries	No. of Beneficiaries	NUMBER	\N	t	Enter No. of Beneficiaries	\N	\N	\N	\N	5	2026-10-28 10:30:51.814462	2026-10-28 10:30:51.814468
+491	17	97	linkforproofs	Link for Proofs	ATTACHMENT	\N	f	Enter Link for Proofs	\N	\N	\N	\N	6	2026-10-28 10:30:51.817317	2026-10-28 10:30:51.817323
+492	17	98	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.828509	2026-10-28 10:30:51.828516
+493	17	98	titleofthesession	Title of the Session	DATE	\N	t	Enter Title of the Session	\N	\N	\N	\N	2	2026-10-28 10:30:51.83159	2026-10-28 10:30:51.831597
+494	17	98	nameoftheresourceperson	Name of the Resource Person	TEXT	\N	t	Enter Name of the Resource Person	\N	\N	\N	\N	3	2026-10-28 10:30:51.83455	2026-10-28 10:30:51.834556
+495	17	98	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:30:51.837073	2026-10-28 10:30:51.837079
+496	17	98	noofbeneficiaries	No. of Beneficiaries	NUMBER	\N	t	Enter No. of Beneficiaries	\N	\N	\N	\N	5	2026-10-28 10:30:51.839654	2026-10-28 10:30:51.839658
+497	17	98	linkforproofs	Link for Proofs	ATTACHMENT	\N	f	Enter Link for Proofs	\N	\N	\N	\N	6	2026-10-28 10:30:51.842177	2026-10-28 10:30:51.842183
+498	17	99	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.852741	2026-10-28 10:30:51.852748
+499	17	99	academicyear	Academic Year	DATE	\N	t	Enter Academic Year	\N	\N	\N	\N	2	2026-10-28 10:30:51.855646	2026-10-28 10:30:51.855651
+500	17	99	titleoftheevent	Title of the Event	TEXT	\N	t	Enter Title of the Event	\N	\N	\N	\N	3	2026-10-28 10:30:51.858655	2026-10-28 10:30:51.858661
+501	17	99	dateofconduction	Date of Conduction	DATE	\N	t	Enter Date of Conduction	\N	\N	\N	\N	4	2026-10-28 10:30:51.861368	2026-10-28 10:30:51.861374
+502	17	99	noofstudentsbenefited	No. of Students Benefited	NUMBER	\N	t	Enter No. of Students Benefited	\N	\N	\N	\N	5	2026-10-28 10:30:51.863872	2026-10-28 10:30:51.863879
+503	17	99	attachment	Attachment	ATTACHMENT	\N	f	Enter Attachment	\N	\N	\N	\N	6	2026-10-28 10:30:51.865754	2026-10-28 10:30:51.865758
+504	17	100	srno	Sr No	TEXT	\N	f	Enter Sr No	\N	\N	\N	\N	1	2026-10-28 10:30:51.875018	2026-10-28 10:30:51.875024
+505	17	100	organizationinstitutionindustry	Organization / Institution / Industry	TEXT	\N	t	Enter Organization / Institution / Industry	\N	\N	\N	\N	2	2026-10-28 10:30:51.877436	2026-10-28 10:30:51.87744
+506	17	100	yearofsigningmou	Year of Signing MoU	DATE	\N	t	Enter Year of Signing MoU	\N	\N	\N	\N	3	2026-10-28 10:30:51.880314	2026-10-28 10:30:51.880319
+507	17	100	durationofmou	Duration of MoU	TEXT	\N	t	Enter Duration of MoU	\N	\N	\N	\N	4	2026-10-28 10:30:51.883414	2026-10-28 10:30:51.88342
+508	17	100	activitiesconductedunderthemou	Activities Conducted Under the MoU	TEXT	\N	t	Enter Activities Conducted Under the MoU	\N	\N	\N	\N	5	2026-10-28 10:30:51.885962	2026-10-28 10:30:51.885967
+509	17	100	attachment	Attachment	ATTACHMENT	\N	f	Enter Attachment	\N	\N	\N	\N	6	2026-10-28 10:30:51.888308	2026-10-28 10:30:51.888313
+510	18	\N	auditObservations	Observations of the Academic Audit Team	TEXTAREA	field	f	\N	\N	\N	\N	\N	1	2026-10-28 10:30:51.897563	2026-10-28 10:30:51.897569
+511	18	\N	auditRecommendations	Recommendations of the Audit Team	TEXTAREA	field	f	\N	\N	\N	\N	\N	2	2026-10-28 10:30:51.900527	2026-10-28 10:30:51.900532
+512	18	\N	auditDocumentation	Upload Documentation	ATTACHMENT	field	f	\N	\N	\N	\N	\N	3	2026-10-28 10:30:51.902989	2026-10-28 10:30:51.902994
+513	13	\N	name_of_university	Name of University	TEXT	\N	f		\N	\N	\N	\N	1	2026-10-28 10:31:39.26158	2026-10-28 10:31:39.261594
+514	13	\N	year_of_establishment	Year of Establishment	TEXT	\N	f		\N	\N	\N	\N	2	2026-10-28 10:32:00.753494	2026-10-28 10:32:00.753508
+516	13	\N	pincode	Pincode	TEXT	\N	f		\N	\N	\N	\N	4	2026-10-28 10:32:19.977732	2026-10-28 10:32:19.977747
+518	13	\N	name_of_vice_chancellor	Name of Vice Chancellor	TEXT	\N	f		\N	\N	\N	\N	6	2026-10-28 10:32:50.150361	2026-10-28 10:32:50.150376
+520	13	\N	name_of_registrar	Name of Registrar	TEXT	\N	f		\N	\N	\N	\N	8	2026-10-28 10:33:23.395516	2026-10-28 10:33:23.39553
+521	13	\N	registrar_email_id	Registrar e-Mail id	TEXT	\N	f		\N	\N	\N	\N	9	2026-10-28 10:33:37.539068	2026-10-28 10:33:37.539082
+517	13	\N	website	Website	TEXT	\N	f		\N	\N	\N	\N	5	2026-10-28 10:32:27.733225	2026-10-28 10:32:27.733242
+519	13	\N	vice_chancellor_email_id	Vice Chancellor e-Mail id	TEXT	\N	f		\N	\N	\N	\N	7	2026-10-28 10:33:13.891611	2026-10-28 10:33:13.891626
+522	13	\N	accreditation_status_agency	Accreditation status & Agency	TEXT	\N	f		\N	\N	\N	\N	10	2026-10-28 10:33:57.610593	2026-10-28 10:33:57.610606
+\.
+
+
+--
+-- TOC entry 4109 (class 0 OID 99306)
+-- Dependencies: 225
+-- Data for Name: form_schemas; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.form_schemas (id, university_id, audit_type, name, description, assigned_schools, active_version_id, status, created_at, updated_at, active_version_number) FROM stdin;
+1	1	academic	External Academic Audit	Annual Academic Audit Form for Schools	ALL	1	ACTIVE	2026-10-28 15:44:28.091452	2026-10-28 15:44:28.091452	1
+2	1	administrative	Internal Administrative Audit	Annual Administrative Audit Form for Offices	ALL	3	ACTIVE	2026-10-28 15:44:28.0974	2026-10-28 10:39:01.036363	2
+\.
+
+
+--
+-- TOC entry 4113 (class 0 OID 99330)
+-- Dependencies: 229
+-- Data for Name: form_sections; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.form_sections (id, version_id, section_key, title, section_number, owner_role, description, display_order, table_buttons, created_at, updated_at) FROM stdin;
+1	1	school-department-information	School / Department Information	1	director-schools	\N	1	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+2	1	part-a-academic-activities	Part A - Academic Activities	A	director-schools	\N	2	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+3	1	part-b-student-development	Part B - Student Development & Progression	B	director-schools	\N	3	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+4	1	part-c-faculty-research	Part C - Faculty Development & Research Activities	C	director-schools	\N	4	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+5	1	part-d-swoc	Part D - SWOC Analysis	D	director-schools	\N	5	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+6	1	part-e-observations	Part E - Observations & Recommendations of the Audit	E	auditor	\N	6	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+7	2	section-a-university-information	Section A - University Information	A	registrar	\N	1	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+8	2	section-b-faculty-staff-details	Section B - Faculty and Staff Details	B	hr	\N	2	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+9	2	section-c-infrastructure-details	Section C - Infrastructure Details	C	registrar	\N	3	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+10	2	section-d-student-activities	Section D - Student Activities (Extension and Outreach Activities)	D	dean-student-welfare	\N	4	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+11	2	section-e-placement-training	Section E - Student Progression	E	dean-placement	\N	5	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+12	2	section-f-observations-recommendations	Section F - Observations & Recommendations of the Audit	F	auditor	\N	6	\N	2026-10-28 15:46:26.323504	2026-10-28 15:46:26.32829
+13	3	section-a-university-information	Section A - University Information	A	registrar	\N	1	\N	2026-10-28 10:30:51.206518	2026-10-28 10:30:51.206538
+14	3	section-b-faculty-staff-details	Section B - Faculty and Staff Details	B	hr	\N	2	\N	2026-10-28 10:30:51.381446	2026-10-28 10:30:51.381457
+15	3	section-c-infrastructure-details	Section C - Infrastructure Details	C	registrar	\N	3	\N	2026-10-28 10:30:51.546375	2026-10-28 10:30:51.54638
+16	3	section-d-student-activities	Section D - Student Activities (Extension and Outreach Activities)	D	dean-student-welfare	\N	4	\N	2026-10-28 10:30:51.625927	2026-10-28 10:30:51.625931
+18	3	section-f-observations-recommendations	Section F - Observations & Recommendations of the Audit	F	auditor	\N	6	\N	2026-10-28 10:30:51.890606	2026-10-28 10:30:51.890611
+17	3	section_e_student_progression	Section E - Student Progression	E	dean-placement		0	[{"id":"btn_1793183932444","label":"Add School","dropdownLabel":"Select school to add","dropdownOptions":["School of Computer Science & Applications","School of Bio-Engineering & Bio Science","School of Continual Education","School of Commerce & Management","School of Media & Communication Studies","School of Design","School of Applied Arts","School of Engineering Management & Research"],"assignedTableKeys":["sectionaplacementactivities","sectionb1internship","sectionb2careerguidance","sectionb3industryinteraction","sectionb4otheractivities","sectionctrainingskilldevelopmentactivities","sectiondindustrycollaborations"]}]	2026-10-28 10:30:51.688329	2026-10-28 10:38:53.051181
+\.
+
+
+--
+-- TOC entry 4115 (class 0 OID 99340)
+-- Dependencies: 231
+-- Data for Name: form_tables; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.form_tables (id, section_id, table_key, title, show_title, is_repeatable, display_order, initial_rows, select_options, date_columns, number_columns, textarea_columns, textarea_max_lengths, validation_rules, created_at, updated_at) FROM stdin;
+1	1	studentStrength	Student's Strength	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+2	1	facultyStrength	Faculty Strength	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+3	2	boardOfStudies	1. Board of Studies meetings conducted	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+4	2	syllabusRevision	2. Syllabus revision feedback, analysis and ATR	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+5	2	obeImplementation	3. Outcome based education implementation	t	f	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+6	2	nepStatus	4. NEP 2020 implementation status	t	f	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+7	2	bestPractices	5. Best Practices at School level	t	f	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+8	3	studentMentoring	1. Student Mentoring (mentor-wise list with mentee)	t	f	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+9	3	graduatingStudents	2. No. of students graduating (Program wise)	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+10	3	successRate	3. Success Rate of Students (Program wise)	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+11	3	qualifyingExams	4. Students Qualifying in State/National/International level examinations	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+12	3	studentAwards	5. Awards/Medals won by students for outstanding performance in sports/cultural activities	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+13	3	studentPlacements	6. Placement of outgoing students	t	t	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+14	3	higherStudies	7. Percentage of outgoing students progressing to higher education	t	t	7	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+15	3	studentStartups	8. Details of Start-ups incubated by students	t	t	8	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+16	3	studentCourses	9. Online/value-added courses completed by students	t	t	9	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+17	3	alumniInteractions	10. Details of Alumni interactions organized	t	t	10	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+18	3	guestLectures	11. Guest lectures organized	t	t	11	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+19	3	professionalBodies	12. Student chapters of professional bodies	t	t	12	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+20	3	valueAddedCourses	13. Value added courses imparting transferable and life skills	t	t	13	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+21	3	careerGuidance	14. Guidance for competitive examinations and career counseling	t	t	14	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+22	3	extensionActivities	15. Extension and outreach activities conducted	t	t	15	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+23	4	facultySpecialization	1. Profile of the Teachers with qualifications and area of specialization	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+24	4	researchPublications	2. Research Publications in the Journals notified on UGC CARE list	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+25	4	booksChapters	3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+26	4	corporateTraining	4. Revenue generated from corporate training by the Department	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+27	4	consultancy	5. Revenue generated from Consultancy by the Department	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+28	4	researchFunds	6. Research funds sanctioned and received from various agencies, industry and other organizations	t	t	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+29	4	eContents	7. E-Contents developed	t	t	7	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+30	4	teacherAwards	8. Teachers who received national / international fellowship / financial support	t	t	8	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+31	4	patentsCopyrights	Number of Patents / copyright filed / published / awarded	t	t	9	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+32	4	fdpOrganized	9. Details of seminar / symposia / conference / refresher course / training programmes organized	t	t	10	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+33	4	fdpAttended	Details of seminar / symposia / conference / refresher course / training programmes attended by faculty	t	t	11	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+34	4	functionalMous	11. Functional MoUs	t	t	12	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+35	5	swocStrength	Strength	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+36	5	swocWeaknesses	Weaknesses	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+37	5	swocOpportunities	Opportunities	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+38	5	swocChallenges	Challenges	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+39	5	swocOtherInformation	Any other information, which is not covered above	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+40	7	coursesOffered	1. Courses Offered	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+41	7	studentStatistics	2. Total Number of Students in the university	t	f	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+42	7	statutoryBodies	3. Statutory Body Meetings and ATR	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+43	7	auditRecords	4. Audits Completed	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+44	7	scholarshipSummary	5. Scholarship Details	t	f	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+45	7	scholarshipStudents	6. Scholarship Student Details	t	t	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+46	8	facultyInformation	Faculty Information	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+47	8	facultyTenure	(c) Teaching Experience of the Faculty in DYPIU	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+48	8	facultyExperience	(d) Consolidated Experience of the teaching faculty considering outside experience	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+49	8	supportingStaff	Details of Admin and Supporting Staff	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+50	8	staffTraining	Administrative training / professional development program organized for non-teaching staff	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+51	9	buildingInfrastructure	1. Building Infrastructure	t	f	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+52	9	libraryInfrastructure	2. Library & Research Infrastructure	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+53	9	eResources	E-resource Availability	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+54	9	itInfrastructure	3. I.T. (Computer) Infrastructure	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+55	9	sportsFacilities	4. Facilities for cultural activities, yoga, games, sports etc	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+56	9	divyangajanFacilities	5. Facilities for Divyangajan	t	f	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+57	9	researchResources	6. Research Resources	t	t	7	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+58	10	hackathons	1. Hackathons and Ideation workshops	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+59	10	culturalActivities	2. Cultural Clubs and activities and festivals	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+60	10	sportsActivities	3. Sports clubs / teams and activities	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+61	10	communityActivities	4. Community related activities	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+62	10	adminStudentAwards	5. Awards / Prizes / Recognitions in curricular and extended curricular areas	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 15:46:26.332224	2026-10-28 15:46:26.335962
+64	11	sectionaplacementactivities	Section A - Placement Activities	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.214667	2026-10-28 10:27:04.214688
+65	11	sectionb1internship	Section B1 - Internship	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.282532	2026-10-28 10:27:04.282544
+66	11	sectionb2careerguidance	Section B2 - Career Guidance	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.310733	2026-10-28 10:27:04.310743
+67	11	sectionb3industryinteraction	Section B3 - Industry Interaction	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.328766	2026-10-28 10:27:04.328815
+68	11	sectionb4otheractivities	Section B4 - Other Activities	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.346104	2026-10-28 10:27:04.346111
+69	11	sectionctrainingskilldevelopmentactivities	Section C - Training / Skill Development Activities	t	t	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.367413	2026-10-28 10:27:04.36742
+70	11	sectiondindustrycollaborations	Section D - Industry Collaborations	t	t	7	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:27:04.38533	2026-10-28 10:27:04.385352
+71	13	coursesOffered	1. Courses Offered	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.228109	2026-10-28 10:30:51.228123
+72	13	studentStatistics	2. Total Number of Students in the university	t	f	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.255031	2026-10-28 10:30:51.25504
+73	13	statutoryBodies	3. Statutory Body Meetings and ATR	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.2731	2026-10-28 10:30:51.273108
+74	13	auditRecords	4. Audits Completed	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.292663	2026-10-28 10:30:51.292677
+75	13	scholarshipSummary	5. Scholarship Details	t	f	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.317128	2026-10-28 10:30:51.317142
+76	13	scholarshipStudents	6. Scholarship Student Details	t	t	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.351436	2026-10-28 10:30:51.351448
+77	14	facultyInformation	Faculty Information	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.415551	2026-10-28 10:30:51.415565
+78	14	facultyTenure	(c) Teaching Experience of the Faculty in DYPIU	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.438116	2026-10-28 10:30:51.438129
+79	14	facultyExperience	(d) Consolidated Experience of the teaching faculty considering outside experience	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.454461	2026-10-28 10:30:51.454471
+80	14	supportingStaff	Details of Admin and Supporting Staff	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.490947	2026-10-28 10:30:51.490957
+81	14	staffTraining	Administrative training / professional development program organized for non-teaching staff	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.524091	2026-10-28 10:30:51.524141
+82	15	buildingInfrastructure	1. Building Infrastructure	t	f	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.555307	2026-10-28 10:30:51.555312
+83	15	libraryInfrastructure	2. Library & Research Infrastructure	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.565928	2026-10-28 10:30:51.565933
+84	15	eResources	E-resource Availability	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.576367	2026-10-28 10:30:51.576371
+85	15	itInfrastructure	3. I.T. (Computer) Infrastructure	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.589427	2026-10-28 10:30:51.589432
+86	15	sportsFacilities	4. Facilities for cultural activities, yoga, games, sports etc	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.599331	2026-10-28 10:30:51.599335
+87	15	divyangajanFacilities	5. Facilities for Divyangajan	t	f	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.607748	2026-10-28 10:30:51.607751
+88	15	researchResources	6. Research Resources	t	t	7	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.61618	2026-10-28 10:30:51.616184
+89	16	hackathons	1. Hackathons and Ideation workshops	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.632367	2026-10-28 10:30:51.632372
+90	16	culturalActivities	2. Cultural Clubs and activities and festivals	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.643088	2026-10-28 10:30:51.643092
+91	16	sportsActivities	3. Sports clubs / teams and activities	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.652108	2026-10-28 10:30:51.652111
+92	16	communityActivities	4. Community related activities	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.661739	2026-10-28 10:30:51.661743
+93	16	adminStudentAwards	5. Awards / Prizes / Recognitions in curricular and extended curricular areas	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.675337	2026-10-28 10:30:51.67534
+94	17	sectionaplacementactivities	Section A - Placement Activities	t	t	1	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.695481	2026-10-28 10:30:51.695484
+95	17	sectionb1internship	Section B1 - Internship	t	t	2	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.719082	2026-10-28 10:30:51.719091
+96	17	sectionb2careerguidance	Section B2 - Career Guidance	t	t	3	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.758749	2026-10-28 10:30:51.758757
+97	17	sectionb3industryinteraction	Section B3 - Industry Interaction	t	t	4	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.792056	2026-10-28 10:30:51.792063
+98	17	sectionb4otheractivities	Section B4 - Other Activities	t	t	5	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.820017	2026-10-28 10:30:51.820022
+99	17	sectionctrainingskilldevelopmentactivities	Section C - Training / Skill Development Activities	t	t	6	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.845172	2026-10-28 10:30:51.845177
+100	17	sectiondindustrycollaborations	Section D - Industry Collaborations	t	t	7	\N	\N	\N	\N	\N	\N	\N	2026-10-28 10:30:51.868044	2026-10-28 10:30:51.86805
+\.
+
+
+--
+-- TOC entry 4167 (class 0 OID 99517)
+-- Dependencies: 283
+-- Data for Name: functional_mous; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.functional_mous (id, submission_id, sr_no, partner_org, signing_year, mou_duration, activities, link_proof) FROM stdin;
 182	71	1	\N	2025-26	3-5 Years	3	[{"name":"C11. Semiconductor  Functional MoUs 1.pdf","fileName":"C11. Semiconductor  Functional MoUs 1.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/5d1637eb-eb8e-4d1b-8bcf-bc22b2c8727c-C11._Semiconductor__Functional_MoUs_1.pdf"}]
@@ -5539,6 +5674,13 @@ COPY public.functional_mous (id, submission_id, sr_no, partner_org, signing_year
 159	76	1	\N				[{"name":"Part C - 11 - SoMCS SUMMARY Sheet.pdf","fileName":"Part C - 11 - SoMCS SUMMARY Sheet.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/bd7f66e8f7af62de/attachments/0eaffe0a-1de6-4d3b-887a-ae2110329c91-Part_C_-_11_-_SoMCS_SUMMARY_Sheet.pdf"}]
 \.
 
+
+--
+-- TOC entry 4169 (class 0 OID 99523)
+-- Dependencies: 285
+-- Data for Name: graduating_students; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.graduating_students (id, submission_id, program, female, male, total) FROM stdin;
 116	78	B.Tech (CSE)	105	264	369
 117	78	BCA	44	69	112
@@ -5555,6 +5697,13 @@ COPY public.graduating_students (id, submission_id, program, female, male, total
 114	77	B Tech Electrical Engineering	64	83	147
 115	77	M Tech Electric Vehicles	7	26	33
 \.
+
+
+--
+-- TOC entry 4171 (class 0 OID 99529)
+-- Dependencies: 287
+-- Data for Name: guest_lectures; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.guest_lectures (id, submission_id, sr_no, resource_person, designation_org, conduction_date, topic, no_beneficiaries, link_proof) FROM stdin;
 176	71	1	Semiconductor Engineering	Industry Person, Academicians	2025-26	Workshop, Seminar, Guest Lecture	307	[{"name":"B11. Number of guest lectures workshops seminars conducted for students.pdf","fileName":"B11. Number of guest lectures workshops seminars conducted for students.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/a00d7f64-1146-4f85-86da-9ed30f6aa617-B11._Number_of_guest_lectures_workshops_seminars_conducted_for_students.pdf"}]
@@ -5574,10 +5723,24 @@ COPY public.guest_lectures (id, submission_id, sr_no, resource_person, designati
 186	74	1	Summary sheet attached					[{"name":"Guest lecture , seminars and workshops SoBB 25-26.pdf","fileName":"Guest lecture , seminars and workshops SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/ad4b68dd-48dd-405a-a222-088b5c8db48c-Guest_lecture___seminars_and_workshops_SoBB_25-26.pdf"}]
 \.
 
+
+--
+-- TOC entry 4173 (class 0 OID 99535)
+-- Dependencies: 289
+-- Data for Name: hackathons; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.hackathons (id, submission_id, sr_no, activity_details, organized_by, conduction_date, participants_count, attachment) FROM stdin;
 20	62	1	All Hackathon and Ideation Workshops 	DYPIU Liasioning with other organizations	1 June 2025 to 30th June 2026	Listed	[{"name":"1. Vision Mission.pdf","fileName":"1. Vision Mission.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/af64b9a6-b400-4c4a-a2a5-30297591508c-1._Vision_Mission.pdf"},{"name":"AAA - Hackathons and Ideation workshops- Event Details_2025-26 1.pdf","fileName":"AAA - Hackathons and Ideation workshops- Event Details_2025-26 1.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/6d872792-ab48-4d33-844a-0225c0cac541-AAA_-_Hackathons_and_Ideation_workshops-_Event_Details_2025-26_1.pdf"}]
 26	79	1	All Hackathon and Ideation Workshops 	DYPIU Liasioning with other organizations	1 June 2025 to 30th June 2026	Listed	[{"name":"1. Vision Mission.pdf","fileName":"1. Vision Mission.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/af64b9a6-b400-4c4a-a2a5-30297591508c-1._Vision_Mission.pdf"},{"name":"AAA - Hackathons and Ideation workshops- Event Details_2025-26 1.pdf","fileName":"AAA - Hackathons and Ideation workshops- Event Details_2025-26 1.pdf","url":"/uploads/users/5fb514a9e61b47c9/attachments/6d872792-ab48-4d33-844a-0225c0cac541-AAA_-_Hackathons_and_Ideation_workshops-_Event_Details_2025-26_1.pdf"}]
 \.
+
+
+--
+-- TOC entry 4175 (class 0 OID 99541)
+-- Dependencies: 291
+-- Data for Name: higher_studies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.higher_studies (id, submission_id, program, students_appeared, selected_students, students_percent) FROM stdin;
 76	77	--	--	--	\N
@@ -5592,8 +5755,22 @@ COPY public.higher_studies (id, submission_id, program, students_appeared, selec
 91	74	B. Tech Bioengineering	103	5	\N
 \.
 
+
+--
+-- TOC entry 4177 (class 0 OID 99547)
+-- Dependencies: 293
+-- Data for Name: industry_collaborations; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.industry_collaborations (id, submission_id, sr_no, partner_org, signing_year, mou_duration, activities) FROM stdin;
 \.
+
+
+--
+-- TOC entry 4179 (class 0 OID 99553)
+-- Dependencies: 295
+-- Data for Name: it_infrastructure; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.it_infrastructure (id, submission_id, sr_no, facilities, no) FROM stdin;
 98	62	1	No. of Computers in Institute	1100
@@ -5614,6 +5791,13 @@ COPY public.it_infrastructure (id, submission_id, sr_no, facilities, no) FROM st
 153	79	8	Internet Connectivity	Fiber Optic
 \.
 
+
+--
+-- TOC entry 4181 (class 0 OID 99559)
+-- Dependencies: 297
+-- Data for Name: library_infrastructure; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.library_infrastructure (id, submission_id, sr_no, facilities, no) FROM stdin;
 87	62	1	Books (Title and Volumes)\t	Titles- 9578, Volumes - 24905
 88	62	2	E-books and Journals	Ebsco- 250000+, E-Journals J Gate- 55000+, Delnet
@@ -5630,6 +5814,13 @@ COPY public.library_infrastructure (id, submission_id, sr_no, facilities, no) FR
 134	79	6	Library Automation\t	Yes, Koha with RFID Integration
 135	79	7	Others (specify)\t	RFID Security Gate, OPAC, Self issue, Return Kiosk, CCTV Camera, Knimbus Digital Library & Mobile application
 \.
+
+
+--
+-- TOC entry 4183 (class 0 OID 99565)
+-- Dependencies: 299
+-- Data for Name: nep_status; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.nep_status (id, submission_id, sn, check_points, availability, link_document) FROM stdin;
 863	77	1	NEP Governance Structure	Yes	[{"name":"List of Subjects as per NEP.pdf","fileName":"List of Subjects as per NEP.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/d291669ed87e0b9f/attachments/df750366-8ad4-4f06-87ed-2a001d90b4d8-List_of_Subjects_as_per_NEP.pdf"}]
@@ -5686,6 +5877,13 @@ COPY public.nep_status (id, submission_id, sn, check_points, availability, link_
 888	76	10	Holistic Development & Student Support		[{"name":"Holistic Development & Student Support.pdf","fileName":"Holistic Development & Student Support.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/bd7f66e8f7af62de/attachments/5ffaa5a8-8000-43ea-ad88-03c293364183-Holistic_Development___Student_Support.pdf"}]
 \.
 
+
+--
+-- TOC entry 4185 (class 0 OID 99571)
+-- Dependencies: 301
+-- Data for Name: obe_implementation; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.obe_implementation (id, submission_id, sr_no, particular, link_document) FROM stdin;
 418	73	1	Learning outcomes	[{"name":"Learning outcomes (1).pdf","fileName":"Learning outcomes (1).pdf","url":"/uploads/users/04c83213103c5bcf/attachments/61f93017-f657-49f2-9063-894fd47b964d-Learning_outcomes__1_.pdf"}]
 419	73	2	Concurrent assessment	[{"name":"Concurrent assessment.pdf","fileName":"Concurrent assessment.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/27e99497-c8b3-4a77-af41-1c49ccd9e3e7-Concurrent_assessment.pdf"}]
@@ -5714,6 +5912,13 @@ COPY public.obe_implementation (id, submission_id, sr_no, particular, link_docum
 415	71	2	Concurrent assessment	[{"name":"Chemical Concurrent assessment Summary 2025-2026.pdf","fileName":"Chemical Concurrent assessment Summary 2025-2026.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/1d772f2b-235d-4401-898c-07b8f09b650d-Chemical_Concurrent_assessment_Summary_2025-2026.pdf"},{"name":"A3. Semiconductor Concurrent assessment Summary 2025-2026.pdf","fileName":"A3. Semiconductor Concurrent assessment Summary 2025-2026.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/35c52b16-dca9-4610-ab82-2c126764e8ff-A3._Semiconductor_Concurrent_assessment_Summary_2025-2026.pdf"},{"name":"A3.2 Civil Concurrent assessment Summary 2025-2026.docx.pdf","fileName":"A3.2 Civil Concurrent assessment Summary 2025-2026.docx.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/9e38f9e2-d6e7-4a28-95a4-f49f09617ca4-A3.2_Civil_Concurrent_assessment_Summary_2025-2026.docx.pdf"},{"name":"A3. Chemical Concurrent assessment Summary 2025-2026.pdf","fileName":"A3. Chemical Concurrent assessment Summary 2025-2026.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/a34de66a-42e5-42c6-83cc-4b170cc30202-A3._Chemical_Concurrent_assessment_Summary_2025-2026.pdf"},{"name":"Mechanical Concurrent assessment Summary 2025-2026.pdf","fileName":"Mechanical Concurrent assessment Summary 2025-2026.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/f4dedeca-b53f-4314-9f7e-0126512d7b0a-Mechanical_Concurrent_assessment_Summary_2025-2026.pdf"}]
 \.
 
+
+--
+-- TOC entry 4187 (class 0 OID 99577)
+-- Dependencies: 303
+-- Data for Name: patents_copyrights; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.patents_copyrights (id, submission_id, sr_no, inventor_name, application_no, title, date_of_filing, date_of_publication, date_of_award, link_proof) FROM stdin;
 148	73	1	Kayanaat Patel, Unatti Talekar, Nupur Shah, Gayatri More, Mr. Krishna Kumar, Mr. Nitish Rupesh Sawant	Design Application number: 202621030071	Manual Load Lifting Apparatus For Load Handling			2026/03/12	[{"name":"Patent.pdf","fileName":"Patent.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/3613af12-95a3-4f32-aecc-53580b8d2502-Patent.pdf"}]
 149	75	1	None 	None 	None 	None 	None 	None 	
@@ -5727,6 +5932,13 @@ COPY public.patents_copyrights (id, submission_id, sr_no, inventor_name, applica
 146	71	3	Mechanical	-	-	All AY 2025-26	All AY 2025-26	All AY 2025-26	[{"name":"C 8. Mechanical Number of Patents  copyright filed  published  awarded (1).pdf","fileName":"C 8. Mechanical Number of Patents  copyright filed  published  awarded (1).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/6cd9c8a6-6dd6-40b1-bc09-dcd0dda7c570-C_8._Mechanical_Number_of_Patents__copyright_filed__published__awarded__1_.pdf"},{"name":"C 8. Mechanical Number of Patents  copyright filed  published  awarded (1).pdf","fileName":"C 8. Mechanical Number of Patents  copyright filed  published  awarded (1).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/c948909e-8e8d-4e09-906e-04dee3b43167-C_8._Mechanical_Number_of_Patents__copyright_filed__published__awarded__1_.pdf"}]
 147	71	4	Chemical engineering						[{"name":"C 8. Chemical_Number of Patents  copyright filed  published  awarded (1).pdf","fileName":"C 8. Chemical_Number of Patents  copyright filed  published  awarded (1).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/78776f46-9e02-455c-8ac0-97af3d22004b-C_8._Chemical_Number_of_Patents__copyright_filed__published__awarded__1_.pdf"}]
 \.
+
+
+--
+-- TOC entry 4189 (class 0 OID 99583)
+-- Dependencies: 305
+-- Data for Name: professional_bodies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.professional_bodies (id, submission_id, sr_no, body_name, student_members, event_date, event_name, link_proof) FROM stdin;
 153	71	1	Semiconductor Engineering- IEEE, Robotics Club	80	2025-26	Guest Lecture, Webinar, Workshops	[{"name":"IEEELogicVerse Report.pdf","fileName":"IEEELogicVerse Report.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/918d46d4-cd33-4c01-8a2a-a20272790a9c-IEEELogicVerse_Report.pdf"},{"name":"B12. Details of the Professional Body association & Student clubs.pdf","fileName":"B12. Details of the Professional Body association & Student clubs.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/3c6b3d2c-a309-44d3-8bde-a50a756a8610-B12._Details_of_the_Professional_Body_association___Student_clubs.pdf"}]
@@ -5743,6 +5955,13 @@ COPY public.professional_bodies (id, submission_id, sr_no, body_name, student_me
 138	76	1	PRCI	10	11th April 2026	Student Chapter	[{"name":"Part B - 12 - SoMCS SUMMARY Sheet.pdf","fileName":"Part B - 12 - SoMCS SUMMARY Sheet.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/bd7f66e8f7af62de/attachments/f21b4d30-d600-4bcf-86fa-11532fd6c728-Part_B_-_12_-_SoMCS_SUMMARY_Sheet.pdf"}]
 \.
 
+
+--
+-- TOC entry 4191 (class 0 OID 99589)
+-- Dependencies: 307
+-- Data for Name: qualifying_exams; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.qualifying_exams (id, submission_id, sr_no, student_name, examination_details, proof_attachment) FROM stdin;
 108	77	1	-	-	
 109	78	1	SoCSEA Summary Sheet Attached		[{"name":"4.pdf","fileName":"4.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/ffe9ac21-bacc-43a1-93d6-acd2f6e77981-4.pdf"}]
@@ -5753,6 +5972,13 @@ COPY public.qualifying_exams (id, submission_id, sr_no, student_name, examinatio
 122	75	1	None 	None 	
 123	74	1	Summary sheet		[{"name":"Students qualifying in state  national  international level examinations SoBB 25-26.pdf","fileName":"Students qualifying in state  national  international level examinations SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/022ff581-cf21-4417-bd81-469dab1daf04-Students_qualifying_in_state__national__international_level_examinations_SoBB_25-26.pdf"}]
 \.
+
+
+--
+-- TOC entry 4193 (class 0 OID 99595)
+-- Dependencies: 309
+-- Data for Name: research_funds; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.research_funds (id, submission_id, sr_no, project_name, principal_investigator, department_pi, year_of_award, funds_provided, project_duration, link_proof) FROM stdin;
 191	73	1	 Comparative Analysis of Existing vs. Improved UX Writing in E-commerce: Impact on User Conversion Rates and FOMO/Scarcity Practices	 Sri Gayathri Vedula- Faculty mentor	Design	2026	 Rs. 10,000/-(in process)	 3 months	[{"name":"UX writing research proposal.pdf","fileName":"UX writing research proposal.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/2cee3a4e-25f8-4840-b76f-eeff32c80f66-UX_writing_research_proposal.pdf"}]
@@ -5773,6 +5999,13 @@ COPY public.research_funds (id, submission_id, sr_no, project_name, principal_in
 159	76	1	NA						
 \.
 
+
+--
+-- TOC entry 4195 (class 0 OID 99601)
+-- Dependencies: 311
+-- Data for Name: research_publications; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.research_publications (id, submission_id, paper_title, author_name, journal_name, publication_details, isbn_issn, ugc_approved, journal_type, impact_factor, link_proof) FROM stdin;
 69	77	-	\N	-	\N	-	-	-	-	[{"name":"Research Papers Publications.docx.pdf","fileName":"Research Papers Publications.docx.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/d291669ed87e0b9f/attachments/378afd6a-bebf-4b74-a33a-77814d9197c9-Research_Papers_Publications.docx.pdf"}]
 70	78	SoCSEA Summary Sheet Attached	\N		\N					[{"name":"C_2.pdf","fileName":"C_2.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/dffa5549-e5d5-458b-8f0e-940834d66b6a-C_2.pdf"}]
@@ -5786,10 +6019,37 @@ COPY public.research_publications (id, submission_id, paper_title, author_name, 
 90	74	All faculty	\N	-	\N	-	-	-	-	[{"name":"research articles_SoBB.pdf","fileName":"research articles_SoBB.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/c5ed033b-bcd9-429a-9507-6b3f41fff181-research_articles_SoBB.pdf"}]
 \.
 
+
+--
+-- TOC entry 4197 (class 0 OID 99607)
+-- Dependencies: 313
+-- Data for Name: research_resources; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.research_resources (id, submission_id, sr_no, facilities, availability, remarks) FROM stdin;
 20	62	1			
 26	79	1			
 \.
+
+
+--
+-- TOC entry 4111 (class 0 OID 99319)
+-- Dependencies: 227
+-- Data for Name: schema_versions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.schema_versions (id, schema_id, version_number, status, academic_year, title, owner_role, compiled_schema, created_by, created_at, published_by, published_at, updated_at) FROM stdin;
+1	1	1	PUBLISHED	2025-26	External Academic Audit	director-schools	{"id": "academic-audit-2025-26", "schemaId": 1, "versionId": 1, "versionNumber": 1, "auditType": "academic", "title": "External Academic Audit", "academicYear": "2025-26", "ownerRole": "director-schools", "status": "PUBLISHED", "header": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png"}, "universityInfo": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png", "code": "dypiu", "slug": "dypiu", "domain": "dypiu.ac.in", "primaryColor": "#1e3a8a"}, "sections": [{"id": 1, "idString": "school-department-information", "sectionKey": "school-department-information", "title": "School / Department Information", "number": "1", "ownerRole": "director-schools", "displayOrder": 1, "fields": [{"id": 1, "idString": "schoolName", "fieldKey": "schoolName", "label": "Name of the School / Department", "fieldType": "TEXT", "kind": "field", "isRequired": true, "displayOrder": 1}, {"id": 2, "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 3, "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 4, "idString": "directorName", "fieldKey": "directorName", "label": "Director's Name", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 5, "idString": "directorEmail", "fieldKey": "directorEmail", "label": "Director's Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": 6, "idString": "ugIntake", "fieldKey": "ugIntake", "label": "UG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": 7, "idString": "pgIntake", "fieldKey": "pgIntake", "label": "PG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": 8, "idString": "academicCalendar", "fieldKey": "academicCalendar", "label": "Academic Calendar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}], "tables": [{"id": 1, "idString": "studentStrength", "tableKey": "studentStrength", "title": "Student's Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Class", "No. of Student", "Total"], "fields": [{"id": 9, "idString": "class", "fieldKey": "class", "label": "Class", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 10, "idString": "no_of_student", "fieldKey": "no_of_student", "label": "No. of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 11, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}, {"id": 2, "idString": "facultyStrength", "tableKey": "facultyStrength", "title": "Faculty Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Required", "Available"], "fields": [{"id": 12, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 13, "idString": "available", "fieldKey": "available", "label": "Available", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}], "blocks": [{"type": "fields", "fields": [{"id": "schoolName", "idString": "schoolName", "fieldKey": "schoolName", "label": "Name of the School / Department", "fieldType": "TEXT", "kind": "field", "isRequired": true, "displayOrder": 1}, {"id": "establishmentYear", "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "address", "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "directorName", "idString": "directorName", "fieldKey": "directorName", "label": "Director's Name", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "directorEmail", "idString": "directorEmail", "fieldKey": "directorEmail", "label": "Director's Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": "ugIntake", "idString": "ugIntake", "fieldKey": "ugIntake", "label": "UG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": "pgIntake", "idString": "pgIntake", "fieldKey": "pgIntake", "label": "PG Intake", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": "academicCalendar", "idString": "academicCalendar", "fieldKey": "academicCalendar", "label": "Academic Calendar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}]}, {"type": "tables", "tables": [{"id": "studentStrength", "idString": "studentStrength", "tableKey": "studentStrength", "title": "Student's Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Class", "No. of Student", "Total"], "fields": [{"id": 9, "idString": "class", "fieldKey": "class", "label": "Class", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 10, "idString": "no_of_student", "fieldKey": "no_of_student", "label": "No. of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 11, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}, {"id": "facultyStrength", "idString": "facultyStrength", "tableKey": "facultyStrength", "title": "Faculty Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Required", "Available"], "fields": [{"id": 12, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 13, "idString": "available", "fieldKey": "available", "label": "Available", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}]}]}, {"id": 2, "idString": "part-a-academic-activities", "sectionKey": "part-a-academic-activities", "title": "Part A - Academic Activities", "number": "A", "ownerRole": "director-schools", "displayOrder": 2, "fields": [{"id": 14, "idString": "bosMeetingsCount", "fieldKey": "bosMeetingsCount", "label": "No. of meetings conducted", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 15, "idString": "stakeholderFeedback", "fieldKey": "stakeholderFeedback", "label": "a. Stakeholder feedback", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 16, "idString": "feedbackAnalysis", "fieldKey": "feedbackAnalysis", "label": "b. Analysis of the feedback", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 17, "idString": "actionTakenReport", "fieldKey": "actionTakenReport", "label": "c. Action taken Report", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 4}], "tables": [{"id": 3, "idString": "boardOfStudies", "tableKey": "boardOfStudies", "title": "1. Board of Studies meetings conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Date of the meeting", "Link for MoM"], "fields": [{"id": 18, "idString": "date_of_the_meeting", "fieldKey": "date_of_the_meeting", "label": "Date of the meeting", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 19, "idString": "link_for_mom", "fieldKey": "link_for_mom", "label": "Link for MoM", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}, {"id": 4, "idString": "syllabusRevision", "tableKey": "syllabusRevision", "title": "2. Syllabus revision feedback, analysis and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Category of Feedback", "Link for Analysis and ATR"], "fields": [{"id": 20, "idString": "category_of_feedback", "fieldKey": "category_of_feedback", "label": "Category of Feedback", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 21, "idString": "link_for_analysis_and_atr", "fieldKey": "link_for_analysis_and_atr", "label": "Link for Analysis and ATR", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}, {"id": 5, "idString": "obeImplementation", "tableKey": "obeImplementation", "title": "3. Outcome based education implementation", "showTitle": true, "isRepeatable": false, "displayOrder": 3, "columns": ["Particular", "Link for the Document"], "fields": [{"id": 22, "idString": "particular", "fieldKey": "particular", "label": "Particular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 23, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Particular": "Learning outcomes"}, {"Sr No": "2", "Particular": "Concurrent assessment"}, {"Sr No": "3", "Particular": "CO Coverage in Assessment"}, {"Sr No": "4", "Particular": "Course Exit Survey"}]}, {"id": 6, "idString": "nepStatus", "tableKey": "nepStatus", "title": "4. NEP 2020 implementation status", "showTitle": true, "isRepeatable": false, "displayOrder": 4, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 24, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 25, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 26, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "NEP Governance Structure"}, {"SN": "2", "Check Points": "Curriculum Alignment with NEP"}, {"SN": "3", "Check Points": "Multidisciplinary & Interdisciplinary Learning"}, {"SN": "4", "Check Points": "Academic Bank of Credits (ABC)"}, {"SN": "5", "Check Points": "Multiple Entry & Exit"}, {"SN": "6", "Check Points": "Skill & Vocational Education"}, {"SN": "7", "Check Points": "Experiential Learning & Internships"}, {"SN": "8", "Check Points": "Outcome Based Education (OBE)"}, {"SN": "9", "Check Points": "Technology Integration & MOOCs"}, {"SN": "10", "Check Points": "Holistic Development & Student Support"}], "textareaColumns": ["SDG Address"]}, {"id": 7, "idString": "bestPractices", "tableKey": "bestPractices", "title": "5. Best Practices at School level", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 27, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 28, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 29, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "Best Practice Identification"}, {"SN": "2", "Check Points": "Detailed Implementation Plan"}, {"SN": "3", "Check Points": "Stakeholder Participation Data"}, {"SN": "4", "Check Points": "Outcome Measurement"}, {"SN": "5", "Check Points": "Impact Assessment"}, {"SN": "5(a)", "Check Points": "Quantitative Impact"}, {"SN": "5(b)", "Check Points": "Qualitative Impact"}]}], "blocks": [{"type": "tables", "tables": [{"id": "boardOfStudies", "idString": "boardOfStudies", "tableKey": "boardOfStudies", "title": "1. Board of Studies meetings conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Date of the meeting", "Link for MoM"], "fields": [{"id": 18, "idString": "date_of_the_meeting", "fieldKey": "date_of_the_meeting", "label": "Date of the meeting", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 19, "idString": "link_for_mom", "fieldKey": "link_for_mom", "label": "Link for MoM", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}]}, {"type": "fields", "fields": [{"id": "syllabusHeading", "kind": "heading", "label": "2. Syllabus revision (Major/Minor) details"}, {"id": "stakeholderFeedback", "idString": "stakeholderFeedback", "fieldKey": "stakeholderFeedback", "label": "a. Stakeholder feedback", "fieldType": "TEXTAREA"}, {"id": "feedbackAnalysis", "idString": "feedbackAnalysis", "fieldKey": "feedbackAnalysis", "label": "b. Analysis of the feedback", "fieldType": "TEXTAREA"}, {"id": "actionTakenReport", "idString": "actionTakenReport", "fieldKey": "actionTakenReport", "label": "c. Action taken Report", "fieldType": "TEXTAREA"}]}, {"type": "tables", "tables": [{"id": "syllabusRevision", "idString": "syllabusRevision", "tableKey": "syllabusRevision", "title": "2. Syllabus revision feedback, analysis and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Category of Feedback", "Link for Analysis and ATR"], "fields": [{"id": 20, "idString": "category_of_feedback", "fieldKey": "category_of_feedback", "label": "Category of Feedback", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 21, "idString": "link_for_analysis_and_atr", "fieldKey": "link_for_analysis_and_atr", "label": "Link for Analysis and ATR", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}]}]}, {"type": "tables", "tables": [{"id": "obeImplementation", "idString": "obeImplementation", "tableKey": "obeImplementation", "title": "3. Outcome based education implementation", "showTitle": true, "isRepeatable": false, "displayOrder": 3, "columns": ["Particular", "Link for the Document"], "fields": [{"id": 22, "idString": "particular", "fieldKey": "particular", "label": "Particular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 23, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Particular": "Learning outcomes"}, {"Sr No": "2", "Particular": "Concurrent assessment"}, {"Sr No": "3", "Particular": "CO Coverage in Assessment"}, {"Sr No": "4", "Particular": "Course Exit Survey"}]}, {"id": "nepStatus", "idString": "nepStatus", "tableKey": "nepStatus", "title": "4. NEP 2020 implementation status", "showTitle": true, "isRepeatable": false, "displayOrder": 4, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 24, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 25, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 26, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "NEP Governance Structure"}, {"SN": "2", "Check Points": "Curriculum Alignment with NEP"}, {"SN": "3", "Check Points": "Multidisciplinary & Interdisciplinary Learning"}, {"SN": "4", "Check Points": "Academic Bank of Credits (ABC)"}, {"SN": "5", "Check Points": "Multiple Entry & Exit"}, {"SN": "6", "Check Points": "Skill & Vocational Education"}, {"SN": "7", "Check Points": "Experiential Learning & Internships"}, {"SN": "8", "Check Points": "Outcome Based Education (OBE)"}, {"SN": "9", "Check Points": "Technology Integration & MOOCs"}, {"SN": "10", "Check Points": "Holistic Development & Student Support"}], "textareaColumns": ["SDG Address"]}, {"id": "bestPractices", "idString": "bestPractices", "tableKey": "bestPractices", "title": "5. Best Practices at School level", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Check Points", "Availability", "Link for the Document"], "fields": [{"id": 27, "idString": "check_points", "fieldKey": "check_points", "label": "Check Points", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 28, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 29, "idString": "link_for_the_document", "fieldKey": "link_for_the_document", "label": "Link for the Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"SN": "1", "Check Points": "Best Practice Identification"}, {"SN": "2", "Check Points": "Detailed Implementation Plan"}, {"SN": "3", "Check Points": "Stakeholder Participation Data"}, {"SN": "4", "Check Points": "Outcome Measurement"}, {"SN": "5", "Check Points": "Impact Assessment"}, {"SN": "5(a)", "Check Points": "Quantitative Impact"}, {"SN": "5(b)", "Check Points": "Qualitative Impact"}]}]}]}, {"id": 3, "idString": "part-b-student-development", "sectionKey": "part-b-student-development", "title": "Part B - Student Development & Progression", "number": "B", "ownerRole": "director-schools", "displayOrder": 3, "fields": [], "tables": [{"id": 8, "idString": "studentMentoring", "tableKey": "studentMentoring", "title": "1. Student Mentoring (mentor-wise list with mentee)", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Name of Mentor", "No. of Mentees", "Link to Document"], "fields": [{"id": 30, "idString": "name_of_mentor", "fieldKey": "name_of_mentor", "label": "Name of Mentor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 31, "idString": "no_of_mentees", "fieldKey": "no_of_mentees", "label": "No. of Mentees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 32, "idString": "link_to_document", "fieldKey": "link_to_document", "label": "Link to Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 9, "idString": "graduatingStudents", "tableKey": "graduatingStudents", "title": "2. No. of students graduating (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Program", "Female", "Male", "Total"], "fields": [{"id": 33, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 34, "idString": "female", "fieldKey": "female", "label": "Female", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 35, "idString": "male", "fieldKey": "male", "label": "Male", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 36, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 10, "idString": "successRate", "tableKey": "successRate", "title": "3. Success Rate of Students (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Program", "No of Students Appeared for Final Semester Exam", "Number of Students cleared Program in stipulated duration of the program", "Success Rate %"], "fields": [{"id": 37, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 38, "idString": "no_of_students_appeared_for_final_semester_exam", "fieldKey": "no_of_students_appeared_for_final_semester_exam", "label": "No of Students Appeared for Final Semester Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 39, "idString": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "fieldKey": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "label": "Number of Students cleared Program in stipulated duration of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 40, "idString": "success_rate", "fieldKey": "success_rate", "label": "Success Rate %", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 11, "idString": "qualifyingExams", "tableKey": "qualifyingExams", "title": "4. Students Qualifying in State/National/International level examinations", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of the Student", "Examination Details", "Proof as attachment"], "fields": [{"id": 41, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 42, "idString": "examination_details", "fieldKey": "examination_details", "label": "Examination Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 43, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 12, "idString": "studentAwards", "tableKey": "studentAwards", "title": "5. Awards/Medals won by students for outstanding performance in sports/cultural activities", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the Student", "Details of the Award", "Proof as an attachment"], "fields": [{"id": 44, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 45, "idString": "details_of_the_award", "fieldKey": "details_of_the_award", "label": "Details of the Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 46, "idString": "proof_as_an_attachment", "fieldKey": "proof_as_an_attachment", "label": "Proof as an attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 13, "idString": "studentPlacements", "tableKey": "studentPlacements", "title": "6. Placement of outgoing students", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students Placed", "% Placement", "Proof as attachment"], "fields": [{"id": 47, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 48, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 49, "idString": "no_of_students_placed", "fieldKey": "no_of_students_placed", "label": "No of Students Placed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 50, "idString": "placement", "fieldKey": "placement", "label": "% Placement", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 51, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 14, "idString": "higherStudies", "tableKey": "higherStudies", "title": "7. Percentage of outgoing students progressing to higher education", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students selected for Higher studies", "% Students"], "fields": [{"id": 52, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 53, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 54, "idString": "no_of_students_selected_for_higher_studies", "fieldKey": "no_of_students_selected_for_higher_studies", "label": "No of Students selected for Higher studies", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 55, "idString": "students", "fieldKey": "students", "label": "% Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": 15, "idString": "studentStartups", "tableKey": "studentStartups", "title": "8. Details of Start-ups incubated by students", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Student", "Name of the Venture / Start-up", "Link to relevant Proof"], "fields": [{"id": 56, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 57, "idString": "name_of_the_venture_start_up", "fieldKey": "name_of_the_venture_start_up", "label": "Name of the Venture / Start-up", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 58, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": 16, "idString": "studentCourses", "tableKey": "studentCourses", "title": "9. Online/value-added courses completed by students", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Name of Student", "Year of Study", "Name of course", "Duration", "Link to relevant Proof"], "fields": [{"id": 59, "idString": "name_of_student", "fieldKey": "name_of_student", "label": "Name of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 60, "idString": "year_of_study", "fieldKey": "year_of_study", "label": "Year of Study", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 61, "idString": "name_of_course", "fieldKey": "name_of_course", "label": "Name of course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 62, "idString": "duration", "fieldKey": "duration", "label": "Duration", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 63, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 17, "idString": "alumniInteractions", "tableKey": "alumniInteractions", "title": "10. Details of Alumni interactions organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Name of Alumni", "Designation", "Present employer", "Date on interaction", "Topic", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 64, "idString": "name_of_alumni", "fieldKey": "name_of_alumni", "label": "Name of Alumni", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 65, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 66, "idString": "present_employer", "fieldKey": "present_employer", "label": "Present employer", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 67, "idString": "date_on_interaction", "fieldKey": "date_on_interaction", "label": "Date on interaction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 68, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 69, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 70, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 18, "idString": "guestLectures", "tableKey": "guestLectures", "title": "11. Guest lectures organized", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Name of the Resource person", "Designation and organization", "Date of conduction", "Topic", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 71, "idString": "name_of_the_resource_person", "fieldKey": "name_of_the_resource_person", "label": "Name of the Resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 72, "idString": "designation_and_organization", "fieldKey": "designation_and_organization", "label": "Designation and organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 73, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 74, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 75, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 76, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 19, "idString": "professionalBodies", "tableKey": "professionalBodies", "title": "12. Student chapters of professional bodies", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Sr no", "Name of the Professional body / chapter / student club", "No of student members", "Date of event conduction", "Title of the event", "Link to relevant Proof"], "fields": [{"id": 77, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 78, "idString": "name_of_the_professional_body_chapter_student_club", "fieldKey": "name_of_the_professional_body_chapter_student_club", "label": "Name of the Professional body / chapter / student club", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 79, "idString": "no_of_student_members", "fieldKey": "no_of_student_members", "label": "No of student members", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 80, "idString": "date_of_event_conduction", "fieldKey": "date_of_event_conduction", "label": "Date of event conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 81, "idString": "title_of_the_event", "fieldKey": "title_of_the_event", "label": "Title of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 82, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 20, "idString": "valueAddedCourses", "tableKey": "valueAddedCourses", "title": "13. Value added courses imparting transferable and life skills", "showTitle": true, "isRepeatable": true, "displayOrder": 13, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 83, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 84, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 85, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 86, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 87, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 88, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 21, "idString": "careerGuidance", "tableKey": "careerGuidance", "title": "14. Guidance for competitive examinations and career counseling", "showTitle": true, "isRepeatable": true, "displayOrder": 14, "columns": ["Session details", "Resource person details", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 89, "idString": "session_details", "fieldKey": "session_details", "label": "Session details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 90, "idString": "resource_person_details", "fieldKey": "resource_person_details", "label": "Resource person details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 91, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 92, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 93, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 22, "idString": "extensionActivities", "tableKey": "extensionActivities", "title": "15. Extension and outreach activities conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 15, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 94, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 95, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 96, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 97, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 98, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}], "blocks": [{"type": "tables", "tables": [{"id": "studentMentoring", "idString": "studentMentoring", "tableKey": "studentMentoring", "title": "1. Student Mentoring (mentor-wise list with mentee)", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Name of Mentor", "No. of Mentees", "Link to Document"], "fields": [{"id": 30, "idString": "name_of_mentor", "fieldKey": "name_of_mentor", "label": "Name of Mentor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 31, "idString": "no_of_mentees", "fieldKey": "no_of_mentees", "label": "No. of Mentees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 32, "idString": "link_to_document", "fieldKey": "link_to_document", "label": "Link to Document", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "graduatingStudents", "idString": "graduatingStudents", "tableKey": "graduatingStudents", "title": "2. No. of students graduating (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Program", "Female", "Male", "Total"], "fields": [{"id": 33, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 34, "idString": "female", "fieldKey": "female", "label": "Female", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 35, "idString": "male", "fieldKey": "male", "label": "Male", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 36, "idString": "total", "fieldKey": "total", "label": "Total", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "successRate", "idString": "successRate", "tableKey": "successRate", "title": "3. Success Rate of Students (Program wise)", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Program", "No of Students Appeared for Final Semester Exam", "Number of Students cleared Program in stipulated duration of the program", "Success Rate %"], "fields": [{"id": 37, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 38, "idString": "no_of_students_appeared_for_final_semester_exam", "fieldKey": "no_of_students_appeared_for_final_semester_exam", "label": "No of Students Appeared for Final Semester Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 39, "idString": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "fieldKey": "number_of_students_cleared_program_in_stipulated_duration_of_the_program", "label": "Number of Students cleared Program in stipulated duration of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 40, "idString": "success_rate", "fieldKey": "success_rate", "label": "Success Rate %", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "qualifyingExams", "idString": "qualifyingExams", "tableKey": "qualifyingExams", "title": "4. Students Qualifying in State/National/International level examinations", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of the Student", "Examination Details", "Proof as attachment"], "fields": [{"id": 41, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 42, "idString": "examination_details", "fieldKey": "examination_details", "label": "Examination Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 43, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentAwards", "idString": "studentAwards", "tableKey": "studentAwards", "title": "5. Awards/Medals won by students for outstanding performance in sports/cultural activities", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the Student", "Details of the Award", "Proof as an attachment"], "fields": [{"id": 44, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 45, "idString": "details_of_the_award", "fieldKey": "details_of_the_award", "label": "Details of the Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 46, "idString": "proof_as_an_attachment", "fieldKey": "proof_as_an_attachment", "label": "Proof as an attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentPlacements", "idString": "studentPlacements", "tableKey": "studentPlacements", "title": "6. Placement of outgoing students", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students Placed", "% Placement", "Proof as attachment"], "fields": [{"id": 47, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 48, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 49, "idString": "no_of_students_placed", "fieldKey": "no_of_students_placed", "label": "No of Students Placed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 50, "idString": "placement", "fieldKey": "placement", "label": "% Placement", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 51, "idString": "proof_as_attachment", "fieldKey": "proof_as_attachment", "label": "Proof as attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "higherStudies", "idString": "higherStudies", "tableKey": "higherStudies", "title": "7. Percentage of outgoing students progressing to higher education", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Program", "No of Students Appeared for Final Year Exam", "No of Students selected for Higher studies", "% Students"], "fields": [{"id": 52, "idString": "program", "fieldKey": "program", "label": "Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 53, "idString": "no_of_students_appeared_for_final_year_exam", "fieldKey": "no_of_students_appeared_for_final_year_exam", "label": "No of Students Appeared for Final Year Exam", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 54, "idString": "no_of_students_selected_for_higher_studies", "fieldKey": "no_of_students_selected_for_higher_studies", "label": "No of Students selected for Higher studies", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 55, "idString": "students", "fieldKey": "students", "label": "% Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}]}, {"id": "studentStartups", "idString": "studentStartups", "tableKey": "studentStartups", "title": "8. Details of Start-ups incubated by students", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Student", "Name of the Venture / Start-up", "Link to relevant Proof"], "fields": [{"id": 56, "idString": "name_of_the_student", "fieldKey": "name_of_the_student", "label": "Name of the Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 57, "idString": "name_of_the_venture_start_up", "fieldKey": "name_of_the_venture_start_up", "label": "Name of the Venture / Start-up", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 58, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 3}]}, {"id": "studentCourses", "idString": "studentCourses", "tableKey": "studentCourses", "title": "9. Online/value-added courses completed by students", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Name of Student", "Year of Study", "Name of course", "Duration", "Link to relevant Proof"], "fields": [{"id": 59, "idString": "name_of_student", "fieldKey": "name_of_student", "label": "Name of Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 60, "idString": "year_of_study", "fieldKey": "year_of_study", "label": "Year of Study", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 61, "idString": "name_of_course", "fieldKey": "name_of_course", "label": "Name of course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 62, "idString": "duration", "fieldKey": "duration", "label": "Duration", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 63, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "alumniInteractions", "idString": "alumniInteractions", "tableKey": "alumniInteractions", "title": "10. Details of Alumni interactions organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Name of Alumni", "Designation", "Present employer", "Date on interaction", "Topic", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 64, "idString": "name_of_alumni", "fieldKey": "name_of_alumni", "label": "Name of Alumni", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 65, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 66, "idString": "present_employer", "fieldKey": "present_employer", "label": "Present employer", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 67, "idString": "date_on_interaction", "fieldKey": "date_on_interaction", "label": "Date on interaction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 68, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 69, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 70, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "guestLectures", "idString": "guestLectures", "tableKey": "guestLectures", "title": "11. Guest lectures organized", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Name of the Resource person", "Designation and organization", "Date of conduction", "Topic", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 71, "idString": "name_of_the_resource_person", "fieldKey": "name_of_the_resource_person", "label": "Name of the Resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 72, "idString": "designation_and_organization", "fieldKey": "designation_and_organization", "label": "Designation and organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 73, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 74, "idString": "topic", "fieldKey": "topic", "label": "Topic", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 75, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 76, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "professionalBodies", "idString": "professionalBodies", "tableKey": "professionalBodies", "title": "12. Student chapters of professional bodies", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Sr no", "Name of the Professional body / chapter / student club", "No of student members", "Date of event conduction", "Title of the event", "Link to relevant Proof"], "fields": [{"id": 77, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 78, "idString": "name_of_the_professional_body_chapter_student_club", "fieldKey": "name_of_the_professional_body_chapter_student_club", "label": "Name of the Professional body / chapter / student club", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 79, "idString": "no_of_student_members", "fieldKey": "no_of_student_members", "label": "No of student members", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 80, "idString": "date_of_event_conduction", "fieldKey": "date_of_event_conduction", "label": "Date of event conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 81, "idString": "title_of_the_event", "fieldKey": "title_of_the_event", "label": "Title of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 82, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "valueAddedCourses", "idString": "valueAddedCourses", "tableKey": "valueAddedCourses", "title": "13. Value added courses imparting transferable and life skills", "showTitle": true, "isRepeatable": true, "displayOrder": 13, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 83, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 84, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 85, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 86, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 87, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 88, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "careerGuidance", "idString": "careerGuidance", "tableKey": "careerGuidance", "title": "14. Guidance for competitive examinations and career counseling", "showTitle": true, "isRepeatable": true, "displayOrder": 14, "columns": ["Session details", "Resource person details", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 89, "idString": "session_details", "fieldKey": "session_details", "label": "Session details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 90, "idString": "resource_person_details", "fieldKey": "resource_person_details", "label": "Resource person details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 91, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 92, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 93, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "extensionActivities", "idString": "extensionActivities", "tableKey": "extensionActivities", "title": "15. Extension and outreach activities conducted", "showTitle": true, "isRepeatable": true, "displayOrder": 15, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries", "Link to relevant Proof"], "fields": [{"id": 94, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 95, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 96, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 97, "idString": "number_of_beneficiaries", "fieldKey": "number_of_beneficiaries", "label": "Number of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 98, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}]}]}, {"id": 4, "idString": "part-c-faculty-research", "sectionKey": "part-c-faculty-research", "title": "Part C - Faculty Development & Research Activities", "number": "C", "ownerRole": "director-schools", "displayOrder": 4, "fields": [{"id": 99, "idString": "foreignCollaborations", "fieldKey": "foreignCollaborations", "label": "(a) No. of foreign collaborations either in the form of publications / research", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 100, "idString": "nationalCollaborations", "fieldKey": "nationalCollaborations", "label": "(b) No. of collaborations with other national institutions", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 101, "idString": "functionalMousCount", "fieldKey": "functionalMousCount", "label": "No. of Functional MoUs", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [{"id": 23, "idString": "facultySpecialization", "tableKey": "facultySpecialization", "title": "1. Profile of the Teachers with qualifications and area of specialization", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name", "Designation", "Qualifications", "Specialization", "No. of Ph.D supervised"], "fields": [{"id": 102, "idString": "name", "fieldKey": "name", "label": "Name", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 103, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 104, "idString": "qualifications", "fieldKey": "qualifications", "label": "Qualifications", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 105, "idString": "specialization", "fieldKey": "specialization", "label": "Specialization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 106, "idString": "no_of_ph_d_supervised", "fieldKey": "no_of_ph_d_supervised", "label": "No. of Ph.D supervised", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}]}, {"id": 24, "idString": "researchPublications", "tableKey": "researchPublications", "title": "2. Research Publications in the Journals notified on UGC CARE list", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Title of paper", "Name of author(s)", "Name of Journal", "Year of Publication with Volume and Page numbers", "ISBN/ISSN", "Indicate UGC Approved Journal", "National/International Journal", "Impact Factor", "Link to relevant Proof"], "fields": [{"id": 107, "idString": "title_of_paper", "fieldKey": "title_of_paper", "label": "Title of paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 108, "idString": "name_of_author_s", "fieldKey": "name_of_author_s", "label": "Name of author(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 109, "idString": "name_of_journal", "fieldKey": "name_of_journal", "label": "Name of Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 110, "idString": "year_of_publication_with_volume_and_page_numbers", "fieldKey": "year_of_publication_with_volume_and_page_numbers", "label": "Year of Publication with Volume and Page numbers", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 111, "idString": "isbn_issn", "fieldKey": "isbn_issn", "label": "ISBN/ISSN", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 112, "idString": "indicate_ugc_approved_journal", "fieldKey": "indicate_ugc_approved_journal", "label": "Indicate UGC Approved Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 113, "idString": "national_international_journal", "fieldKey": "national_international_journal", "label": "National/International Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 114, "idString": "impact_factor", "fieldKey": "impact_factor", "label": "Impact Factor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 115, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 9}]}, {"id": 25, "idString": "booksChapters", "tableKey": "booksChapters", "title": "3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Name of the teacher", "Title of the book/chapters published", "Title of the paper", "Title of the proceedings of the conference", "Name of the conference", "National / international", "Year of publication", "ISBN/ISSN number", "Name of the publisher", "Link to relevant Proof"], "fields": [{"id": 116, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 117, "idString": "title_of_the_book_chapters_published", "fieldKey": "title_of_the_book_chapters_published", "label": "Title of the book/chapters published", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 118, "idString": "title_of_the_paper", "fieldKey": "title_of_the_paper", "label": "Title of the paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 119, "idString": "title_of_the_proceedings_of_the_conference", "fieldKey": "title_of_the_proceedings_of_the_conference", "label": "Title of the proceedings of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 120, "idString": "name_of_the_conference", "fieldKey": "name_of_the_conference", "label": "Name of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 121, "idString": "national_international", "fieldKey": "national_international", "label": "National / international", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 122, "idString": "year_of_publication", "fieldKey": "year_of_publication", "label": "Year of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 123, "idString": "isbn_issn_number", "fieldKey": "isbn_issn_number", "label": "ISBN/ISSN number", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 124, "idString": "name_of_the_publisher", "fieldKey": "name_of_the_publisher", "label": "Name of the publisher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 9}, {"id": 125, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 10}]}, {"id": 26, "idString": "corporateTraining", "tableKey": "corporateTraining", "title": "4. Revenue generated from corporate training by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of faculty", "Agency seeking / training", "Revenue generated", "Number of trainees", "Link to relevant Proof"], "fields": [{"id": 126, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 127, "idString": "agency_seeking_training", "fieldKey": "agency_seeking_training", "label": "Agency seeking / training", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 128, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 129, "idString": "number_of_trainees", "fieldKey": "number_of_trainees", "label": "Number of trainees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 130, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 27, "idString": "consultancy", "tableKey": "consultancy", "title": "5. Revenue generated from Consultancy by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the faculty", "Title of the consultancy project", "Consulting/Sponsoring Agency", "Revenue generated", "Link to relevant Proof"], "fields": [{"id": 131, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 132, "idString": "title_of_the_consultancy_project", "fieldKey": "title_of_the_consultancy_project", "label": "Title of the consultancy project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 133, "idString": "consulting_sponsoring_agency", "fieldKey": "consulting_sponsoring_agency", "label": "Consulting/Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 134, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 135, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 28, "idString": "researchFunds", "tableKey": "researchFunds", "title": "6. Research funds sanctioned and received from various agencies, industry and other organizations", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Name of the Project / Endowments / Chairs", "Name of the Principal Investigator", "Department of Principal Investigator", "Year of Award", "Funds provided", "Duration of the project", "Link to relevant Proof"], "fields": [{"id": 136, "idString": "name_of_the_project_endowments_chairs", "fieldKey": "name_of_the_project_endowments_chairs", "label": "Name of the Project / Endowments / Chairs", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 137, "idString": "name_of_the_principal_investigator", "fieldKey": "name_of_the_principal_investigator", "label": "Name of the Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 138, "idString": "department_of_principal_investigator", "fieldKey": "department_of_principal_investigator", "label": "Department of Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 139, "idString": "year_of_award", "fieldKey": "year_of_award", "label": "Year of Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 140, "idString": "funds_provided", "fieldKey": "funds_provided", "label": "Funds provided", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 141, "idString": "duration_of_the_project", "fieldKey": "duration_of_the_project", "label": "Duration of the project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 142, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 29, "idString": "eContents", "tableKey": "eContents", "title": "7. E-Contents developed", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Name of the teacher", "Name of the module", "Platform on which module is developed", "Date of launching e content", "Link to relevant Proof"], "fields": [{"id": 143, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 144, "idString": "name_of_the_module", "fieldKey": "name_of_the_module", "label": "Name of the module", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 145, "idString": "platform_on_which_module_is_developed", "fieldKey": "platform_on_which_module_is_developed", "label": "Platform on which module is developed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 146, "idString": "date_of_launching_e_content", "fieldKey": "date_of_launching_e_content", "label": "Date of launching e content", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 147, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 30, "idString": "teacherAwards", "tableKey": "teacherAwards", "title": "8. Teachers who received national / international fellowship / financial support", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Teacher", "National Awards", "International Awards", "Link to relevant Proof"], "fields": [{"id": 148, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the Teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 149, "idString": "national_awards", "fieldKey": "national_awards", "label": "National Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 150, "idString": "international_awards", "fieldKey": "international_awards", "label": "International Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 151, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}]}, {"id": 31, "idString": "patentsCopyrights", "tableKey": "patentsCopyrights", "title": "Number of Patents / copyright filed / published / awarded", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Sr. No", "Name of Faculty / Student", "Application No", "Title of Patent / Copyright", "Date of filing", "Date of publication", "Date of award", "Link to relevant Proof"], "fields": [{"id": 152, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 153, "idString": "name_of_faculty_student", "fieldKey": "name_of_faculty_student", "label": "Name of Faculty / Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 154, "idString": "application_no", "fieldKey": "application_no", "label": "Application No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 155, "idString": "title_of_patent_copyright", "fieldKey": "title_of_patent_copyright", "label": "Title of Patent / Copyright", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 156, "idString": "date_of_filing", "fieldKey": "date_of_filing", "label": "Date of filing", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 157, "idString": "date_of_publication", "fieldKey": "date_of_publication", "label": "Date of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 158, "idString": "date_of_award", "fieldKey": "date_of_award", "label": "Date of award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 159, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": 32, "idString": "fdpOrganized", "tableKey": "fdpOrganized", "title": "9. Details of seminar / symposia / conference / refresher course / training programmes organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Sl. No", "Name of Convener/Coordinator", "Title of seminar/course", "Sponsoring Agency", "Duration with dates", "No. of internal and external participants", "Proceedings published Yes/No", "Link to relevant Proof"], "fields": [{"id": 160, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 161, "idString": "name_of_convener_coordinator", "fieldKey": "name_of_convener_coordinator", "label": "Name of Convener/Coordinator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 162, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 163, "idString": "sponsoring_agency", "fieldKey": "sponsoring_agency", "label": "Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 164, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 165, "idString": "no_of_internal_and_external_participants", "fieldKey": "no_of_internal_and_external_participants", "label": "No. of internal and external participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 166, "idString": "proceedings_published_yes_no", "fieldKey": "proceedings_published_yes_no", "label": "Proceedings published Yes/No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 167, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": 33, "idString": "fdpAttended", "tableKey": "fdpAttended", "title": "Details of seminar / symposia / conference / refresher course / training programmes attended by faculty", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Sl. No", "Name of Faculty", "Title of seminar/course", "Sponsoring Agency / organization", "Duration with dates", "Date", "Link to relevant Proof"], "fields": [{"id": 168, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 169, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 170, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 171, "idString": "sponsoring_agency_organization", "fieldKey": "sponsoring_agency_organization", "label": "Sponsoring Agency / organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 172, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 173, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 174, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 34, "idString": "functionalMous", "tableKey": "functionalMous", "title": "11. Functional MoUs", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Name of the Organization / Institution / Industry with whom MoU is signed", "Year of signing MoU", "Duration of MoU", "List the actual activities under each MoU", "Link to relevant Proof"], "fields": [{"id": 175, "idString": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "fieldKey": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "label": "Name of the Organization / Institution / Industry with whom MoU is signed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 176, "idString": "year_of_signing_mou", "fieldKey": "year_of_signing_mou", "label": "Year of signing MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 177, "idString": "duration_of_mou", "fieldKey": "duration_of_mou", "label": "Duration of MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 178, "idString": "list_the_actual_activities_under_each_mou", "fieldKey": "list_the_actual_activities_under_each_mou", "label": "List the actual activities under each MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 179, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}], "blocks": [{"type": "tables", "tables": [{"id": "facultySpecialization", "idString": "facultySpecialization", "tableKey": "facultySpecialization", "title": "1. Profile of the Teachers with qualifications and area of specialization", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name", "Designation", "Qualifications", "Specialization", "No. of Ph.D supervised"], "fields": [{"id": 102, "idString": "name", "fieldKey": "name", "label": "Name", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 103, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 104, "idString": "qualifications", "fieldKey": "qualifications", "label": "Qualifications", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 105, "idString": "specialization", "fieldKey": "specialization", "label": "Specialization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 106, "idString": "no_of_ph_d_supervised", "fieldKey": "no_of_ph_d_supervised", "label": "No. of Ph.D supervised", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}]}, {"id": "researchPublications", "idString": "researchPublications", "tableKey": "researchPublications", "title": "2. Research Publications in the Journals notified on UGC CARE list", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Title of paper", "Name of author(s)", "Name of Journal", "Year of Publication with Volume and Page numbers", "ISBN/ISSN", "Indicate UGC Approved Journal", "National/International Journal", "Impact Factor", "Link to relevant Proof"], "fields": [{"id": 107, "idString": "title_of_paper", "fieldKey": "title_of_paper", "label": "Title of paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 108, "idString": "name_of_author_s", "fieldKey": "name_of_author_s", "label": "Name of author(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 109, "idString": "name_of_journal", "fieldKey": "name_of_journal", "label": "Name of Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 110, "idString": "year_of_publication_with_volume_and_page_numbers", "fieldKey": "year_of_publication_with_volume_and_page_numbers", "label": "Year of Publication with Volume and Page numbers", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 111, "idString": "isbn_issn", "fieldKey": "isbn_issn", "label": "ISBN/ISSN", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 112, "idString": "indicate_ugc_approved_journal", "fieldKey": "indicate_ugc_approved_journal", "label": "Indicate UGC Approved Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 113, "idString": "national_international_journal", "fieldKey": "national_international_journal", "label": "National/International Journal", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 114, "idString": "impact_factor", "fieldKey": "impact_factor", "label": "Impact Factor", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 115, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 9}]}, {"id": "booksChapters", "idString": "booksChapters", "tableKey": "booksChapters", "title": "3. Books and Chapters in edited Volumes / Books published, and papers in Conference Proceedings", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Name of the teacher", "Title of the book/chapters published", "Title of the paper", "Title of the proceedings of the conference", "Name of the conference", "National / international", "Year of publication", "ISBN/ISSN number", "Name of the publisher", "Link to relevant Proof"], "fields": [{"id": 116, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 117, "idString": "title_of_the_book_chapters_published", "fieldKey": "title_of_the_book_chapters_published", "label": "Title of the book/chapters published", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 118, "idString": "title_of_the_paper", "fieldKey": "title_of_the_paper", "label": "Title of the paper", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 119, "idString": "title_of_the_proceedings_of_the_conference", "fieldKey": "title_of_the_proceedings_of_the_conference", "label": "Title of the proceedings of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 120, "idString": "name_of_the_conference", "fieldKey": "name_of_the_conference", "label": "Name of the conference", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 121, "idString": "national_international", "fieldKey": "national_international", "label": "National / international", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 122, "idString": "year_of_publication", "fieldKey": "year_of_publication", "label": "Year of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 123, "idString": "isbn_issn_number", "fieldKey": "isbn_issn_number", "label": "ISBN/ISSN number", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}, {"id": 124, "idString": "name_of_the_publisher", "fieldKey": "name_of_the_publisher", "label": "Name of the publisher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 9}, {"id": 125, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 10}]}, {"id": "corporateTraining", "idString": "corporateTraining", "tableKey": "corporateTraining", "title": "4. Revenue generated from corporate training by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Name of faculty", "Agency seeking / training", "Revenue generated", "Number of trainees", "Link to relevant Proof"], "fields": [{"id": 126, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 127, "idString": "agency_seeking_training", "fieldKey": "agency_seeking_training", "label": "Agency seeking / training", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 128, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 129, "idString": "number_of_trainees", "fieldKey": "number_of_trainees", "label": "Number of trainees", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 130, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "consultancy", "idString": "consultancy", "tableKey": "consultancy", "title": "5. Revenue generated from Consultancy by the Department", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the faculty", "Title of the consultancy project", "Consulting/Sponsoring Agency", "Revenue generated", "Link to relevant Proof"], "fields": [{"id": 131, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 132, "idString": "title_of_the_consultancy_project", "fieldKey": "title_of_the_consultancy_project", "label": "Title of the consultancy project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 133, "idString": "consulting_sponsoring_agency", "fieldKey": "consulting_sponsoring_agency", "label": "Consulting/Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 134, "idString": "revenue_generated", "fieldKey": "revenue_generated", "label": "Revenue generated", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 135, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "researchFunds", "idString": "researchFunds", "tableKey": "researchFunds", "title": "6. Research funds sanctioned and received from various agencies, industry and other organizations", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Name of the Project / Endowments / Chairs", "Name of the Principal Investigator", "Department of Principal Investigator", "Year of Award", "Funds provided", "Duration of the project", "Link to relevant Proof"], "fields": [{"id": 136, "idString": "name_of_the_project_endowments_chairs", "fieldKey": "name_of_the_project_endowments_chairs", "label": "Name of the Project / Endowments / Chairs", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 137, "idString": "name_of_the_principal_investigator", "fieldKey": "name_of_the_principal_investigator", "label": "Name of the Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 138, "idString": "department_of_principal_investigator", "fieldKey": "department_of_principal_investigator", "label": "Department of Principal Investigator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 139, "idString": "year_of_award", "fieldKey": "year_of_award", "label": "Year of Award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 140, "idString": "funds_provided", "fieldKey": "funds_provided", "label": "Funds provided", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 141, "idString": "duration_of_the_project", "fieldKey": "duration_of_the_project", "label": "Duration of the project", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 142, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "eContents", "idString": "eContents", "tableKey": "eContents", "title": "7. E-Contents developed", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Name of the teacher", "Name of the module", "Platform on which module is developed", "Date of launching e content", "Link to relevant Proof"], "fields": [{"id": 143, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 144, "idString": "name_of_the_module", "fieldKey": "name_of_the_module", "label": "Name of the module", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 145, "idString": "platform_on_which_module_is_developed", "fieldKey": "platform_on_which_module_is_developed", "label": "Platform on which module is developed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 146, "idString": "date_of_launching_e_content", "fieldKey": "date_of_launching_e_content", "label": "Date of launching e content", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 147, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "teacherAwards", "idString": "teacherAwards", "tableKey": "teacherAwards", "title": "8. Teachers who received national / international fellowship / financial support", "showTitle": true, "isRepeatable": true, "displayOrder": 8, "columns": ["Name of the Teacher", "National Awards", "International Awards", "Link to relevant Proof"], "fields": [{"id": 148, "idString": "name_of_the_teacher", "fieldKey": "name_of_the_teacher", "label": "Name of the Teacher", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 149, "idString": "national_awards", "fieldKey": "national_awards", "label": "National Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 150, "idString": "international_awards", "fieldKey": "international_awards", "label": "International Awards", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 151, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}]}, {"id": "patentsCopyrights", "idString": "patentsCopyrights", "tableKey": "patentsCopyrights", "title": "Number of Patents / copyright filed / published / awarded", "showTitle": true, "isRepeatable": true, "displayOrder": 9, "columns": ["Sr. No", "Name of Faculty / Student", "Application No", "Title of Patent / Copyright", "Date of filing", "Date of publication", "Date of award", "Link to relevant Proof"], "fields": [{"id": 152, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 153, "idString": "name_of_faculty_student", "fieldKey": "name_of_faculty_student", "label": "Name of Faculty / Student", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 154, "idString": "application_no", "fieldKey": "application_no", "label": "Application No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 155, "idString": "title_of_patent_copyright", "fieldKey": "title_of_patent_copyright", "label": "Title of Patent / Copyright", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 156, "idString": "date_of_filing", "fieldKey": "date_of_filing", "label": "Date of filing", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 157, "idString": "date_of_publication", "fieldKey": "date_of_publication", "label": "Date of publication", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 158, "idString": "date_of_award", "fieldKey": "date_of_award", "label": "Date of award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 159, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": "fdpOrganized", "idString": "fdpOrganized", "tableKey": "fdpOrganized", "title": "9. Details of seminar / symposia / conference / refresher course / training programmes organized", "showTitle": true, "isRepeatable": true, "displayOrder": 10, "columns": ["Sl. No", "Name of Convener/Coordinator", "Title of seminar/course", "Sponsoring Agency", "Duration with dates", "No. of internal and external participants", "Proceedings published Yes/No", "Link to relevant Proof"], "fields": [{"id": 160, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 161, "idString": "name_of_convener_coordinator", "fieldKey": "name_of_convener_coordinator", "label": "Name of Convener/Coordinator", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 162, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 163, "idString": "sponsoring_agency", "fieldKey": "sponsoring_agency", "label": "Sponsoring Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 164, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 165, "idString": "no_of_internal_and_external_participants", "fieldKey": "no_of_internal_and_external_participants", "label": "No. of internal and external participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 166, "idString": "proceedings_published_yes_no", "fieldKey": "proceedings_published_yes_no", "label": "Proceedings published Yes/No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 167, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 8}]}, {"id": "fdpAttended", "idString": "fdpAttended", "tableKey": "fdpAttended", "title": "Details of seminar / symposia / conference / refresher course / training programmes attended by faculty", "showTitle": true, "isRepeatable": true, "displayOrder": 11, "columns": ["Sl. No", "Name of Faculty", "Title of seminar/course", "Sponsoring Agency / organization", "Duration with dates", "Date", "Link to relevant Proof"], "fields": [{"id": 168, "idString": "sl_no", "fieldKey": "sl_no", "label": "Sl. No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 169, "idString": "name_of_faculty", "fieldKey": "name_of_faculty", "label": "Name of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 170, "idString": "title_of_seminar_course", "fieldKey": "title_of_seminar_course", "label": "Title of seminar/course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 171, "idString": "sponsoring_agency_organization", "fieldKey": "sponsoring_agency_organization", "label": "Sponsoring Agency / organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 172, "idString": "duration_with_dates", "fieldKey": "duration_with_dates", "label": "Duration with dates", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 173, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 174, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}]}, {"type": "fields", "fields": [{"id": "collabHeading", "kind": "heading", "label": "10. Collaborations"}, {"id": "foreignCollaborations", "idString": "foreignCollaborations", "fieldKey": "foreignCollaborations", "label": "(a) No. of foreign collaborations either in the form of publications / research", "fieldType": "TEXTAREA"}, {"id": "nationalCollaborations", "idString": "nationalCollaborations", "fieldKey": "nationalCollaborations", "label": "(b) No. of collaborations with other national institutions", "fieldType": "TEXTAREA"}, {"id": "mouHeading", "kind": "heading", "label": "11. Functional MoUs"}, {"id": "functionalMousCount", "idString": "functionalMousCount", "fieldKey": "functionalMousCount", "label": "No. of Functional MoUs", "fieldType": "TEXT"}]}, {"type": "tables", "tables": [{"id": "functionalMous", "idString": "functionalMous", "tableKey": "functionalMous", "title": "11. Functional MoUs", "showTitle": true, "isRepeatable": true, "displayOrder": 12, "columns": ["Name of the Organization / Institution / Industry with whom MoU is signed", "Year of signing MoU", "Duration of MoU", "List the actual activities under each MoU", "Link to relevant Proof"], "fields": [{"id": 175, "idString": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "fieldKey": "name_of_the_organization_institution_industry_with_whom_mou_is_signed", "label": "Name of the Organization / Institution / Industry with whom MoU is signed", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 176, "idString": "year_of_signing_mou", "fieldKey": "year_of_signing_mou", "label": "Year of signing MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 177, "idString": "duration_of_mou", "fieldKey": "duration_of_mou", "label": "Duration of MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 178, "idString": "list_the_actual_activities_under_each_mou", "fieldKey": "list_the_actual_activities_under_each_mou", "label": "List the actual activities under each MoU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 179, "idString": "link_to_relevant_proof", "fieldKey": "link_to_relevant_proof", "label": "Link to relevant Proof", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}]}]}, {"id": 5, "idString": "part-d-swoc", "sectionKey": "part-d-swoc", "title": "Part D - SWOC Analysis", "number": "D", "ownerRole": "director-schools", "displayOrder": 5, "fields": [], "tables": [{"id": 35, "idString": "swocStrength", "tableKey": "swocStrength", "title": "Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Details"], "fields": [{"id": 180, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 36, "idString": "swocWeaknesses", "tableKey": "swocWeaknesses", "title": "Weaknesses", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Details"], "fields": [{"id": 181, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 37, "idString": "swocOpportunities", "tableKey": "swocOpportunities", "title": "Opportunities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Details"], "fields": [{"id": 182, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 38, "idString": "swocChallenges", "tableKey": "swocChallenges", "title": "Challenges", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Details"], "fields": [{"id": 183, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": 39, "idString": "swocOtherInformation", "tableKey": "swocOtherInformation", "title": "Any other information, which is not covered above", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Details"], "fields": [{"id": 184, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}], "blocks": [{"type": "tables", "tables": [{"id": "swocStrength", "idString": "swocStrength", "tableKey": "swocStrength", "title": "Strength", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Details"], "fields": [{"id": 180, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocWeaknesses", "idString": "swocWeaknesses", "tableKey": "swocWeaknesses", "title": "Weaknesses", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Details"], "fields": [{"id": 181, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocOpportunities", "idString": "swocOpportunities", "tableKey": "swocOpportunities", "title": "Opportunities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Details"], "fields": [{"id": 182, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocChallenges", "idString": "swocChallenges", "tableKey": "swocChallenges", "title": "Challenges", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Details"], "fields": [{"id": 183, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}, {"id": "swocOtherInformation", "idString": "swocOtherInformation", "tableKey": "swocOtherInformation", "title": "Any other information, which is not covered above", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Details"], "fields": [{"id": 184, "idString": "details", "fieldKey": "details", "label": "Details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}], "initialRows": [{"Sr No": "1", "Details": ""}]}]}]}, {"id": 6, "idString": "part-e-observations", "sectionKey": "part-e-observations", "title": "Part E - Observations & Recommendations of the Audit", "number": "E", "ownerRole": "auditor", "displayOrder": 6, "fields": [{"id": 185, "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 186, "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 187, "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [], "blocks": [{"type": "fields", "fields": [{"id": "auditObservations", "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "auditRecommendations", "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "auditDocumentation", "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}]}]}]}	system-provision	2026-10-28 15:44:29.63613	system-provision	\N	2026-10-28 15:46:26.312754
+2	2	1	PUBLISHED	2025-26	Internal Administrative Audit	registrar	{"id": "administrative-audit-2025-26", "schemaId": 2, "versionId": 2, "versionNumber": 1, "auditType": "administrative", "title": "Internal Administrative Audit", "academicYear": "2025-26", "ownerRole": "registrar", "status": "PUBLISHED", "header": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png"}, "universityInfo": {"university": "D Y Patil International University, Akurdi, Pune", "address": "Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044", "act": "Maharashtra State Act No. VI of 2019", "logoUrl": "/uploads/branding/dypiu_logo.png", "iqacLogoUrl": "/uploads/branding/iqac_logo.png", "code": "dypiu", "slug": "dypiu", "domain": "dypiu.ac.in", "primaryColor": "#1e3a8a"}, "sections": [{"id": 7, "idString": "section-a-university-information", "sectionKey": "section-a-university-information", "title": "Section A - University Information", "number": "A", "ownerRole": "registrar", "displayOrder": 1, "fields": [{"id": 188, "idString": "universityName", "fieldKey": "universityName", "label": "Name of the University", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 189, "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 190, "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 191, "idString": "pinCode", "fieldKey": "pinCode", "label": "Pin Code", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 192, "idString": "website", "fieldKey": "website", "label": "Website", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": 193, "idString": "viceChancellor", "fieldKey": "viceChancellor", "label": "Name of the Vice Chancellor", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": 194, "idString": "vcEmail", "fieldKey": "vcEmail", "label": "Vice Chancellor e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": 195, "idString": "registrar", "fieldKey": "registrar", "label": "Name of Registrar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}, {"id": 196, "idString": "registrarEmail", "fieldKey": "registrarEmail", "label": "Registrar e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 9}, {"id": 197, "idString": "accreditation", "fieldKey": "accreditation", "label": "Accreditation status & Agency", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 10}], "tables": [{"id": 40, "idString": "coursesOffered", "tableKey": "coursesOffered", "title": "1. Courses Offered", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name of the Program", "Level (UG/PG)", "Intake", "No. of Students Admitted", "Year of Commencement of the program", "Attachment (Attach List of the Students)"], "fields": [{"id": 198, "idString": "name_of_the_program", "fieldKey": "name_of_the_program", "label": "Name of the Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 199, "idString": "level_ug_pg", "fieldKey": "level_ug_pg", "label": "Level (UG/PG)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 200, "idString": "intake", "fieldKey": "intake", "label": "Intake", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 201, "idString": "no_of_students_admitted", "fieldKey": "no_of_students_admitted", "label": "No. of Students Admitted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 202, "idString": "year_of_commencement_of_the_program", "fieldKey": "year_of_commencement_of_the_program", "label": "Year of Commencement of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 203, "idString": "attachment_attach_list_of_the_students", "fieldKey": "attachment_attach_list_of_the_students", "label": "Attachment (Attach List of the Students)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": 41, "idString": "studentStatistics", "tableKey": "studentStatistics", "title": "2. Total Number of Students in the university", "showTitle": true, "isRepeatable": false, "displayOrder": 2, "columns": ["Category", "U.G.", "P.G.", "Ph.D.", "Value added / skill Courses"], "fields": [{"id": 204, "idString": "category", "fieldKey": "category", "label": "Category", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 205, "idString": "u_g", "fieldKey": "u_g", "label": "U.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 206, "idString": "p_g", "fieldKey": "p_g", "label": "P.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 207, "idString": "ph_d", "fieldKey": "ph_d", "label": "Ph.D.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 208, "idString": "value_added_skill_courses", "fieldKey": "value_added_skill_courses", "label": "Value added / skill Courses", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}], "initialRows": [{"Sr No": "1", "Category": "SC"}, {"Sr No": "2", "Category": "ST"}, {"Sr No": "3", "Category": "OBC"}, {"Sr No": "4", "Category": "General"}], "selectOptions": {"Category": ["SC", "ST", "OBC", "General"]}}, {"id": 42, "idString": "statutoryBodies", "tableKey": "statutoryBodies", "title": "3. Statutory Body Meetings and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Body / Cell", "Meetings Conducted", "ATR Status", "Remarks / Link"], "fields": [{"id": 209, "idString": "body_cell", "fieldKey": "body_cell", "label": "Body / Cell", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 210, "idString": "meetings_conducted", "fieldKey": "meetings_conducted", "label": "Meetings Conducted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 211, "idString": "atr_status", "fieldKey": "atr_status", "label": "ATR Status", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 212, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Body / Cell": "Governing Body"}, {"Sr No": "2", "Body / Cell": "Board of Management"}, {"Sr No": "3", "Body / Cell": "Academic Council"}, {"Sr No": "4", "Body / Cell": "Finance Committee"}, {"Sr No": "5", "Body / Cell": "ICC"}, {"Sr No": "6", "Body / Cell": "Student Grievance Cell"}, {"Sr No": "7", "Body / Cell": "Faculty / Staff Grievance Cell"}, {"Sr No": "8", "Body / Cell": "Anti Ragging Committee"}, {"Sr No": "9", "Body / Cell": "Equal opportunity Cell"}, {"Sr No": "10", "Body / Cell": "IQAC"}, {"Sr No": "11", "Body / Cell": "Any Other Body / Cell"}]}, {"id": 43, "idString": "auditRecords", "tableKey": "auditRecords", "title": "4. Audits Completed", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Audit Type", "Completed Yes / No", "Date", "Remarks / Link"], "fields": [{"id": 213, "idString": "audit_type", "fieldKey": "audit_type", "label": "Audit Type", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 214, "idString": "completed_yes_no", "fieldKey": "completed_yes_no", "label": "Completed Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 215, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 216, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Audit Type": "Financial Audit"}, {"Sr No": "2", "Audit Type": "Energy Audit"}, {"Sr No": "3", "Audit Type": "Environmental Audit"}, {"Sr No": "4", "Audit Type": "Green Audit"}, {"Sr No": "5", "Audit Type": "Gender Audit"}, {"Sr No": "6", "Audit Type": "Academic and Administrative Audit"}]}, {"id": 44, "idString": "scholarshipSummary", "tableKey": "scholarshipSummary", "title": "5. Scholarship Details", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Year", "Title of Scholarship", "Number of the Students", "Amount received", "Awarding Agency", "Awarding Organization", "Attachment"], "fields": [{"id": 217, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 218, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 219, "idString": "number_of_the_students", "fieldKey": "number_of_the_students", "label": "Number of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 220, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 221, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 222, "idString": "awarding_organization", "fieldKey": "awarding_organization", "label": "Awarding Organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 223, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": 45, "idString": "scholarshipStudents", "tableKey": "scholarshipStudents", "title": "6. Scholarship Student Details", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Year", "Title of Scholarship", "Name of the Students", "Amount received", "Awarding Agency", "Attachment"], "fields": [{"id": 224, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 225, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 226, "idString": "name_of_the_students", "fieldKey": "name_of_the_students", "label": "Name of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 227, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 228, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 229, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "fields", "fields": [{"id": "universityName", "idString": "universityName", "fieldKey": "universityName", "label": "Name of the University", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "establishmentYear", "idString": "establishmentYear", "fieldKey": "establishmentYear", "label": "Year of Establishment", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "address", "idString": "address", "fieldKey": "address", "label": "Address", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "pinCode", "idString": "pinCode", "fieldKey": "pinCode", "label": "Pin Code", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "website", "idString": "website", "fieldKey": "website", "label": "Website", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}, {"id": "viceChancellor", "idString": "viceChancellor", "fieldKey": "viceChancellor", "label": "Name of the Vice Chancellor", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 6}, {"id": "vcEmail", "idString": "vcEmail", "fieldKey": "vcEmail", "label": "Vice Chancellor e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 7}, {"id": "registrar", "idString": "registrar", "fieldKey": "registrar", "label": "Name of Registrar", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 8}, {"id": "registrarEmail", "idString": "registrarEmail", "fieldKey": "registrarEmail", "label": "Registrar e-Mail Id", "fieldType": "EMAIL", "kind": "field", "isRequired": false, "displayOrder": 9}, {"id": "accreditation", "idString": "accreditation", "fieldKey": "accreditation", "label": "Accreditation status & Agency", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 10}]}, {"type": "tables", "tables": [{"id": "coursesOffered", "idString": "coursesOffered", "tableKey": "coursesOffered", "title": "1. Courses Offered", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Name of the Program", "Level (UG/PG)", "Intake", "No. of Students Admitted", "Year of Commencement of the program", "Attachment (Attach List of the Students)"], "fields": [{"id": 198, "idString": "name_of_the_program", "fieldKey": "name_of_the_program", "label": "Name of the Program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 199, "idString": "level_ug_pg", "fieldKey": "level_ug_pg", "label": "Level (UG/PG)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 200, "idString": "intake", "fieldKey": "intake", "label": "Intake", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 201, "idString": "no_of_students_admitted", "fieldKey": "no_of_students_admitted", "label": "No. of Students Admitted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 202, "idString": "year_of_commencement_of_the_program", "fieldKey": "year_of_commencement_of_the_program", "label": "Year of Commencement of the program", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 203, "idString": "attachment_attach_list_of_the_students", "fieldKey": "attachment_attach_list_of_the_students", "label": "Attachment (Attach List of the Students)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}, {"id": "studentStatistics", "idString": "studentStatistics", "tableKey": "studentStatistics", "title": "2. Total Number of Students in the university", "showTitle": true, "isRepeatable": false, "displayOrder": 2, "columns": ["Category", "U.G.", "P.G.", "Ph.D.", "Value added / skill Courses"], "fields": [{"id": 204, "idString": "category", "fieldKey": "category", "label": "Category", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 205, "idString": "u_g", "fieldKey": "u_g", "label": "U.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 206, "idString": "p_g", "fieldKey": "p_g", "label": "P.G.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 207, "idString": "ph_d", "fieldKey": "ph_d", "label": "Ph.D.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 208, "idString": "value_added_skill_courses", "fieldKey": "value_added_skill_courses", "label": "Value added / skill Courses", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}], "initialRows": [{"Sr No": "1", "Category": "SC"}, {"Sr No": "2", "Category": "ST"}, {"Sr No": "3", "Category": "OBC"}, {"Sr No": "4", "Category": "General"}], "selectOptions": {"Category": ["SC", "ST", "OBC", "General"]}}, {"id": "statutoryBodies", "idString": "statutoryBodies", "tableKey": "statutoryBodies", "title": "3. Statutory Body Meetings and ATR", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Body / Cell", "Meetings Conducted", "ATR Status", "Remarks / Link"], "fields": [{"id": 209, "idString": "body_cell", "fieldKey": "body_cell", "label": "Body / Cell", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 210, "idString": "meetings_conducted", "fieldKey": "meetings_conducted", "label": "Meetings Conducted", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 211, "idString": "atr_status", "fieldKey": "atr_status", "label": "ATR Status", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 212, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Body / Cell": "Governing Body"}, {"Sr No": "2", "Body / Cell": "Board of Management"}, {"Sr No": "3", "Body / Cell": "Academic Council"}, {"Sr No": "4", "Body / Cell": "Finance Committee"}, {"Sr No": "5", "Body / Cell": "ICC"}, {"Sr No": "6", "Body / Cell": "Student Grievance Cell"}, {"Sr No": "7", "Body / Cell": "Faculty / Staff Grievance Cell"}, {"Sr No": "8", "Body / Cell": "Anti Ragging Committee"}, {"Sr No": "9", "Body / Cell": "Equal opportunity Cell"}, {"Sr No": "10", "Body / Cell": "IQAC"}, {"Sr No": "11", "Body / Cell": "Any Other Body / Cell"}]}, {"id": "auditRecords", "idString": "auditRecords", "tableKey": "auditRecords", "title": "4. Audits Completed", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Audit Type", "Completed Yes / No", "Date", "Remarks / Link"], "fields": [{"id": 213, "idString": "audit_type", "fieldKey": "audit_type", "label": "Audit Type", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 214, "idString": "completed_yes_no", "fieldKey": "completed_yes_no", "label": "Completed Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 215, "idString": "date", "fieldKey": "date", "label": "Date", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 216, "idString": "remarks_link", "fieldKey": "remarks_link", "label": "Remarks / Link", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Audit Type": "Financial Audit"}, {"Sr No": "2", "Audit Type": "Energy Audit"}, {"Sr No": "3", "Audit Type": "Environmental Audit"}, {"Sr No": "4", "Audit Type": "Green Audit"}, {"Sr No": "5", "Audit Type": "Gender Audit"}, {"Sr No": "6", "Audit Type": "Academic and Administrative Audit"}]}, {"id": "scholarshipSummary", "idString": "scholarshipSummary", "tableKey": "scholarshipSummary", "title": "5. Scholarship Details", "showTitle": true, "isRepeatable": false, "displayOrder": 5, "columns": ["Year", "Title of Scholarship", "Number of the Students", "Amount received", "Awarding Agency", "Awarding Organization", "Attachment"], "fields": [{"id": 217, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 218, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 219, "idString": "number_of_the_students", "fieldKey": "number_of_the_students", "label": "Number of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 220, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 221, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 222, "idString": "awarding_organization", "fieldKey": "awarding_organization", "label": "Awarding Organization", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 223, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 7}]}, {"id": "scholarshipStudents", "idString": "scholarshipStudents", "tableKey": "scholarshipStudents", "title": "6. Scholarship Student Details", "showTitle": true, "isRepeatable": true, "displayOrder": 6, "columns": ["Year", "Title of Scholarship", "Name of the Students", "Amount received", "Awarding Agency", "Attachment"], "fields": [{"id": 224, "idString": "year", "fieldKey": "year", "label": "Year", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 225, "idString": "title_of_scholarship", "fieldKey": "title_of_scholarship", "label": "Title of Scholarship", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 226, "idString": "name_of_the_students", "fieldKey": "name_of_the_students", "label": "Name of the Students", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 227, "idString": "amount_received", "fieldKey": "amount_received", "label": "Amount received", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 228, "idString": "awarding_agency", "fieldKey": "awarding_agency", "label": "Awarding Agency", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 229, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 8, "idString": "section-b-faculty-staff-details", "sectionKey": "section-b-faculty-staff-details", "title": "Section B - Faculty and Staff Details", "number": "B", "ownerRole": "hr", "displayOrder": 2, "fields": [{"id": 230, "idString": "bogMomSanctionedPostsAttachment", "fieldKey": "bogMomSanctionedPostsAttachment", "label": "BoG MoM Extract showing Sanctioned Posts", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 231, "idString": "phdQualification", "fieldKey": "phdQualification", "label": "(a)(i) Faculty members with Ph.D qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 232, "idString": "pgQualification", "fieldKey": "pgQualification", "label": "(a)(ii) Post Graduation Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": 233, "idString": "otherQualification", "fieldKey": "otherQualification", "label": "(a)(iii) Any Other Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": 234, "idString": "studentFacultyRatio", "fieldKey": "studentFacultyRatio", "label": "(b) Student Faculty Ratio", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}], "tables": [{"id": 46, "idString": "facultyInformation", "tableKey": "facultyInformation", "title": "Faculty Information", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Cadre", "Required", "Regular", "Contract"], "fields": [{"id": 235, "idString": "cadre", "fieldKey": "cadre", "label": "Cadre", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 236, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 237, "idString": "regular", "fieldKey": "regular", "label": "Regular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 238, "idString": "contract", "fieldKey": "contract", "label": "Contract", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Cadre": "Professors"}, {"Sr No": "2", "Cadre": "Associate Professors"}, {"Sr No": "3", "Cadre": "Assistant Professor"}, {"Sr No": "4", "Cadre": "Total"}], "selectOptions": {"Cadre": ["Professor", "Associate Professor", "Assistant Professor"]}}, {"id": 47, "idString": "facultyTenure", "tableKey": "facultyTenure", "title": "(c) Teaching Experience of the Faculty in DYPIU", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Tenure", "No. of Faculty"], "fields": [{"id": 239, "idString": "tenure", "fieldKey": "tenure", "label": "Tenure", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 240, "idString": "no_of_faculty", "fieldKey": "no_of_faculty", "label": "No. of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Tenure": "More than 5 Years"}, {"Sr No": "2", "Tenure": "Between 3 to 5 Years"}, {"Sr No": "3", "Tenure": "Between 1 to 3 Years"}, {"Sr No": "4", "Tenure": "Below 1 Year"}]}, {"id": 48, "idString": "facultyExperience", "tableKey": "facultyExperience", "title": "(d) Consolidated Experience of the teaching faculty considering outside experience", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["S.No", "Name of the Faculty", "Designation", "Highest Qualification", "Date of Joining", "Experience in DYPIU", "Experience before joining DYPIU (Teaching)", "Total Experience"], "fields": [{"id": 241, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 242, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 243, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 244, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 245, "idString": "date_of_joining", "fieldKey": "date_of_joining", "label": "Date of Joining", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 246, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 247, "idString": "experience_before_joining_dypiu_teaching", "fieldKey": "experience_before_joining_dypiu_teaching", "label": "Experience before joining DYPIU (Teaching)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 248, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": 49, "idString": "supportingStaff", "tableKey": "supportingStaff", "title": "Details of Admin and Supporting Staff", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["S.No", "Name of the Supporting Staff", "Designation", "Highest Qualification", "Date of Joining in DYPIU", "Experience in DYPIU", "Experience before joining DYPIU", "Total Experience"], "fields": [{"id": 249, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 250, "idString": "name_of_the_supporting_staff", "fieldKey": "name_of_the_supporting_staff", "label": "Name of the Supporting Staff", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 251, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 252, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 253, "idString": "date_of_joining_in_dypiu", "fieldKey": "date_of_joining_in_dypiu", "label": "Date of Joining in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 254, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 255, "idString": "experience_before_joining_dypiu", "fieldKey": "experience_before_joining_dypiu", "label": "Experience before joining DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 256, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": 50, "idString": "staffTraining", "tableKey": "staffTraining", "title": "Administrative training / professional development program organized for non-teaching staff", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Attachment (Report of the Event)"], "fields": [{"id": 257, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 258, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 259, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 260, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 261, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 262, "idString": "attachment_report_of_the_event", "fieldKey": "attachment_report_of_the_event", "label": "Attachment (Report of the Event)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "tables", "tables": [{"id": "facultyInformation", "idString": "facultyInformation", "tableKey": "facultyInformation", "title": "Faculty Information", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Cadre", "Required", "Regular", "Contract"], "fields": [{"id": 235, "idString": "cadre", "fieldKey": "cadre", "label": "Cadre", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 236, "idString": "required", "fieldKey": "required", "label": "Required", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 237, "idString": "regular", "fieldKey": "regular", "label": "Regular", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 238, "idString": "contract", "fieldKey": "contract", "label": "Contract", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}], "initialRows": [{"Sr No": "1", "Cadre": "Professors"}, {"Sr No": "2", "Cadre": "Associate Professors"}, {"Sr No": "3", "Cadre": "Assistant Professor"}, {"Sr No": "4", "Cadre": "Total"}], "selectOptions": {"Cadre": ["Professor", "Associate Professor", "Assistant Professor"]}}]}, {"type": "attachment-field", "id": "bogMomSanctionedPostsAttachment", "label": "BoG MoM Extract showing Sanctioned Posts"}, {"type": "fields", "fields": [{"id": "phdQualification", "idString": "phdQualification", "fieldKey": "phdQualification", "label": "(a)(i) Faculty members with Ph.D qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "pgQualification", "idString": "pgQualification", "fieldKey": "pgQualification", "label": "(a)(ii) Post Graduation Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 3}, {"id": "otherQualification", "idString": "otherQualification", "fieldKey": "otherQualification", "label": "(a)(iii) Any Other Qualification", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 4}, {"id": "studentFacultyRatio", "idString": "studentFacultyRatio", "fieldKey": "studentFacultyRatio", "label": "(b) Student Faculty Ratio", "fieldType": "TEXT", "kind": "field", "isRequired": false, "displayOrder": 5}]}, {"type": "tables", "tables": [{"id": "facultyTenure", "idString": "facultyTenure", "tableKey": "facultyTenure", "title": "(c) Teaching Experience of the Faculty in DYPIU", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Tenure", "No. of Faculty"], "fields": [{"id": 239, "idString": "tenure", "fieldKey": "tenure", "label": "Tenure", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 240, "idString": "no_of_faculty", "fieldKey": "no_of_faculty", "label": "No. of Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Tenure": "More than 5 Years"}, {"Sr No": "2", "Tenure": "Between 3 to 5 Years"}, {"Sr No": "3", "Tenure": "Between 1 to 3 Years"}, {"Sr No": "4", "Tenure": "Below 1 Year"}]}, {"id": "facultyExperience", "idString": "facultyExperience", "tableKey": "facultyExperience", "title": "(d) Consolidated Experience of the teaching faculty considering outside experience", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["S.No", "Name of the Faculty", "Designation", "Highest Qualification", "Date of Joining", "Experience in DYPIU", "Experience before joining DYPIU (Teaching)", "Total Experience"], "fields": [{"id": 241, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 242, "idString": "name_of_the_faculty", "fieldKey": "name_of_the_faculty", "label": "Name of the Faculty", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 243, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 244, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 245, "idString": "date_of_joining", "fieldKey": "date_of_joining", "label": "Date of Joining", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 246, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 247, "idString": "experience_before_joining_dypiu_teaching", "fieldKey": "experience_before_joining_dypiu_teaching", "label": "Experience before joining DYPIU (Teaching)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 248, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": "supportingStaff", "idString": "supportingStaff", "tableKey": "supportingStaff", "title": "Details of Admin and Supporting Staff", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["S.No", "Name of the Supporting Staff", "Designation", "Highest Qualification", "Date of Joining in DYPIU", "Experience in DYPIU", "Experience before joining DYPIU", "Total Experience"], "fields": [{"id": 249, "idString": "s_no", "fieldKey": "s_no", "label": "S.No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 250, "idString": "name_of_the_supporting_staff", "fieldKey": "name_of_the_supporting_staff", "label": "Name of the Supporting Staff", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 251, "idString": "designation", "fieldKey": "designation", "label": "Designation", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 252, "idString": "highest_qualification", "fieldKey": "highest_qualification", "label": "Highest Qualification", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 253, "idString": "date_of_joining_in_dypiu", "fieldKey": "date_of_joining_in_dypiu", "label": "Date of Joining in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 254, "idString": "experience_in_dypiu", "fieldKey": "experience_in_dypiu", "label": "Experience in DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 6}, {"id": 255, "idString": "experience_before_joining_dypiu", "fieldKey": "experience_before_joining_dypiu", "label": "Experience before joining DYPIU", "fieldType": "TEXT", "isRequired": false, "displayOrder": 7}, {"id": 256, "idString": "total_experience", "fieldKey": "total_experience", "label": "Total Experience", "fieldType": "TEXT", "isRequired": false, "displayOrder": 8}]}, {"id": "staffTraining", "idString": "staffTraining", "tableKey": "staffTraining", "title": "Administrative training / professional development program organized for non-teaching staff", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Sr no", "Title of the Course", "Details of resource person", "Duration and date of conduction", "No of beneficiaries", "Attachment (Report of the Event)"], "fields": [{"id": 257, "idString": "sr_no", "fieldKey": "sr_no", "label": "Sr no", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 258, "idString": "title_of_the_course", "fieldKey": "title_of_the_course", "label": "Title of the Course", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 259, "idString": "details_of_resource_person", "fieldKey": "details_of_resource_person", "label": "Details of resource person", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 260, "idString": "duration_and_date_of_conduction", "fieldKey": "duration_and_date_of_conduction", "label": "Duration and date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 261, "idString": "no_of_beneficiaries", "fieldKey": "no_of_beneficiaries", "label": "No of beneficiaries", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 262, "idString": "attachment_report_of_the_event", "fieldKey": "attachment_report_of_the_event", "label": "Attachment (Report of the Event)", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 9, "idString": "section-c-infrastructure-details", "sectionKey": "section-c-infrastructure-details", "title": "Section C - Infrastructure Details", "number": "C", "ownerRole": "registrar", "displayOrder": 3, "fields": [], "tables": [{"id": 51, "idString": "buildingInfrastructure", "tableKey": "buildingInfrastructure", "title": "1. Building Infrastructure", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Facilities", "No."], "fields": [{"id": 263, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 264, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Classrooms"}, {"Sr No": "2", "Facilities": "Laboratories"}, {"Sr No": "3", "Facilities": "Classroom with Smart Panel"}, {"Sr No": "4", "Facilities": "Classroom with Wi-Fi"}, {"Sr No": "5", "Facilities": "Seminar Hall with ICT Facilities"}, {"Sr No": "6", "Facilities": "Computer with ICT Facilities"}, {"Sr No": "7", "Facilities": "Play area facilities"}, {"Sr No": "8", "Facilities": "Common Rooms"}, {"Sr No": "9", "Facilities": "Staff rooms"}, {"Sr No": "10", "Facilities": "Others"}]}, {"id": 52, "idString": "libraryInfrastructure", "tableKey": "libraryInfrastructure", "title": "2. Library & Research Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Facilities", "No."], "fields": [{"id": 265, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 266, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Books (Title and Volumes)"}, {"Sr No": "2", "Facilities": "E-books and Journals"}, {"Sr No": "3", "Facilities": "Journals"}, {"Sr No": "4", "Facilities": "Digital Data base"}, {"Sr No": "5", "Facilities": "CD / Video"}, {"Sr No": "6", "Facilities": "Library Automation"}, {"Sr No": "7", "Facilities": "Others"}]}, {"id": 53, "idString": "eResources", "tableKey": "eResources", "title": "E-resource Availability", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 267, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 268, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 269, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"Sr No": "1", "Facilities": "e-journals"}, {"Sr No": "2", "Facilities": "Membership / subscription of e-ShodhSindhu"}, {"Sr No": "3", "Facilities": "Membership / subscription of Shodhganga"}, {"Sr No": "4", "Facilities": "Discipline-specific Databases"}, {"Sr No": "5", "Facilities": "Plagiarism Check software"}, {"Sr No": "6", "Facilities": "Licensed statistical software"}, {"Sr No": "7", "Facilities": "Discipline specific simulation software"}]}, {"id": 54, "idString": "itInfrastructure", "tableKey": "itInfrastructure", "title": "3. I.T. (Computer) Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Facilities", "No."], "fields": [{"id": 270, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 271, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "No. of Computers in Institute"}, {"Sr No": "2", "Facilities": "No. of Computer exclusively for students only"}, {"Sr No": "3", "Facilities": "No. of Servers"}, {"Sr No": "4", "Facilities": "No. of System Software's"}, {"Sr No": "5", "Facilities": "No. of Application Software's"}, {"Sr No": "6", "Facilities": "Internet Bandwidth"}, {"Sr No": "7", "Facilities": "No. of Wi-Fi Units"}, {"Sr No": "8", "Facilities": "Internet Connectivity"}]}, {"id": 55, "idString": "sportsFacilities", "tableKey": "sportsFacilities", "title": "4. Facilities for cultural activities, yoga, games, sports etc", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Facilities", "No."], "fields": [{"id": 272, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 273, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}, {"id": 56, "idString": "divyangajanFacilities", "tableKey": "divyangajanFacilities", "title": "5. Facilities for Divyangajan", "showTitle": true, "isRepeatable": false, "displayOrder": 6, "columns": ["Facilities", "Available Yes / No"], "fields": [{"id": 274, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 275, "idString": "available_yes_no", "fieldKey": "available_yes_no", "label": "Available Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Built environment with ramps / lifts for easy access to classrooms"}, {"Sr No": "2", "Facilities": "Divyangan friendly washrooms"}, {"Sr No": "3", "Facilities": "Signage including tactile path, lights, display boards and signposts"}, {"Sr No": "4", "Facilities": "Assistive technology and facilities for Divyangjan"}, {"Sr No": "5", "Facilities": "Provision for enquiry and information"}]}, {"id": 57, "idString": "researchResources", "tableKey": "researchResources", "title": "6. Research Resources", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 276, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 277, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 278, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}], "blocks": [{"type": "tables", "tables": [{"id": "buildingInfrastructure", "idString": "buildingInfrastructure", "tableKey": "buildingInfrastructure", "title": "1. Building Infrastructure", "showTitle": true, "isRepeatable": false, "displayOrder": 1, "columns": ["Facilities", "No."], "fields": [{"id": 263, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 264, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Classrooms"}, {"Sr No": "2", "Facilities": "Laboratories"}, {"Sr No": "3", "Facilities": "Classroom with Smart Panel"}, {"Sr No": "4", "Facilities": "Classroom with Wi-Fi"}, {"Sr No": "5", "Facilities": "Seminar Hall with ICT Facilities"}, {"Sr No": "6", "Facilities": "Computer with ICT Facilities"}, {"Sr No": "7", "Facilities": "Play area facilities"}, {"Sr No": "8", "Facilities": "Common Rooms"}, {"Sr No": "9", "Facilities": "Staff rooms"}, {"Sr No": "10", "Facilities": "Others"}]}, {"id": "libraryInfrastructure", "idString": "libraryInfrastructure", "tableKey": "libraryInfrastructure", "title": "2. Library & Research Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Facilities", "No."], "fields": [{"id": 265, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 266, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Books (Title and Volumes)"}, {"Sr No": "2", "Facilities": "E-books and Journals"}, {"Sr No": "3", "Facilities": "Journals"}, {"Sr No": "4", "Facilities": "Digital Data base"}, {"Sr No": "5", "Facilities": "CD / Video"}, {"Sr No": "6", "Facilities": "Library Automation"}, {"Sr No": "7", "Facilities": "Others"}]}, {"id": "eResources", "idString": "eResources", "tableKey": "eResources", "title": "E-resource Availability", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 267, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 268, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 269, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}], "initialRows": [{"Sr No": "1", "Facilities": "e-journals"}, {"Sr No": "2", "Facilities": "Membership / subscription of e-ShodhSindhu"}, {"Sr No": "3", "Facilities": "Membership / subscription of Shodhganga"}, {"Sr No": "4", "Facilities": "Discipline-specific Databases"}, {"Sr No": "5", "Facilities": "Plagiarism Check software"}, {"Sr No": "6", "Facilities": "Licensed statistical software"}, {"Sr No": "7", "Facilities": "Discipline specific simulation software"}]}, {"id": "itInfrastructure", "idString": "itInfrastructure", "tableKey": "itInfrastructure", "title": "3. I.T. (Computer) Infrastructure", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Facilities", "No."], "fields": [{"id": 270, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 271, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "No. of Computers in Institute"}, {"Sr No": "2", "Facilities": "No. of Computer exclusively for students only"}, {"Sr No": "3", "Facilities": "No. of Servers"}, {"Sr No": "4", "Facilities": "No. of System Software's"}, {"Sr No": "5", "Facilities": "No. of Application Software's"}, {"Sr No": "6", "Facilities": "Internet Bandwidth"}, {"Sr No": "7", "Facilities": "No. of Wi-Fi Units"}, {"Sr No": "8", "Facilities": "Internet Connectivity"}]}, {"id": "sportsFacilities", "idString": "sportsFacilities", "tableKey": "sportsFacilities", "title": "4. Facilities for cultural activities, yoga, games, sports etc", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Facilities", "No."], "fields": [{"id": 272, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 273, "idString": "no", "fieldKey": "no", "label": "No.", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}]}, {"id": "divyangajanFacilities", "idString": "divyangajanFacilities", "tableKey": "divyangajanFacilities", "title": "5. Facilities for Divyangajan", "showTitle": true, "isRepeatable": false, "displayOrder": 6, "columns": ["Facilities", "Available Yes / No"], "fields": [{"id": 274, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 275, "idString": "available_yes_no", "fieldKey": "available_yes_no", "label": "Available Yes / No", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}], "initialRows": [{"Sr No": "1", "Facilities": "Built environment with ramps / lifts for easy access to classrooms"}, {"Sr No": "2", "Facilities": "Divyangan friendly washrooms"}, {"Sr No": "3", "Facilities": "Signage including tactile path, lights, display boards and signposts"}, {"Sr No": "4", "Facilities": "Assistive technology and facilities for Divyangjan"}, {"Sr No": "5", "Facilities": "Provision for enquiry and information"}]}, {"id": "researchResources", "idString": "researchResources", "tableKey": "researchResources", "title": "6. Research Resources", "showTitle": true, "isRepeatable": true, "displayOrder": 7, "columns": ["Facilities", "Availability", "Remarks"], "fields": [{"id": 276, "idString": "facilities", "fieldKey": "facilities", "label": "Facilities", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 277, "idString": "availability", "fieldKey": "availability", "label": "Availability", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 278, "idString": "remarks", "fieldKey": "remarks", "label": "Remarks", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}]}]}]}, {"id": 10, "idString": "section-d-student-activities", "sectionKey": "section-d-student-activities", "title": "Section D - Student Activities (Extension and Outreach Activities)", "number": "D", "ownerRole": "dean-student-welfare", "displayOrder": 4, "fields": [], "tables": [{"id": 58, "idString": "hackathons", "tableKey": "hackathons", "title": "1. Hackathons and Ideation workshops", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 279, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 280, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 281, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 282, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 283, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 59, "idString": "culturalActivities", "tableKey": "culturalActivities", "title": "2. Cultural Clubs and activities and festivals", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 284, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 285, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 286, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 287, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 288, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 60, "idString": "sportsActivities", "tableKey": "sportsActivities", "title": "3. Sports clubs / teams and activities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 289, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 290, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 291, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 292, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 293, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 61, "idString": "communityActivities", "tableKey": "communityActivities", "title": "4. Community related activities", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 294, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 295, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 296, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 297, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 298, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": 62, "idString": "adminStudentAwards", "tableKey": "adminStudentAwards", "title": "5. Awards / Prizes / Recognitions in curricular and extended curricular areas", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the award", "Team / Individual", "Inter-University / State / National / International", "Name of the event", "Name of the student(s)", "Attachment"], "fields": [{"id": 299, "idString": "name_of_the_award", "fieldKey": "name_of_the_award", "label": "Name of the award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 300, "idString": "team_individual", "fieldKey": "team_individual", "label": "Team / Individual", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 301, "idString": "inter_university_state_national_international", "fieldKey": "inter_university_state_national_international", "label": "Inter-University / State / National / International", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 302, "idString": "name_of_the_event", "fieldKey": "name_of_the_event", "label": "Name of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 303, "idString": "name_of_the_student_s", "fieldKey": "name_of_the_student_s", "label": "Name of the student(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 304, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}], "blocks": [{"type": "tables", "tables": [{"id": "hackathons", "idString": "hackathons", "tableKey": "hackathons", "title": "1. Hackathons and Ideation workshops", "showTitle": true, "isRepeatable": true, "displayOrder": 1, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 279, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 280, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 281, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 282, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 283, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "culturalActivities", "idString": "culturalActivities", "tableKey": "culturalActivities", "title": "2. Cultural Clubs and activities and festivals", "showTitle": true, "isRepeatable": true, "displayOrder": 2, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 284, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 285, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 286, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 287, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 288, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "sportsActivities", "idString": "sportsActivities", "tableKey": "sportsActivities", "title": "3. Sports clubs / teams and activities", "showTitle": true, "isRepeatable": true, "displayOrder": 3, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 289, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 290, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 291, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 292, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 293, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "communityActivities", "idString": "communityActivities", "tableKey": "communityActivities", "title": "4. Community related activities", "showTitle": true, "isRepeatable": true, "displayOrder": 4, "columns": ["Activity details", "Organized by", "Date of conduction", "Number of beneficiaries / Participants", "Attachment"], "fields": [{"id": 294, "idString": "activity_details", "fieldKey": "activity_details", "label": "Activity details", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 295, "idString": "organized_by", "fieldKey": "organized_by", "label": "Organized by", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 296, "idString": "date_of_conduction", "fieldKey": "date_of_conduction", "label": "Date of conduction", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 297, "idString": "number_of_beneficiaries_participants", "fieldKey": "number_of_beneficiaries_participants", "label": "Number of beneficiaries / Participants", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 298, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 5}]}, {"id": "adminStudentAwards", "idString": "adminStudentAwards", "tableKey": "adminStudentAwards", "title": "5. Awards / Prizes / Recognitions in curricular and extended curricular areas", "showTitle": true, "isRepeatable": true, "displayOrder": 5, "columns": ["Name of the award", "Team / Individual", "Inter-University / State / National / International", "Name of the event", "Name of the student(s)", "Attachment"], "fields": [{"id": 299, "idString": "name_of_the_award", "fieldKey": "name_of_the_award", "label": "Name of the award", "fieldType": "TEXT", "isRequired": false, "displayOrder": 1}, {"id": 300, "idString": "team_individual", "fieldKey": "team_individual", "label": "Team / Individual", "fieldType": "TEXT", "isRequired": false, "displayOrder": 2}, {"id": 301, "idString": "inter_university_state_national_international", "fieldKey": "inter_university_state_national_international", "label": "Inter-University / State / National / International", "fieldType": "TEXT", "isRequired": false, "displayOrder": 3}, {"id": 302, "idString": "name_of_the_event", "fieldKey": "name_of_the_event", "label": "Name of the event", "fieldType": "TEXT", "isRequired": false, "displayOrder": 4}, {"id": 303, "idString": "name_of_the_student_s", "fieldKey": "name_of_the_student_s", "label": "Name of the student(s)", "fieldType": "TEXT", "isRequired": false, "displayOrder": 5}, {"id": 304, "idString": "attachment", "fieldKey": "attachment", "label": "Attachment", "fieldType": "ATTACHMENT", "isRequired": false, "displayOrder": 6}]}]}]}, {"id": 11, "idString": "section-e-placement-training", "sectionKey": "section-e-placement-training", "title": "Section E - Student Progression", "number": "E", "ownerRole": "dean-placement", "displayOrder": 5, "fields": [{"id": 305, "idString": "partESchools", "fieldKey": "partESchools", "label": "School-wise Placement Programs & Compensation", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}], "tables": [], "blocks": [{"type": "part-e-schools", "fieldId": "partESchools"}]}, {"id": 12, "idString": "section-f-observations-recommendations", "sectionKey": "section-f-observations-recommendations", "title": "Section F - Observations & Recommendations of the Audit", "number": "F", "ownerRole": "auditor", "displayOrder": 6, "fields": [{"id": 306, "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": 307, "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": 308, "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}], "tables": [], "blocks": [{"type": "fields", "fields": [{"id": "auditObservations", "idString": "auditObservations", "fieldKey": "auditObservations", "label": "Observations of the Academic Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 1}, {"id": "auditRecommendations", "idString": "auditRecommendations", "fieldKey": "auditRecommendations", "label": "Recommendations of the Audit Team", "fieldType": "TEXTAREA", "kind": "field", "isRequired": false, "displayOrder": 2}, {"id": "auditDocumentation", "idString": "auditDocumentation", "fieldKey": "auditDocumentation", "label": "Upload Documentation", "fieldType": "ATTACHMENT", "kind": "field", "isRequired": false, "displayOrder": 3}]}]}]}	system-provision	2026-10-28 15:44:29.63613	system-provision	\N	2026-10-28 15:46:26.312754
+3	2	2	PUBLISHED	2025-26	Internal Administrative Audit	registrar	{"id":"administrative-audit-2025-26","schemaId":2,"versionId":3,"versionNumber":2,"auditType":"administrative","title":"Internal Administrative Audit","academicYear":"2025-26","ownerRole":"registrar","status":"DRAFT","header":{"university":"D Y Patil International University, Akurdi, Pune","address":"Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044","act":"Maharashtra State Act No. VI of 2019","logoUrl":"/uploads/branding/dypiu_logo.png","iqacLogoUrl":"/uploads/branding/iqac_logo.png"},"universityInfo":{"university":"D Y Patil International University, Akurdi, Pune","address":"Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044","act":"Maharashtra State Act No. VI of 2019","logoUrl":"/uploads/branding/dypiu_logo.png","iqacLogoUrl":"/uploads/branding/iqac_logo.png","code":"dypiu","domain":"dypiu.ac.in","primaryColor":"#1e3a8a"},"sections":[{"id":17,"idString":"section_e_student_progression","sectionKey":"section_e_student_progression","title":"Section E - Student Progression","number":"E","ownerRole":"dean-placement","description":"","displayOrder":0,"fields":[],"tables":[{"id":94,"idString":"sectionaplacementactivities","tableKey":"sectionaplacementactivities","title":"Section A - Placement Activities","showTitle":true,"isRepeatable":true,"displayOrder":1,"columns":["Sr No","Program","(i) Number of Companies Visited","(ii) Number of Students Placed","(iii) Highest Salary Offered","(iv) Average Salary Offered","(v) Median Salary Offered","List of Students Attachment"],"fields":[{"id":464,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":465,"idString":"program","fieldKey":"program","label":"Program","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Program","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":466,"idString":"inumberofcompaniesvisited","fieldKey":"inumberofcompaniesvisited","label":"(i) Number of Companies Visited","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter (i) Number of Companies Visited","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":467,"idString":"iinumberofstudentsplaced","fieldKey":"iinumberofstudentsplaced","label":"(ii) Number of Students Placed","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter (ii) Number of Students Placed","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":468,"idString":"iiihighestsalaryoffered","fieldKey":"iiihighestsalaryoffered","label":"(iii) Highest Salary Offered","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter (iii) Highest Salary Offered","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":469,"idString":"ivaveragesalaryoffered","fieldKey":"ivaveragesalaryoffered","label":"(iv) Average Salary Offered","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter (iv) Average Salary Offered","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6},{"id":470,"idString":"vmediansalaryoffered","fieldKey":"vmediansalaryoffered","label":"(v) Median Salary Offered","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter (v) Median Salary Offered","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":7},{"id":471,"idString":"listofstudentsattachment","fieldKey":"listofstudentsattachment","label":"List of Students Attachment","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter List of Students Attachment","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":8}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":95,"idString":"sectionb1internship","tableKey":"sectionb1internship","title":"Section B1 - Internship","showTitle":true,"isRepeatable":true,"displayOrder":2,"columns":["Sr No","Activity","(i) Number of Organizations","(ii) Number of Students","(iii) Activities with Stipend","(iv) Total Activities","All Students List Attachment","Certificates Attachment"],"fields":[{"id":472,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":473,"idString":"activity","fieldKey":"activity","label":"Activity","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Activity","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":474,"idString":"inumberoforganizations","fieldKey":"inumberoforganizations","label":"(i) Number of Organizations","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter (i) Number of Organizations","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":475,"idString":"iinumberofstudents","fieldKey":"iinumberofstudents","label":"(ii) Number of Students","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter (ii) Number of Students","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":476,"idString":"iiiactivitieswithstipend","fieldKey":"iiiactivitieswithstipend","label":"(iii) Activities with Stipend","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter (iii) Activities with Stipend","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":477,"idString":"ivtotalactivities","fieldKey":"ivtotalactivities","label":"(iv) Total Activities","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter (iv) Total Activities","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6},{"id":478,"idString":"allstudentslistattachment","fieldKey":"allstudentslistattachment","label":"All Students List Attachment","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter All Students List Attachment","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":7},{"id":479,"idString":"certificatesattachment","fieldKey":"certificatesattachment","label":"Certificates Attachment","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter Certificates Attachment","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":8}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":96,"idString":"sectionb2careerguidance","tableKey":"sectionb2careerguidance","title":"Section B2 - Career Guidance","showTitle":true,"isRepeatable":true,"displayOrder":3,"columns":["Sr No","Title of the Session","Name of the Resource Person","Date of Conduction","No. of Beneficiaries","Link for Proofs"],"fields":[{"id":480,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":481,"idString":"titleofthesession","fieldKey":"titleofthesession","label":"Title of the Session","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Title of the Session","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":482,"idString":"nameoftheresourceperson","fieldKey":"nameoftheresourceperson","label":"Name of the Resource Person","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Name of the Resource Person","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":483,"idString":"dateofconduction","fieldKey":"dateofconduction","label":"Date of Conduction","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Date of Conduction","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":484,"idString":"noofbeneficiaries","fieldKey":"noofbeneficiaries","label":"No. of Beneficiaries","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter No. of Beneficiaries","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":485,"idString":"linkforproofs","fieldKey":"linkforproofs","label":"Link for Proofs","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter Link for Proofs","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":97,"idString":"sectionb3industryinteraction","tableKey":"sectionb3industryinteraction","title":"Section B3 - Industry Interaction","showTitle":true,"isRepeatable":true,"displayOrder":4,"columns":["Sr No","Title of the Session","Name of the Resource Person","Date of Conduction","No. of Beneficiaries","Link for Proofs"],"fields":[{"id":486,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":487,"idString":"titleofthesession","fieldKey":"titleofthesession","label":"Title of the Session","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Title of the Session","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":488,"idString":"nameoftheresourceperson","fieldKey":"nameoftheresourceperson","label":"Name of the Resource Person","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Name of the Resource Person","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":489,"idString":"dateofconduction","fieldKey":"dateofconduction","label":"Date of Conduction","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Date of Conduction","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":490,"idString":"noofbeneficiaries","fieldKey":"noofbeneficiaries","label":"No. of Beneficiaries","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter No. of Beneficiaries","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":491,"idString":"linkforproofs","fieldKey":"linkforproofs","label":"Link for Proofs","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter Link for Proofs","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":98,"idString":"sectionb4otheractivities","tableKey":"sectionb4otheractivities","title":"Section B4 - Other Activities","showTitle":true,"isRepeatable":true,"displayOrder":5,"columns":["Sr No","Title of the Session","Name of the Resource Person","Date of Conduction","No. of Beneficiaries","Link for Proofs"],"fields":[{"id":492,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":493,"idString":"titleofthesession","fieldKey":"titleofthesession","label":"Title of the Session","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Title of the Session","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":494,"idString":"nameoftheresourceperson","fieldKey":"nameoftheresourceperson","label":"Name of the Resource Person","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Name of the Resource Person","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":495,"idString":"dateofconduction","fieldKey":"dateofconduction","label":"Date of Conduction","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Date of Conduction","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":496,"idString":"noofbeneficiaries","fieldKey":"noofbeneficiaries","label":"No. of Beneficiaries","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter No. of Beneficiaries","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":497,"idString":"linkforproofs","fieldKey":"linkforproofs","label":"Link for Proofs","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter Link for Proofs","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":99,"idString":"sectionctrainingskilldevelopmentactivities","tableKey":"sectionctrainingskilldevelopmentactivities","title":"Section C - Training / Skill Development Activities","showTitle":true,"isRepeatable":true,"displayOrder":6,"columns":["Sr No","Academic Year","Title of the Event","Date of Conduction","No. of Students Benefited","Attachment"],"fields":[{"id":498,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":499,"idString":"academicyear","fieldKey":"academicyear","label":"Academic Year","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Academic Year","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":500,"idString":"titleoftheevent","fieldKey":"titleoftheevent","label":"Title of the Event","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Title of the Event","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":501,"idString":"dateofconduction","fieldKey":"dateofconduction","label":"Date of Conduction","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Date of Conduction","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":502,"idString":"noofstudentsbenefited","fieldKey":"noofstudentsbenefited","label":"No. of Students Benefited","fieldType":"NUMBER","kind":null,"isRequired":true,"placeholder":"Enter No. of Students Benefited","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":503,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter Attachment","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":100,"idString":"sectiondindustrycollaborations","tableKey":"sectiondindustrycollaborations","title":"Section D - Industry Collaborations","showTitle":true,"isRepeatable":true,"displayOrder":7,"columns":["Sr No","Organization / Institution / Industry","Year of Signing MoU","Duration of MoU","Activities Conducted Under the MoU","Attachment"],"fields":[{"id":504,"idString":"srno","fieldKey":"srno","label":"Sr No","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"Enter Sr No","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":505,"idString":"organizationinstitutionindustry","fieldKey":"organizationinstitutionindustry","label":"Organization / Institution / Industry","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Organization / Institution / Industry","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":506,"idString":"yearofsigningmou","fieldKey":"yearofsigningmou","label":"Year of Signing MoU","fieldType":"DATE","kind":null,"isRequired":true,"placeholder":"Enter Year of Signing MoU","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":507,"idString":"durationofmou","fieldKey":"durationofmou","label":"Duration of MoU","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Duration of MoU","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":508,"idString":"activitiesconductedunderthemou","fieldKey":"activitiesconductedunderthemou","label":"Activities Conducted Under the MoU","fieldType":"TEXT","kind":null,"isRequired":true,"placeholder":"Enter Activities Conducted Under the MoU","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":509,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":null,"isRequired":false,"placeholder":"Enter Attachment","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}}],"tableButtons":[{"id":"btn_1793183932444","label":"Add School","dropdownLabel":"Select school to add","dropdownOptions":["School of Computer Science & Applications","School of Bio-Engineering & Bio Science","School of Continual Education","School of Commerce & Management","School of Media & Communication Studies","School of Design","School of Applied Arts","School of Engineering Management & Research"],"assignedTableKeys":["sectionaplacementactivities","sectionb1internship","sectionb2careerguidance","sectionb3industryinteraction","sectionb4otheractivities","sectionctrainingskilldevelopmentactivities","sectiondindustrycollaborations"]}],"blocks":null},{"id":13,"idString":"section-a-university-information","sectionKey":"section-a-university-information","title":"Section A - University Information","number":"A","ownerRole":"registrar","description":null,"displayOrder":1,"fields":[{"id":513,"idString":"name_of_university","fieldKey":"name_of_university","label":"Name of University","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":514,"idString":"year_of_establishment","fieldKey":"year_of_establishment","label":"Year of Establishment","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":515,"idString":"address","fieldKey":"address","label":"Address","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":516,"idString":"pincode","fieldKey":"pincode","label":"Pincode","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":517,"idString":"website","fieldKey":"website","label":"Website","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":518,"idString":"name_of_vice_chancellor","fieldKey":"name_of_vice_chancellor","label":"Name of Vice Chancellor","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6},{"id":519,"idString":"vice_chancellor_email_id","fieldKey":"vice_chancellor_email_id","label":"Vice Chancellor e-Mail id","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":7},{"id":520,"idString":"name_of_registrar","fieldKey":"name_of_registrar","label":"Name of Registrar","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":8},{"id":521,"idString":"registrar_email_id","fieldKey":"registrar_email_id","label":"Registrar e-Mail id","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":9},{"id":522,"idString":"accreditation_status_agency","fieldKey":"accreditation_status_agency","label":"Accreditation status & Agency","fieldType":"TEXT","kind":null,"isRequired":false,"placeholder":"","defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":10}],"tables":[{"id":71,"idString":"coursesOffered","tableKey":"coursesOffered","title":"1. Courses Offered","showTitle":true,"isRepeatable":true,"displayOrder":1,"columns":["Name of the Program","Level (UG/PG)","Intake","No. of Students Admitted","Year of Commencement of the program","Attachment (Attach List of the Students)"],"fields":[{"id":357,"idString":"name_of_the_program","fieldKey":"name_of_the_program","label":"Name of the Program","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":358,"idString":"level_ug_pg","fieldKey":"level_ug_pg","label":"Level (UG/PG)","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":359,"idString":"intake","fieldKey":"intake","label":"Intake","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":360,"idString":"no_of_students_admitted","fieldKey":"no_of_students_admitted","label":"No. of Students Admitted","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":361,"idString":"year_of_commencement_of_the_program","fieldKey":"year_of_commencement_of_the_program","label":"Year of Commencement of the program","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":362,"idString":"attachment_attach_list_of_the_students","fieldKey":"attachment_attach_list_of_the_students","label":"Attachment (Attach List of the Students)","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":72,"idString":"studentStatistics","tableKey":"studentStatistics","title":"2. Total Number of Students in the university","showTitle":true,"isRepeatable":false,"displayOrder":2,"columns":["Category","U.G.","P.G.","Ph.D.","Value added / skill Courses"],"fields":[{"id":363,"idString":"category","fieldKey":"category","label":"Category","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":364,"idString":"u_g","fieldKey":"u_g","label":"U.G.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":365,"idString":"p_g","fieldKey":"p_g","label":"P.G.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":366,"idString":"ph_d","fieldKey":"ph_d","label":"Ph.D.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":367,"idString":"value_added_skill_courses","fieldKey":"value_added_skill_courses","label":"Value added / skill Courses","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":73,"idString":"statutoryBodies","tableKey":"statutoryBodies","title":"3. Statutory Body Meetings and ATR","showTitle":true,"isRepeatable":true,"displayOrder":3,"columns":["Body / Cell","Meetings Conducted","ATR Status","Remarks / Link"],"fields":[{"id":368,"idString":"body_cell","fieldKey":"body_cell","label":"Body / Cell","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":369,"idString":"meetings_conducted","fieldKey":"meetings_conducted","label":"Meetings Conducted","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":370,"idString":"atr_status","fieldKey":"atr_status","label":"ATR Status","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":371,"idString":"remarks_link","fieldKey":"remarks_link","label":"Remarks / Link","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":74,"idString":"auditRecords","tableKey":"auditRecords","title":"4. Audits Completed","showTitle":true,"isRepeatable":true,"displayOrder":4,"columns":["Audit Type","Completed Yes / No","Date","Remarks / Link"],"fields":[{"id":372,"idString":"audit_type","fieldKey":"audit_type","label":"Audit Type","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":373,"idString":"completed_yes_no","fieldKey":"completed_yes_no","label":"Completed Yes / No","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":374,"idString":"date","fieldKey":"date","label":"Date","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":375,"idString":"remarks_link","fieldKey":"remarks_link","label":"Remarks / Link","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":75,"idString":"scholarshipSummary","tableKey":"scholarshipSummary","title":"5. Scholarship Details","showTitle":true,"isRepeatable":false,"displayOrder":5,"columns":["Year","Title of Scholarship","Number of the Students","Amount received","Awarding Agency","Awarding Organization","Attachment"],"fields":[{"id":376,"idString":"year","fieldKey":"year","label":"Year","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":377,"idString":"title_of_scholarship","fieldKey":"title_of_scholarship","label":"Title of Scholarship","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":378,"idString":"number_of_the_students","fieldKey":"number_of_the_students","label":"Number of the Students","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":379,"idString":"amount_received","fieldKey":"amount_received","label":"Amount received","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":380,"idString":"awarding_agency","fieldKey":"awarding_agency","label":"Awarding Agency","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":381,"idString":"awarding_organization","fieldKey":"awarding_organization","label":"Awarding Organization","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6},{"id":382,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":7}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":76,"idString":"scholarshipStudents","tableKey":"scholarshipStudents","title":"6. Scholarship Student Details","showTitle":true,"isRepeatable":true,"displayOrder":6,"columns":["Year","Title of Scholarship","Name of the Students","Amount received","Awarding Agency","Attachment"],"fields":[{"id":383,"idString":"year","fieldKey":"year","label":"Year","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":384,"idString":"title_of_scholarship","fieldKey":"title_of_scholarship","label":"Title of Scholarship","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":385,"idString":"name_of_the_students","fieldKey":"name_of_the_students","label":"Name of the Students","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":386,"idString":"amount_received","fieldKey":"amount_received","label":"Amount received","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":387,"idString":"awarding_agency","fieldKey":"awarding_agency","label":"Awarding Agency","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":388,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}}],"tableButtons":[],"blocks":null},{"id":14,"idString":"section-b-faculty-staff-details","sectionKey":"section-b-faculty-staff-details","title":"Section B - Faculty and Staff Details","number":"B","ownerRole":"hr","description":null,"displayOrder":2,"fields":[{"id":389,"idString":"bogMomSanctionedPostsAttachment","fieldKey":"bogMomSanctionedPostsAttachment","label":"BoG MoM Extract showing Sanctioned Posts","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":390,"idString":"phdQualification","fieldKey":"phdQualification","label":"(a)(i) Faculty members with Ph.D qualification","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":391,"idString":"pgQualification","fieldKey":"pgQualification","label":"(a)(ii) Post Graduation Qualification","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":392,"idString":"otherQualification","fieldKey":"otherQualification","label":"(a)(iii) Any Other Qualification","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":393,"idString":"studentFacultyRatio","fieldKey":"studentFacultyRatio","label":"(b) Student Faculty Ratio","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5}],"tables":[{"id":77,"idString":"facultyInformation","tableKey":"facultyInformation","title":"Faculty Information","showTitle":true,"isRepeatable":true,"displayOrder":1,"columns":["Cadre","Required","Regular","Contract"],"fields":[{"id":394,"idString":"cadre","fieldKey":"cadre","label":"Cadre","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":395,"idString":"required","fieldKey":"required","label":"Required","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":396,"idString":"regular","fieldKey":"regular","label":"Regular","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":397,"idString":"contract","fieldKey":"contract","label":"Contract","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":78,"idString":"facultyTenure","tableKey":"facultyTenure","title":"(c) Teaching Experience of the Faculty in DYPIU","showTitle":true,"isRepeatable":true,"displayOrder":2,"columns":["Tenure","No. of Faculty"],"fields":[{"id":398,"idString":"tenure","fieldKey":"tenure","label":"Tenure","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":399,"idString":"no_of_faculty","fieldKey":"no_of_faculty","label":"No. of Faculty","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":79,"idString":"facultyExperience","tableKey":"facultyExperience","title":"(d) Consolidated Experience of the teaching faculty considering outside experience","showTitle":true,"isRepeatable":true,"displayOrder":3,"columns":["S.No","Name of the Faculty","Designation","Highest Qualification","Date of Joining","Experience in DYPIU","Experience before joining DYPIU (Teaching)","Total Experience"],"fields":[{"id":400,"idString":"s_no","fieldKey":"s_no","label":"S.No","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":401,"idString":"name_of_the_faculty","fieldKey":"name_of_the_faculty","label":"Name of the Faculty","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":402,"idString":"designation","fieldKey":"designation","label":"Designation","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":403,"idString":"highest_qualification","fieldKey":"highest_qualification","label":"Highest Qualification","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":404,"idString":"date_of_joining","fieldKey":"date_of_joining","label":"Date of Joining","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":405,"idString":"experience_in_dypiu","fieldKey":"experience_in_dypiu","label":"Experience in DYPIU","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6},{"id":406,"idString":"experience_before_joining_dypiu_teaching","fieldKey":"experience_before_joining_dypiu_teaching","label":"Experience before joining DYPIU (Teaching)","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":7},{"id":407,"idString":"total_experience","fieldKey":"total_experience","label":"Total Experience","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":8}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":80,"idString":"supportingStaff","tableKey":"supportingStaff","title":"Details of Admin and Supporting Staff","showTitle":true,"isRepeatable":true,"displayOrder":4,"columns":["S.No","Name of the Supporting Staff","Designation","Highest Qualification","Date of Joining in DYPIU","Experience in DYPIU","Experience before joining DYPIU","Total Experience"],"fields":[{"id":408,"idString":"s_no","fieldKey":"s_no","label":"S.No","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":409,"idString":"name_of_the_supporting_staff","fieldKey":"name_of_the_supporting_staff","label":"Name of the Supporting Staff","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":410,"idString":"designation","fieldKey":"designation","label":"Designation","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":411,"idString":"highest_qualification","fieldKey":"highest_qualification","label":"Highest Qualification","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":412,"idString":"date_of_joining_in_dypiu","fieldKey":"date_of_joining_in_dypiu","label":"Date of Joining in DYPIU","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":413,"idString":"experience_in_dypiu","fieldKey":"experience_in_dypiu","label":"Experience in DYPIU","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6},{"id":414,"idString":"experience_before_joining_dypiu","fieldKey":"experience_before_joining_dypiu","label":"Experience before joining DYPIU","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":7},{"id":415,"idString":"total_experience","fieldKey":"total_experience","label":"Total Experience","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":8}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":81,"idString":"staffTraining","tableKey":"staffTraining","title":"Administrative training / professional development program organized for non-teaching staff","showTitle":true,"isRepeatable":true,"displayOrder":5,"columns":["Sr no","Title of the Course","Details of resource person","Duration and date of conduction","No of beneficiaries","Attachment (Report of the Event)"],"fields":[{"id":416,"idString":"sr_no","fieldKey":"sr_no","label":"Sr no","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":417,"idString":"title_of_the_course","fieldKey":"title_of_the_course","label":"Title of the Course","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":418,"idString":"details_of_resource_person","fieldKey":"details_of_resource_person","label":"Details of resource person","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":419,"idString":"duration_and_date_of_conduction","fieldKey":"duration_and_date_of_conduction","label":"Duration and date of conduction","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":420,"idString":"no_of_beneficiaries","fieldKey":"no_of_beneficiaries","label":"No of beneficiaries","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":421,"idString":"attachment_report_of_the_event","fieldKey":"attachment_report_of_the_event","label":"Attachment (Report of the Event)","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}}],"tableButtons":[],"blocks":null},{"id":15,"idString":"section-c-infrastructure-details","sectionKey":"section-c-infrastructure-details","title":"Section C - Infrastructure Details","number":"C","ownerRole":"registrar","description":null,"displayOrder":3,"fields":[],"tables":[{"id":82,"idString":"buildingInfrastructure","tableKey":"buildingInfrastructure","title":"1. Building Infrastructure","showTitle":true,"isRepeatable":false,"displayOrder":1,"columns":["Facilities","No."],"fields":[{"id":422,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":423,"idString":"no","fieldKey":"no","label":"No.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":83,"idString":"libraryInfrastructure","tableKey":"libraryInfrastructure","title":"2. Library & Research Infrastructure","showTitle":true,"isRepeatable":true,"displayOrder":2,"columns":["Facilities","No."],"fields":[{"id":424,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":425,"idString":"no","fieldKey":"no","label":"No.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":84,"idString":"eResources","tableKey":"eResources","title":"E-resource Availability","showTitle":true,"isRepeatable":true,"displayOrder":3,"columns":["Facilities","Availability","Remarks"],"fields":[{"id":426,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":427,"idString":"availability","fieldKey":"availability","label":"Availability","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":428,"idString":"remarks","fieldKey":"remarks","label":"Remarks","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":85,"idString":"itInfrastructure","tableKey":"itInfrastructure","title":"3. I.T. (Computer) Infrastructure","showTitle":true,"isRepeatable":true,"displayOrder":4,"columns":["Facilities","No."],"fields":[{"id":429,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":430,"idString":"no","fieldKey":"no","label":"No.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":86,"idString":"sportsFacilities","tableKey":"sportsFacilities","title":"4. Facilities for cultural activities, yoga, games, sports etc","showTitle":true,"isRepeatable":true,"displayOrder":5,"columns":["Facilities","No."],"fields":[{"id":431,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":432,"idString":"no","fieldKey":"no","label":"No.","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":87,"idString":"divyangajanFacilities","tableKey":"divyangajanFacilities","title":"5. Facilities for Divyangajan","showTitle":true,"isRepeatable":false,"displayOrder":6,"columns":["Facilities","Available Yes / No"],"fields":[{"id":433,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":434,"idString":"available_yes_no","fieldKey":"available_yes_no","label":"Available Yes / No","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":88,"idString":"researchResources","tableKey":"researchResources","title":"6. Research Resources","showTitle":true,"isRepeatable":true,"displayOrder":7,"columns":["Facilities","Availability","Remarks"],"fields":[{"id":435,"idString":"facilities","fieldKey":"facilities","label":"Facilities","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":436,"idString":"availability","fieldKey":"availability","label":"Availability","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":437,"idString":"remarks","fieldKey":"remarks","label":"Remarks","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}}],"tableButtons":[],"blocks":null},{"id":16,"idString":"section-d-student-activities","sectionKey":"section-d-student-activities","title":"Section D - Student Activities (Extension and Outreach Activities)","number":"D","ownerRole":"dean-student-welfare","description":null,"displayOrder":4,"fields":[],"tables":[{"id":89,"idString":"hackathons","tableKey":"hackathons","title":"1. Hackathons and Ideation workshops","showTitle":true,"isRepeatable":true,"displayOrder":1,"columns":["Activity details","Organized by","Date of conduction","Number of beneficiaries / Participants","Attachment"],"fields":[{"id":438,"idString":"activity_details","fieldKey":"activity_details","label":"Activity details","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":439,"idString":"organized_by","fieldKey":"organized_by","label":"Organized by","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":440,"idString":"date_of_conduction","fieldKey":"date_of_conduction","label":"Date of conduction","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":441,"idString":"number_of_beneficiaries_participants","fieldKey":"number_of_beneficiaries_participants","label":"Number of beneficiaries / Participants","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":442,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":90,"idString":"culturalActivities","tableKey":"culturalActivities","title":"2. Cultural Clubs and activities and festivals","showTitle":true,"isRepeatable":true,"displayOrder":2,"columns":["Activity details","Organized by","Date of conduction","Number of beneficiaries / Participants","Attachment"],"fields":[{"id":443,"idString":"activity_details","fieldKey":"activity_details","label":"Activity details","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":444,"idString":"organized_by","fieldKey":"organized_by","label":"Organized by","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":445,"idString":"date_of_conduction","fieldKey":"date_of_conduction","label":"Date of conduction","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":446,"idString":"number_of_beneficiaries_participants","fieldKey":"number_of_beneficiaries_participants","label":"Number of beneficiaries / Participants","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":447,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":91,"idString":"sportsActivities","tableKey":"sportsActivities","title":"3. Sports clubs / teams and activities","showTitle":true,"isRepeatable":true,"displayOrder":3,"columns":["Activity details","Organized by","Date of conduction","Number of beneficiaries / Participants","Attachment"],"fields":[{"id":448,"idString":"activity_details","fieldKey":"activity_details","label":"Activity details","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":449,"idString":"organized_by","fieldKey":"organized_by","label":"Organized by","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":450,"idString":"date_of_conduction","fieldKey":"date_of_conduction","label":"Date of conduction","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":451,"idString":"number_of_beneficiaries_participants","fieldKey":"number_of_beneficiaries_participants","label":"Number of beneficiaries / Participants","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":452,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":92,"idString":"communityActivities","tableKey":"communityActivities","title":"4. Community related activities","showTitle":true,"isRepeatable":true,"displayOrder":4,"columns":["Activity details","Organized by","Date of conduction","Number of beneficiaries / Participants","Attachment"],"fields":[{"id":453,"idString":"activity_details","fieldKey":"activity_details","label":"Activity details","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":454,"idString":"organized_by","fieldKey":"organized_by","label":"Organized by","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":455,"idString":"date_of_conduction","fieldKey":"date_of_conduction","label":"Date of conduction","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":456,"idString":"number_of_beneficiaries_participants","fieldKey":"number_of_beneficiaries_participants","label":"Number of beneficiaries / Participants","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":457,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}},{"id":93,"idString":"adminStudentAwards","tableKey":"adminStudentAwards","title":"5. Awards / Prizes / Recognitions in curricular and extended curricular areas","showTitle":true,"isRepeatable":true,"displayOrder":5,"columns":["Name of the award","Team / Individual","Inter-University / State / National / International","Name of the event","Name of the student(s)","Attachment"],"fields":[{"id":458,"idString":"name_of_the_award","fieldKey":"name_of_the_award","label":"Name of the award","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":459,"idString":"team_individual","fieldKey":"team_individual","label":"Team / Individual","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":460,"idString":"inter_university_state_national_international","fieldKey":"inter_university_state_national_international","label":"Inter-University / State / National / International","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3},{"id":461,"idString":"name_of_the_event","fieldKey":"name_of_the_event","label":"Name of the event","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":4},{"id":462,"idString":"name_of_the_student_s","fieldKey":"name_of_the_student_s","label":"Name of the student(s)","fieldType":"TEXT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":5},{"id":463,"idString":"attachment","fieldKey":"attachment","label":"Attachment","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":6}],"initialRows":[],"selectOptions":{},"dateColumns":[],"numberColumns":[],"textareaColumns":[],"textareaMaxLengths":{}}],"tableButtons":[],"blocks":null},{"id":18,"idString":"section-f-observations-recommendations","sectionKey":"section-f-observations-recommendations","title":"Section F - Observations & Recommendations of the Audit","number":"F","ownerRole":"auditor","description":null,"displayOrder":6,"fields":[{"id":510,"idString":"auditObservations","fieldKey":"auditObservations","label":"Observations of the Academic Audit Team","fieldType":"TEXTAREA","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":1},{"id":511,"idString":"auditRecommendations","fieldKey":"auditRecommendations","label":"Recommendations of the Audit Team","fieldType":"TEXTAREA","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":2},{"id":512,"idString":"auditDocumentation","fieldKey":"auditDocumentation","label":"Upload Documentation","fieldType":"ATTACHMENT","kind":"field","isRequired":false,"placeholder":null,"defaultValue":null,"validationRules":null,"options":[],"attachmentRules":null,"displayOrder":3}],"tables":[],"tableButtons":[],"blocks":null}],"modules":null}	\N	2026-10-28 10:30:51.177721	admin	2026-10-28 10:39:01.028907	2026-10-28 10:39:01.035259
+\.
+
+
+--
+-- TOC entry 4199 (class 0 OID 99613)
+-- Dependencies: 315
+-- Data for Name: scholarship_students; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.scholarship_students (id, submission_id, sr_no, year, scholarship_title, student_name, amount_received, awarding_agency, attachment) FROM stdin;
 104	79	1	First Year	conomically Weaker Section ( EWS) Scholarship		0	DYPIU 	[{"name":"EWS AY-2025-26- First Year.pdf","fileName":"EWS AY-2025-26- First Year.pdf","url":"/uploads/users/afaf2480e4a15372/attachments/0d597a80-f0cb-478d-963f-78c923cd7517-EWS_AY-2025-26-_First_Year.pdf"}]
@@ -5814,6 +6074,13 @@ COPY public.scholarship_students (id, submission_id, sr_no, year, scholarship_ti
 53	62	10	First Year to Fourth Year	Scholarship for Maharashtra State Domicile Students 		0	DYPIU 	[{"name":"Scholarship for Maharashtra Domicile Students .pdf","fileName":"Scholarship for Maharashtra Domicile Students .pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/f738c53d-4efa-47df-a831-aeb233da79fe-Scholarship_for_Maharashtra_Domicile_Students_.pdf"}]
 \.
 
+
+--
+-- TOC entry 4201 (class 0 OID 99619)
+-- Dependencies: 317
+-- Data for Name: scholarship_summary; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.scholarship_summary (id, submission_id, sr_no, year, scholarship_title, students_count, amount_received, awarding_agency, awarding_org, attachment) FROM stdin;
 104	79	1	First Year	Economically Weaker Section ( EWS) Scholarship	135	0	DYPIU 		
 105	79	2	Second  Year	Economically Weaker Section ( EWS) Scholarship	50	0	DYPIU 		
@@ -5837,6 +6104,13 @@ COPY public.scholarship_summary (id, submission_id, sr_no, year, scholarship_tit
 53	62	10	First Year to Fourth Year	Scholarship for Maharashtra State Domicile Students 	4363	0	DYPIU 		
 \.
 
+
+--
+-- TOC entry 4203 (class 0 OID 99625)
+-- Dependencies: 319
+-- Data for Name: sports_activities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.sports_activities (id, submission_id, sr_no, activity_details, organized_by, conduction_date, participants_count, attachment) FROM stdin;
 38	62	1		DYPIU	12/11/2027	34	[{"name":"2. Academic Calendar AY 2025-26.pdf","fileName":"2. Academic Calendar AY 2025-26.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/c059ba7f-7d0b-416c-8df5-5897906bdd6e-2._Academic_Calendar_AY_2025-26.pdf"}]
 39	62	2	International Yoga day	Department of Sports	21st June 2024	155	[{"name":"IDY 2025-26.pdf","fileName":"IDY 2025-26.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/5fb514a9e61b47c9/attachments/8286a391-a175-4f75-abfc-23ef8a06fc94-IDY_2025-26.pdf"}]
@@ -5854,6 +6128,13 @@ COPY public.sports_activities (id, submission_id, sr_no, activity_details, organ
 86	79	7	21st June 2026	Department of Sports	International Yoga day	100	[]
 \.
 
+
+--
+-- TOC entry 4205 (class 0 OID 99631)
+-- Dependencies: 321
+-- Data for Name: sports_facilities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.sports_facilities (id, submission_id, sr_no, facilities, no) FROM stdin;
 30	62	1	Chintan Room 1 (Yoga Room) 	Room No. 403
 31	62	2	Chintan Room 2 (Music Room) 	Room No. 404
@@ -5865,10 +6146,24 @@ COPY public.sports_facilities (id, submission_id, sr_no, facilities, no) FROM st
 57	79	4	Swagat Plaza (Cultural Activities)	3rd Floor
 \.
 
+
+--
+-- TOC entry 4207 (class 0 OID 99637)
+-- Dependencies: 323
+-- Data for Name: staff_training; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.staff_training (id, submission_id, sr_no, course_title, resource_person, duration_date, no_of_beneficiaries, attachment) FROM stdin;
 20	62	1					
 26	79	1					
 \.
+
+
+--
+-- TOC entry 4209 (class 0 OID 99643)
+-- Dependencies: 325
+-- Data for Name: statutory_bodies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.statutory_bodies (id, submission_id, sr_no, body_cell, meetings_conducted, atr_status, remarks_link) FROM stdin;
 202	79	1	Governing Body 	30/12/2025, 02/02/2026	Available	
@@ -5896,6 +6191,13 @@ COPY public.statutory_bodies (id, submission_id, sr_no, body_cell, meetings_cond
 140	62	11	University Women Development Cell	07/07/2025, 14/09/2025 , 24/02/2026 , 01/04/2026 , 18/06/2026	Available	[{"name":"07-7-2025 UWDC MOM.pdf","fileName":"07-7-2025 UWDC MOM.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/970ea9f1-cf84-479e-929e-46579f87e342-07-7-2025_UWDC_MOM.pdf"},{"name":"14-09-2025 UWDC MOM.pdf","fileName":"14-09-2025 UWDC MOM.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/c77b9b6a-0df7-4b3a-846b-1b5893e8c784-14-09-2025_UWDC_MOM.pdf"},{"name":"24-02-2026 UWD MOM.pdf","fileName":"24-02-2026 UWD MOM.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/3f8895c3-2a2f-4b2c-937e-276936d75426-24-02-2026_UWD_MOM.pdf"},{"name":"01-04-2026 UWDC MOM.pdf","fileName":"01-04-2026 UWDC MOM.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/fcb2091e-2b59-4e1d-b467-04b35e8b8700-01-04-2026_UWDC_MOM.pdf"},{"name":"18-06-2026 UWDC MOM.pdf","fileName":"18-06-2026 UWDC MOM.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/b46c8683-1030-4482-b09b-af9da06c7e65-18-06-2026_UWDC_MOM.pdf"}]
 141	62	12	Discipline Committee	June 2026	Available	[{"name":"Discipline Committee June 2026.pdf","fileName":"Discipline Committee June 2026.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/afaf2480e4a15372/attachments/4de8e960-bfbe-434c-bf91-174a9d0dc439-Discipline_Committee_June_2026.pdf"}]
 \.
+
+
+--
+-- TOC entry 4211 (class 0 OID 99649)
+-- Dependencies: 327
+-- Data for Name: student_awards; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.student_awards (id, submission_id, sr_no, student_name, award_details, proof_attachment) FROM stdin;
 312	71	1	Semiconductor Engineering- Shahid Nadaf,Chaitanya Kolhe,Pehal Vadehra,Abha Katake,Ayan Faruk Desai	Runner Up in the 19th National Level Inter- Collegiate KABADDI Tournament Summit 2026 held in MIT-WPU, Pune (27-28 November 2025)	[{"name":"B5. No. of awards received by students.pdf","fileName":"B5. No. of awards received by students.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/ce8bc9d9-e14b-4dad-8a1c-5bfbb8ac9404-B5._No._of_awards_received_by_students.pdf"}]
@@ -5931,6 +6233,13 @@ COPY public.student_awards (id, submission_id, sr_no, student_name, award_detail
 337	74	1	Summary sheet		[{"name":"Awards by the students SoBB 25-26.pdf","fileName":"Awards by the students SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/0942f265-125b-4cb3-aecf-4c3b93289c89-Awards_by_the_students_SoBB_25-26.pdf"}]
 \.
 
+
+--
+-- TOC entry 4213 (class 0 OID 99655)
+-- Dependencies: 329
+-- Data for Name: student_courses; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.student_courses (id, submission_id, sr_no, name_of_student, year_of_study, name_of_course, duration, link_proof) FROM stdin;
 148	73	1	B.Des 1st, 2nd, 3rd, 4th Year	2025-26	B.Des	2025-26	[{"name":"MOOCs, Value-added, skill development courses completed by the students.pdf","fileName":"MOOCs, Value-added, skill development courses completed by the students.pdf","url":"/uploads/users/04c83213103c5bcf/attachments/bc2c8664-3d70-403e-8942-128250cba93f-MOOCs__Value-added__skill_development_courses_completed_by_the_students.pdf"}]
 149	75	1	129 Students	FY, SY and TY	Multiple Course from Coursera	6 to 18 hrs	[{"name":"SY BFA Coursera details new.pdf","fileName":"SY BFA Coursera details new.pdf","url":"/uploads/users/04e09d7ce5a2501c/attachments/569b0af6-2d6a-44c2-9d98-4f4cdfea64d6-SY_BFA_Coursera_details_new.pdf"},{"name":"FY and TY BFA Coursera Course Details_compressed.pdf","fileName":"FY and TY BFA Coursera Course Details_compressed.pdf","url":"/uploads/users/04e09d7ce5a2501c/attachments/90a76b74-a6ef-4059-b90b-56b8abcc6189-FY_and_TY_BFA_Coursera_Course_Details_compressed.pdf"}]
@@ -5944,6 +6253,13 @@ COPY public.student_courses (id, submission_id, sr_no, name_of_student, year_of_
 146	71	3	Mechanical Engineering Department	FY, SY, TY	Coursera	2 Hrs- 26 Hrs	[{"name":"B9_SEMR_Mech_MOOCS Value Aided  Skill Development Courses completed  SUMMARY.pdf","fileName":"B9_SEMR_Mech_MOOCS Value Aided  Skill Development Courses completed  SUMMARY.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/46421e49-1a0e-4de3-ac54-bfa400e02d4a-B9_SEMR_Mech_MOOCS_Value_Aided__Skill_Development_Courses_completed__SUMMARY.pdf"}]
 147	71	4	Chemical Engineering	FY SY	Coursera	2hrs-30 hrs	[{"name":"B9 MOOCS VALUED ADDED SKILL.pdf","fileName":"B9 MOOCS VALUED ADDED SKILL.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/f8dde33e-960d-46c0-9a12-40a4e6801c60-B9_MOOCS_VALUED_ADDED_SKILL.pdf"}]
 \.
+
+
+--
+-- TOC entry 4215 (class 0 OID 99661)
+-- Dependencies: 331
+-- Data for Name: student_mentoring; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.student_mentoring (id, submission_id, sr_no, mentor_name, no_of_mentees, link_to_document) FROM stdin;
 273	71	1	1\\t Semiconductor  Engg Department Dr. Rashmi Deshpande\\tDr. Shweta Suryawanshi    Dr. Dnyanda Hire \\tDr. Vanita Daddi                       	25	[{"name":"B1. Student Mentoring (mentor-wise list with mentee).pdf","fileName":"B1. Student Mentoring (mentor-wise list with mentee).pdf","url":"/uploads/users/bd37e773067d86fe/attachments/38eea507-6c81-4408-8571-9c6d5c491e03-B1._Student_Mentoring__mentor-wise_list_with_mentee_.pdf"}]
@@ -5974,6 +6290,13 @@ COPY public.student_mentoring (id, submission_id, sr_no, mentor_name, no_of_ment
 285	74	1	Summary of Mentor Mentee sessions & Allocation list		[{"name":"Summary of Mentor-Mentee SoBB 25-26.pdf","fileName":"Summary of Mentor-Mentee SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/fb411e39-9c93-472e-8056-5c6ce2d8e001-Summary_of_Mentor-Mentee_SoBB_25-26.pdf"}]
 \.
 
+
+--
+-- TOC entry 4217 (class 0 OID 99667)
+-- Dependencies: 333
+-- Data for Name: student_placements; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.student_placements (id, submission_id, program, students_appeared, students_placed, placement_percent, proof_attachment) FROM stdin;
 69	77	M Tech EV, B Tech EE, B Tech ME	-	-	\N	[{"name":"Placement Summary.docx.pdf","fileName":"Placement Summary.docx.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/d291669ed87e0b9f/attachments/5bd0afe3-d350-4d3a-ac30-381ac6b70954-Placement_Summary.docx.pdf"}]
 70	78	B.Tech (CSE)	369	108	\N	[{"name":"6.No of Outgoing Students Placed during the Year-IC.pdf","fileName":"6.No of Outgoing Students Placed during the Year-IC.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/60971d17-e28d-4b3f-8506-64eafde43651-6.No_of_Outgoing_Students_Placed_during_the_Year-IC.pdf"}]
@@ -5986,6 +6309,13 @@ COPY public.student_placements (id, submission_id, program, students_appeared, s
 83	74	B. Tech Bioengineering 	103	20	\N	[{"name":"placement & higher studies record SoBB 25-26.pdf","fileName":"placement & higher studies record SoBB 25-26.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/f236abc6-e635-492f-b636-d10ef36c7140-placement___higher_studies_record_SoBB_25-26.pdf"}]
 \.
 
+
+--
+-- TOC entry 4219 (class 0 OID 99673)
+-- Dependencies: 335
+-- Data for Name: student_startups; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.student_startups (id, submission_id, sn, student_name, venture_name, link_proof) FROM stdin;
 107	77	1	-	-	
 108	78	1	SoCSEA Summary Sheet Attached		[{"name":"8.Student Start-up Details.pdf","fileName":"8.Student Start-up Details.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/ee77228d84fc13f0/attachments/53159b43-a6c9-4c5b-90ea-41a4c622f750-8.Student_Start-up_Details.pdf"}]
@@ -5997,6 +6327,13 @@ COPY public.student_startups (id, submission_id, sn, student_name, venture_name,
 122	74	1	nil		
 \.
 
+
+--
+-- TOC entry 4221 (class 0 OID 99680)
+-- Dependencies: 337
+-- Data for Name: student_statistics; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.student_statistics (id, submission_id, sr_no, category, ug, pg, phd, skill_courses) FROM stdin;
 58	62	1	General	3369	251	51	0
 59	62	2	OBC	1701	129	10	0
@@ -6007,6 +6344,13 @@ COPY public.student_statistics (id, submission_id, sr_no, category, ug, pg, phd,
 84	79	3	SC	182	16	02	0
 85	79	4	ST	19	05	00	0
 \.
+
+
+--
+-- TOC entry 4223 (class 0 OID 99688)
+-- Dependencies: 339
+-- Data for Name: student_strength; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.student_strength (id, submission_id, class_name, no_of_students, total) FROM stdin;
 473	71	F.Y Mechanical Engineering	\N	118
@@ -6062,6 +6406,13 @@ COPY public.student_strength (id, submission_id, class_name, no_of_students, tot
 498	74	Total Strength	\N	413
 \.
 
+
+--
+-- TOC entry 4225 (class 0 OID 99699)
+-- Dependencies: 341
+-- Data for Name: success_rate; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.success_rate (id, submission_id, program, students_appeared, students_cleared, success_rate_percent) FROM stdin;
 25	49	NA	NA	\N	\N
 30	44	-	-	\N	\N
@@ -6084,6 +6435,13 @@ COPY public.success_rate (id, submission_id, program, students_appeared, student
 91	75	NA	NA	\N	\N
 92	74	M.Sc Medical Biotechnology	22	\N	\N
 \.
+
+
+--
+-- TOC entry 4227 (class 0 OID 99705)
+-- Dependencies: 343
+-- Data for Name: supporting_staff; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.supporting_staff (id, submission_id, s_no, staff_name, designation, qualification, joining_date, experience_dypiu, prior_experience, total_experience) FROM stdin;
 460	62	1	Mr. Nabil Bhatiya	Data Analyst		01/09/2018	7.9	0.0	7.9
@@ -6386,6 +6744,13 @@ COPY public.supporting_staff (id, submission_id, s_no, staff_name, designation, 
 1502	79	149	Mr. Gopal Laxman Kondagurle	Librarian	Master of Library & Information Science, SET, NET	01/07/2026	0.03	9.30	9.33
 \.
 
+
+--
+-- TOC entry 4229 (class 0 OID 99711)
+-- Dependencies: 345
+-- Data for Name: swoc_challenges; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.swoc_challenges (id, submission_id, sr_no, details) FROM stdin;
 132	45	1	Competing with SPPU affiliated Institutions having social welfare scholarships
 133	45	2	Rapidly Changing Technology Landscape
@@ -6437,6 +6802,13 @@ COPY public.swoc_challenges (id, submission_id, sr_no, details) FROM stdin;
 244	72	5	Ensuring sustainable growth while meeting increasing expectations of students, industry, regulatory bodies, and global education benchmarks.
 \.
 
+
+--
+-- TOC entry 4231 (class 0 OID 99717)
+-- Dependencies: 347
+-- Data for Name: swoc_opportunities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.swoc_opportunities (id, submission_id, sr_no, details) FROM stdin;
 129	45	1	Industry-Academia Partnerships
 130	45	2	Improving International collaborations
@@ -6486,6 +6858,13 @@ COPY public.swoc_opportunities (id, submission_id, sr_no, details) FROM stdin;
 238	72	5	Pursue accreditations such as AACSB and global academic rankings to enhance institutional reputation.
 \.
 
+
+--
+-- TOC entry 4233 (class 0 OID 99723)
+-- Dependencies: 349
+-- Data for Name: swoc_other_information; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.swoc_other_information (id, submission_id, sr_no, details) FROM stdin;
 74	49	1	
 77	44	1	
@@ -6508,6 +6887,13 @@ COPY public.swoc_other_information (id, submission_id, sr_no, details) FROM stdi
 140	75	1	
 141	74	1	
 \.
+
+
+--
+-- TOC entry 4235 (class 0 OID 99729)
+-- Dependencies: 351
+-- Data for Name: swoc_strength; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.swoc_strength (id, submission_id, sr_no, details) FROM stdin;
 133	45	1	Excellent state-of-the-art infrastructure (Takshashala, Concrete 3D Printer, Silicon Forge)
@@ -6560,6 +6946,13 @@ COPY public.swoc_strength (id, submission_id, sr_no, details) FROM stdin;
 245	72	5	Dedicated student development initiatives focusing on employability, leadership, innovation, ethics, and holistic development
 \.
 
+
+--
+-- TOC entry 4237 (class 0 OID 99735)
+-- Dependencies: 353
+-- Data for Name: swoc_weaknesses; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.swoc_weaknesses (id, submission_id, sr_no, details) FROM stdin;
 131	47	1	Limited Institutional Visibility- Low visibility and limited recognition of the School of Design at national and international levels.
 132	47	2	Weak Digital Presence & Branding- Inactive social media engagement and weak digital presence affecting outreach and branding.
@@ -6604,6 +6997,13 @@ COPY public.swoc_weaknesses (id, submission_id, sr_no, details) FROM stdin;
 252	75	1	https://drive.google.com/file/d/1wuJ_fXVgPnNmm0JfIObLZWMYT5c2xSMX/view?usp=sharing
 253	74	1	1.\\tNeed for additional specialised faculty in cutting-edge areas like Biomedical instrumentation, Forensic science, Medicinal chemistry 2.\\tLimited infrastructure for advanced research, some sophisticated equipments like HR/MS, ICP-OES, Tangential flow filtration unit are required 3.\\tLaboratory space constraints with rising student intake 4.\\tInadequate computational biology and bioinformatics support 5.\\tNeed for increased industry collaborations, consultancy, and technology transfer activities. 6.\\tLimited number of patents, technology commercialization, and startup initiatives 7.\\tProfessional body activities, guest lectures, and certification programs can be strengthened. 8.\\tStudent participation in national-level competitions, hackathons, and innovation challenges can be increased. 9. Stronger industrial participation and more internship opportunities are required.
 \.
+
+
+--
+-- TOC entry 4239 (class 0 OID 99741)
+-- Dependencies: 355
+-- Data for Name: syllabus_revision; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.syllabus_revision (id, submission_id, sr_no, category_of_feedback, link_analysis_atr) FROM stdin;
 188	51	1	Academic peer Feedback  Analysis and ATR	[{"name":"Academic Peer Feedback and ATR (1) - Copy (1).pdf","fileName":"Academic Peer Feedback and ATR (1) - Copy (1).pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/3dcc0dd157752392/attachments/efa1d864-6814-4558-848a-84282b28add8-Academic_Peer_Feedback_and_ATR__1__-_Copy__1_.pdf"},{"name":"Academic Peer Feedback and ATR (1) (3).pdf","fileName":"Academic Peer Feedback and ATR (1) (3).pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/3dcc0dd157752392/attachments/2931a976-140d-481a-82b0-fb96f18eef00-Academic_Peer_Feedback_and_ATR__1___3_.pdf"}]
@@ -6668,6 +7068,13 @@ COPY public.syllabus_revision (id, submission_id, sr_no, category_of_feedback, l
 331	71	4	Faculty feedback Analysis Report	[{"name":"Faculty Feedback Report.pdf","fileName":"Faculty Feedback Report.pdf","url":"/uploads/users/bd37e773067d86fe/attachments/16d45e7e-59ec-4a55-8edb-fe856cdf8393-Faculty_Feedback_Report.pdf"}]
 \.
 
+
+--
+-- TOC entry 4241 (class 0 OID 99747)
+-- Dependencies: 357
+-- Data for Name: teacher_awards; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.teacher_awards (id, submission_id, teacher_name, national_awards, international_awards, link_proof) FROM stdin;
 27	49	Ms Surbhi Gulwelkar	Grand Prize-  Smt. Chandrikaben Shukla Prashasti 2026' at National level by Hina Bhatt Art Foundation. The award includes a  ₹1 lakh grant in recognition of her artistic excellence.	--	[{"name":"Surbhi Gulwelkar.pdf","fileName":"Surbhi Gulwelkar.pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/04e09d7ce5a2501c/attachments/4e3c3418-437a-4dab-a573-f49b0e098089-Surbhi_Gulwelkar.pdf"}]
 28	49	Mr Shyam Pagare 	--	Raja Ravi Verma Award in International online art competition and exhibition by Bindass artist group	[{"name":"Raja Ravi Varma .pdf","fileName":"Raja Ravi Varma .pdf","url":"https://storage.googleapis.com/dypiu-schoolappraisal-uploads/users/04e09d7ce5a2501c/attachments/50c44e16-a947-456e-8aef-501f03b149d2-Raja_Ravi_Varma_.pdf"}]
@@ -6691,9 +7098,66 @@ COPY public.teacher_awards (id, submission_id, teacher_name, national_awards, in
 93	74	All faculty	-	-	[{"name":"Awards.pdf","fileName":"Awards.pdf","url":"/uploads/users/05af65b4cd70cb50/attachments/3160c8f8-112a-4df9-b7f7-404f485ab2a4-Awards.pdf"}]
 \.
 
+
+--
+-- TOC entry 4243 (class 0 OID 99753)
+-- Dependencies: 359
+-- Data for Name: training_activities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
 COPY public.training_activities (id, submission_id, sr_no, academic_year, event_name, conduction_date, students_benefited) FROM stdin;
 14	62	1	\N	\N	\N	\N
 \.
+
+
+--
+-- TOC entry 4101 (class 0 OID 99255)
+-- Dependencies: 217
+-- Data for Name: universities; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.universities (id, code, slug, name, domain, status, address, establishment_act, logo_url, iqac_logo_url, primary_color, theme_branding, created_at, updated_at) FROM stdin;
+1	dypiu	dypiu	D Y Patil International University, Akurdi, Pune	dypiu.ac.in	ACTIVE	Sector 29, Nigdi Pradhikaran, Akurdi, Pune 411044	Maharashtra State Act No. VI of 2019	/uploads/branding/dypiu_logo.png	/uploads/branding/iqac_logo.png	#1e3a8a	\N	2026-10-28 15:44:28.0845	2026-10-28 15:44:28.0845
+\.
+
+
+--
+-- TOC entry 4105 (class 0 OID 99284)
+-- Dependencies: 221
+-- Data for Name: university_posts; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.university_posts (id, university_id, code, name, description, status, display_order, created_at, updated_at) FROM stdin;
+1	1	registrar	Registrar	Registrar Office	ACTIVE	1	2026-10-28 15:44:28.111206	2026-10-28 15:44:28.111206
+2	1	hr	HR	Human Resources	ACTIVE	2	2026-10-28 15:44:28.111206	2026-10-28 15:44:28.111206
+3	1	dean-student-welfare	Dean Student Welfare	Student Affairs & Welfare	ACTIVE	3	2026-10-28 15:44:28.111206	2026-10-28 15:44:28.111206
+4	1	dean-placement	Dean Placement	Training and Placement Cell	ACTIVE	4	2026-10-28 15:44:28.111206	2026-10-28 15:44:28.111206
+\.
+
+
+--
+-- TOC entry 4103 (class 0 OID 99271)
+-- Dependencies: 219
+-- Data for Name: university_schools; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.university_schools (id, university_id, code, name, group_name, status, display_order, created_at, updated_at) FROM stdin;
+1	1	SoCSEA	School of Computer Science & Applications	engineering	ACTIVE	1	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+2	1	SoBB	School of Bio-Engineering & Bio Science	engineering	ACTIVE	2	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+3	1	SoCE	School of Continual Education	engineering	ACTIVE	3	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+4	1	SoEMR	School of Engineering, Management & Research	engineering	ACTIVE	4	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+5	1	SoCM	School of Commerce & Management	nonEngineering	ACTIVE	5	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+6	1	SoMCS	School of Media & Communication Studies	nonEngineering	ACTIVE	6	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+7	1	SoD	School of Design	nonEngineering	ACTIVE	7	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+8	1	SoAA	School of Applied Arts	nonEngineering	ACTIVE	8	2026-10-28 15:44:28.10161	2026-10-28 15:44:28.10161
+\.
+
+
+--
+-- TOC entry 4245 (class 0 OID 99759)
+-- Dependencies: 361
+-- Data for Name: value_added_courses; Type: TABLE DATA; Schema: public; Owner: postgres
+--
 
 COPY public.value_added_courses (id, submission_id, sr_no, course_title, resource_person, duration_date, no_of_beneficiaries, link_proof) FROM stdin;
 76	49	1	None 	None 	None 	None 	
@@ -6720,1036 +7184,2723 @@ COPY public.value_added_courses (id, submission_id, sr_no, course_title, resourc
 150	74	1					[]
 \.
 
--- -----------------------------------------------------------------------------
--- 2.3 PRIMARY KEYS & UNIQUE CONSTRAINTS
--- -----------------------------------------------------------------------------
+
 --
--- TOC entry 3785 (class 2606 OID 36899)
+-- TOC entry 4475 (class 0 OID 0)
+-- Dependencies: 224
+-- Name: academic_years_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.academic_years_id_seq', 3, true);
+
+
+--
+-- TOC entry 4476 (class 0 OID 0)
+-- Dependencies: 236
+-- Name: admin_student_awards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.admin_student_awards_id_seq', 198, true);
+
+
+--
+-- TOC entry 4477 (class 0 OID 0)
+-- Dependencies: 238
+-- Name: alumni_interactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.alumni_interactions_id_seq', 123, true);
+
+
+--
+-- TOC entry 4478 (class 0 OID 0)
+-- Dependencies: 240
+-- Name: audit_records_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.audit_records_id_seq', 113, true);
+
+
+--
+-- TOC entry 4479 (class 0 OID 0)
+-- Dependencies: 242
+-- Name: best_practices_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.best_practices_id_seq', 807, true);
+
+
+--
+-- TOC entry 4480 (class 0 OID 0)
+-- Dependencies: 244
+-- Name: board_of_studies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.board_of_studies_id_seq', 188, true);
+
+
+--
+-- TOC entry 4481 (class 0 OID 0)
+-- Dependencies: 246
+-- Name: books_chapters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.books_chapters_id_seq', 102, true);
+
+
+--
+-- TOC entry 4482 (class 0 OID 0)
+-- Dependencies: 248
+-- Name: building_infrastructure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.building_infrastructure_id_seq', 179, true);
+
+
+--
+-- TOC entry 4483 (class 0 OID 0)
+-- Dependencies: 250
+-- Name: career_guidance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.career_guidance_id_seq', 150, true);
+
+
+--
+-- TOC entry 4484 (class 0 OID 0)
+-- Dependencies: 252
+-- Name: community_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.community_activities_id_seq', 26, true);
+
+
+--
+-- TOC entry 4485 (class 0 OID 0)
+-- Dependencies: 254
+-- Name: consultancy_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.consultancy_id_seq', 102, true);
+
+
+--
+-- TOC entry 4486 (class 0 OID 0)
+-- Dependencies: 256
+-- Name: corporate_training_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.corporate_training_id_seq', 123, true);
+
+
+--
+-- TOC entry 4487 (class 0 OID 0)
+-- Dependencies: 258
+-- Name: courses_offered_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.courses_offered_id_seq', 194, true);
+
+
+--
+-- TOC entry 4488 (class 0 OID 0)
+-- Dependencies: 260
+-- Name: cultural_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.cultural_activities_id_seq', 27, true);
+
+
+--
+-- TOC entry 4489 (class 0 OID 0)
+-- Dependencies: 262
+-- Name: divyangajan_facilities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.divyangajan_facilities_id_seq', 98, true);
+
+
+--
+-- TOC entry 4490 (class 0 OID 0)
+-- Dependencies: 264
+-- Name: e_contents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.e_contents_id_seq', 369, true);
+
+
+--
+-- TOC entry 4491 (class 0 OID 0)
+-- Dependencies: 266
+-- Name: e_resources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.e_resources_id_seq', 135, true);
+
+
+--
+-- TOC entry 4492 (class 0 OID 0)
+-- Dependencies: 268
+-- Name: extension_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.extension_activities_id_seq', 168, true);
+
+
+--
+-- TOC entry 4493 (class 0 OID 0)
+-- Dependencies: 270
+-- Name: faculty_experience_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.faculty_experience_id_seq', 1943, true);
+
+
+--
+-- TOC entry 4494 (class 0 OID 0)
+-- Dependencies: 272
+-- Name: faculty_information_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.faculty_information_id_seq', 73, true);
+
+
+--
+-- TOC entry 4495 (class 0 OID 0)
+-- Dependencies: 274
+-- Name: faculty_specialization_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.faculty_specialization_id_seq', 1595, true);
+
+
+--
+-- TOC entry 4496 (class 0 OID 0)
+-- Dependencies: 276
+-- Name: faculty_strength_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.faculty_strength_id_seq', 107, true);
+
+
+--
+-- TOC entry 4497 (class 0 OID 0)
+-- Dependencies: 278
+-- Name: faculty_tenure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.faculty_tenure_id_seq', 79, true);
+
+
+--
+-- TOC entry 4498 (class 0 OID 0)
+-- Dependencies: 280
+-- Name: fdp_attended_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.fdp_attended_id_seq', 749, true);
+
+
+--
+-- TOC entry 4499 (class 0 OID 0)
+-- Dependencies: 282
+-- Name: fdp_organized_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.fdp_organized_id_seq', 173, true);
+
+
+--
+-- TOC entry 4500 (class 0 OID 0)
+-- Dependencies: 234
+-- Name: form_fields_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.form_fields_id_seq', 522, true);
+
+
+--
+-- TOC entry 4501 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: form_schemas_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.form_schemas_id_seq', 2, true);
+
+
+--
+-- TOC entry 4502 (class 0 OID 0)
+-- Dependencies: 230
+-- Name: form_sections_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.form_sections_id_seq', 18, true);
+
+
+--
+-- TOC entry 4503 (class 0 OID 0)
+-- Dependencies: 232
+-- Name: form_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.form_tables_id_seq', 100, true);
+
+
+--
+-- TOC entry 4504 (class 0 OID 0)
+-- Dependencies: 284
+-- Name: functional_mous_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.functional_mous_id_seq', 192, true);
+
+
+--
+-- TOC entry 4505 (class 0 OID 0)
+-- Dependencies: 286
+-- Name: graduating_students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.graduating_students_id_seq', 134, true);
+
+
+--
+-- TOC entry 4506 (class 0 OID 0)
+-- Dependencies: 288
+-- Name: guest_lectures_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.guest_lectures_id_seq', 186, true);
+
+
+--
+-- TOC entry 4507 (class 0 OID 0)
+-- Dependencies: 290
+-- Name: hackathons_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.hackathons_id_seq', 26, true);
+
+
+--
+-- TOC entry 4508 (class 0 OID 0)
+-- Dependencies: 292
+-- Name: higher_studies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.higher_studies_id_seq', 91, true);
+
+
+--
+-- TOC entry 4509 (class 0 OID 0)
+-- Dependencies: 294
+-- Name: industry_collaborations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.industry_collaborations_id_seq', 14, true);
+
+
+--
+-- TOC entry 4510 (class 0 OID 0)
+-- Dependencies: 296
+-- Name: it_infrastructure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.it_infrastructure_id_seq', 153, true);
+
+
+--
+-- TOC entry 4511 (class 0 OID 0)
+-- Dependencies: 298
+-- Name: library_infrastructure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.library_infrastructure_id_seq', 135, true);
+
+
+--
+-- TOC entry 4512 (class 0 OID 0)
+-- Dependencies: 300
+-- Name: nep_status_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.nep_status_id_seq', 966, true);
+
+
+--
+-- TOC entry 4513 (class 0 OID 0)
+-- Dependencies: 302
+-- Name: obe_implementation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.obe_implementation_id_seq', 427, true);
+
+
+--
+-- TOC entry 4514 (class 0 OID 0)
+-- Dependencies: 304
+-- Name: patents_copyrights_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.patents_copyrights_id_seq', 150, true);
+
+
+--
+-- TOC entry 4515 (class 0 OID 0)
+-- Dependencies: 306
+-- Name: professional_bodies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.professional_bodies_id_seq', 159, true);
+
+
+--
+-- TOC entry 4516 (class 0 OID 0)
+-- Dependencies: 308
+-- Name: qualifying_exams_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.qualifying_exams_id_seq', 123, true);
+
+
+--
+-- TOC entry 4517 (class 0 OID 0)
+-- Dependencies: 310
+-- Name: research_funds_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.research_funds_id_seq', 195, true);
+
+
+--
+-- TOC entry 4518 (class 0 OID 0)
+-- Dependencies: 312
+-- Name: research_publications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.research_publications_id_seq', 90, true);
+
+
+--
+-- TOC entry 4519 (class 0 OID 0)
+-- Dependencies: 314
+-- Name: research_resources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.research_resources_id_seq', 26, true);
+
+
+--
+-- TOC entry 4520 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: schema_versions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.schema_versions_id_seq', 3, true);
+
+
+--
+-- TOC entry 4521 (class 0 OID 0)
+-- Dependencies: 316
+-- Name: scholarship_students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.scholarship_students_id_seq', 113, true);
+
+
+--
+-- TOC entry 4522 (class 0 OID 0)
+-- Dependencies: 318
+-- Name: scholarship_summary_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.scholarship_summary_id_seq', 113, true);
+
+
+--
+-- TOC entry 4523 (class 0 OID 0)
+-- Dependencies: 320
+-- Name: sports_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.sports_activities_id_seq', 86, true);
+
+
+--
+-- TOC entry 4524 (class 0 OID 0)
+-- Dependencies: 322
+-- Name: sports_facilities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.sports_facilities_id_seq', 57, true);
+
+
+--
+-- TOC entry 4525 (class 0 OID 0)
+-- Dependencies: 324
+-- Name: staff_training_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.staff_training_id_seq', 26, true);
+
+
+--
+-- TOC entry 4526 (class 0 OID 0)
+-- Dependencies: 326
+-- Name: statutory_bodies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.statutory_bodies_id_seq', 213, true);
+
+
+--
+-- TOC entry 4527 (class 0 OID 0)
+-- Dependencies: 328
+-- Name: student_awards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_awards_id_seq', 337, true);
+
+
+--
+-- TOC entry 4528 (class 0 OID 0)
+-- Dependencies: 330
+-- Name: student_courses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_courses_id_seq', 150, true);
+
+
+--
+-- TOC entry 4529 (class 0 OID 0)
+-- Dependencies: 332
+-- Name: student_mentoring_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_mentoring_id_seq', 285, true);
+
+
+--
+-- TOC entry 4530 (class 0 OID 0)
+-- Dependencies: 334
+-- Name: student_placements_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_placements_id_seq', 83, true);
+
+
+--
+-- TOC entry 4531 (class 0 OID 0)
+-- Dependencies: 336
+-- Name: student_startups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_startups_id_seq', 122, true);
+
+
+--
+-- TOC entry 4532 (class 0 OID 0)
+-- Dependencies: 338
+-- Name: student_statistics_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_statistics_id_seq', 85, true);
+
+
+--
+-- TOC entry 4533 (class 0 OID 0)
+-- Dependencies: 340
+-- Name: student_strength_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.student_strength_id_seq', 498, true);
+
+
+--
+-- TOC entry 4534 (class 0 OID 0)
+-- Dependencies: 342
+-- Name: success_rate_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.success_rate_id_seq', 92, true);
+
+
+--
+-- TOC entry 4535 (class 0 OID 0)
+-- Dependencies: 344
+-- Name: supporting_staff_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.supporting_staff_id_seq', 1502, true);
+
+
+--
+-- TOC entry 4536 (class 0 OID 0)
+-- Dependencies: 346
+-- Name: swoc_challenges_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.swoc_challenges_id_seq', 278, true);
+
+
+--
+-- TOC entry 4537 (class 0 OID 0)
+-- Dependencies: 348
+-- Name: swoc_opportunities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.swoc_opportunities_id_seq', 269, true);
+
+
+--
+-- TOC entry 4538 (class 0 OID 0)
+-- Dependencies: 350
+-- Name: swoc_other_information_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.swoc_other_information_id_seq', 141, true);
+
+
+--
+-- TOC entry 4539 (class 0 OID 0)
+-- Dependencies: 352
+-- Name: swoc_strength_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.swoc_strength_id_seq', 279, true);
+
+
+--
+-- TOC entry 4540 (class 0 OID 0)
+-- Dependencies: 354
+-- Name: swoc_weaknesses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.swoc_weaknesses_id_seq', 253, true);
+
+
+--
+-- TOC entry 4541 (class 0 OID 0)
+-- Dependencies: 356
+-- Name: syllabus_revision_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.syllabus_revision_id_seq', 347, true);
+
+
+--
+-- TOC entry 4542 (class 0 OID 0)
+-- Dependencies: 358
+-- Name: teacher_awards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.teacher_awards_id_seq', 93, true);
+
+
+--
+-- TOC entry 4543 (class 0 OID 0)
+-- Dependencies: 360
+-- Name: training_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.training_activities_id_seq', 14, true);
+
+
+--
+-- TOC entry 4544 (class 0 OID 0)
+-- Dependencies: 218
+-- Name: universities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.universities_id_seq', 1, false);
+
+
+--
+-- TOC entry 4545 (class 0 OID 0)
+-- Dependencies: 222
+-- Name: university_posts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.university_posts_id_seq', 4, true);
+
+
+--
+-- TOC entry 4546 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: university_schools_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.university_schools_id_seq', 8, true);
+
+
+--
+-- TOC entry 4547 (class 0 OID 0)
+-- Dependencies: 362
+-- Name: value_added_courses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.value_added_courses_id_seq', 150, true);
+
+
+--
+-- TOC entry 3813 (class 2606 OID 99305)
+-- Name: academic_years academic_years_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.academic_years
+    ADD CONSTRAINT academic_years_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3831 (class 2606 OID 99832)
 -- Name: admin_student_awards admin_student_awards_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.admin_student_awards
     ADD CONSTRAINT admin_student_awards_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3787 (class 2606 OID 36901)
+-- TOC entry 3833 (class 2606 OID 99834)
 -- Name: alumni_interactions alumni_interactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.alumni_interactions
     ADD CONSTRAINT alumni_interactions_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3789 (class 2606 OID 36903)
+-- TOC entry 3835 (class 2606 OID 99836)
 -- Name: audit_records audit_records_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.audit_records
     ADD CONSTRAINT audit_records_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3791 (class 2606 OID 36905)
+-- TOC entry 3837 (class 2606 OID 99838)
 -- Name: best_practices best_practices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.best_practices
     ADD CONSTRAINT best_practices_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3793 (class 2606 OID 36907)
+-- TOC entry 3839 (class 2606 OID 99840)
 -- Name: board_of_studies board_of_studies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.board_of_studies
     ADD CONSTRAINT board_of_studies_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3795 (class 2606 OID 36909)
+-- TOC entry 3841 (class 2606 OID 99842)
 -- Name: books_chapters books_chapters_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.books_chapters
     ADD CONSTRAINT books_chapters_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3797 (class 2606 OID 36911)
+-- TOC entry 3843 (class 2606 OID 99844)
 -- Name: building_infrastructure building_infrastructure_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.building_infrastructure
     ADD CONSTRAINT building_infrastructure_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3799 (class 2606 OID 36913)
+-- TOC entry 3845 (class 2606 OID 99846)
 -- Name: career_guidance career_guidance_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.career_guidance
     ADD CONSTRAINT career_guidance_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3801 (class 2606 OID 36915)
+-- TOC entry 3847 (class 2606 OID 99848)
 -- Name: community_activities community_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.community_activities
     ADD CONSTRAINT community_activities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3803 (class 2606 OID 36917)
+-- TOC entry 3849 (class 2606 OID 99850)
 -- Name: consultancy consultancy_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.consultancy
     ADD CONSTRAINT consultancy_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3805 (class 2606 OID 36919)
+-- TOC entry 3851 (class 2606 OID 99852)
 -- Name: corporate_training corporate_training_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.corporate_training
     ADD CONSTRAINT corporate_training_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3807 (class 2606 OID 36921)
+-- TOC entry 3853 (class 2606 OID 99854)
 -- Name: courses_offered courses_offered_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.courses_offered
     ADD CONSTRAINT courses_offered_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3809 (class 2606 OID 36923)
+-- TOC entry 3855 (class 2606 OID 99856)
 -- Name: cultural_activities cultural_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.cultural_activities
     ADD CONSTRAINT cultural_activities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3811 (class 2606 OID 36925)
+-- TOC entry 3857 (class 2606 OID 99858)
 -- Name: divyangajan_facilities divyangajan_facilities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.divyangajan_facilities
     ADD CONSTRAINT divyangajan_facilities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3813 (class 2606 OID 36927)
+-- TOC entry 3859 (class 2606 OID 99860)
 -- Name: e_contents e_contents_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.e_contents
     ADD CONSTRAINT e_contents_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3815 (class 2606 OID 36929)
+-- TOC entry 3861 (class 2606 OID 99862)
 -- Name: e_resources e_resources_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.e_resources
     ADD CONSTRAINT e_resources_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3817 (class 2606 OID 36931)
+-- TOC entry 3863 (class 2606 OID 99864)
 -- Name: extension_activities extension_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.extension_activities
     ADD CONSTRAINT extension_activities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3819 (class 2606 OID 36933)
+-- TOC entry 3865 (class 2606 OID 99866)
 -- Name: faculty_experience faculty_experience_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_experience
     ADD CONSTRAINT faculty_experience_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3821 (class 2606 OID 36935)
+-- TOC entry 3867 (class 2606 OID 99868)
 -- Name: faculty_information faculty_information_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_information
     ADD CONSTRAINT faculty_information_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3823 (class 2606 OID 36937)
+-- TOC entry 3869 (class 2606 OID 99870)
 -- Name: faculty_specialization faculty_specialization_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_specialization
     ADD CONSTRAINT faculty_specialization_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3825 (class 2606 OID 36939)
+-- TOC entry 3871 (class 2606 OID 99872)
 -- Name: faculty_strength faculty_strength_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_strength
     ADD CONSTRAINT faculty_strength_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3827 (class 2606 OID 36941)
+-- TOC entry 3873 (class 2606 OID 99874)
 -- Name: faculty_tenure faculty_tenure_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.faculty_tenure
     ADD CONSTRAINT faculty_tenure_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3829 (class 2606 OID 36943)
+-- TOC entry 3875 (class 2606 OID 99876)
 -- Name: fdp_attended fdp_attended_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.fdp_attended
     ADD CONSTRAINT fdp_attended_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3831 (class 2606 OID 36945)
+-- TOC entry 3877 (class 2606 OID 99878)
 -- Name: fdp_organized fdp_organized_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.fdp_organized
     ADD CONSTRAINT fdp_organized_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3836 (class 2606 OID 36949)
+-- TOC entry 3827 (class 2606 OID 99364)
+-- Name: form_fields form_fields_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_fields
+    ADD CONSTRAINT form_fields_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3815 (class 2606 OID 99318)
+-- Name: form_schemas form_schemas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_schemas
+    ADD CONSTRAINT form_schemas_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3821 (class 2606 OID 99339)
+-- Name: form_sections form_sections_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_sections
+    ADD CONSTRAINT form_sections_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3824 (class 2606 OID 99351)
+-- Name: form_tables form_tables_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.form_tables
+    ADD CONSTRAINT form_tables_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3879 (class 2606 OID 99880)
 -- Name: functional_mous functional_mous_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.functional_mous
     ADD CONSTRAINT functional_mous_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3838 (class 2606 OID 36951)
+-- TOC entry 3881 (class 2606 OID 99882)
 -- Name: graduating_students graduating_students_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.graduating_students
     ADD CONSTRAINT graduating_students_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3840 (class 2606 OID 36953)
+-- TOC entry 3883 (class 2606 OID 99884)
 -- Name: guest_lectures guest_lectures_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.guest_lectures
     ADD CONSTRAINT guest_lectures_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3842 (class 2606 OID 36955)
+-- TOC entry 3885 (class 2606 OID 99886)
 -- Name: hackathons hackathons_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.hackathons
     ADD CONSTRAINT hackathons_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3844 (class 2606 OID 36957)
+-- TOC entry 3887 (class 2606 OID 99888)
 -- Name: higher_studies higher_studies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.higher_studies
     ADD CONSTRAINT higher_studies_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3846 (class 2606 OID 36959)
+-- TOC entry 3889 (class 2606 OID 99890)
 -- Name: industry_collaborations industry_collaborations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.industry_collaborations
     ADD CONSTRAINT industry_collaborations_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3848 (class 2606 OID 36961)
+-- TOC entry 3891 (class 2606 OID 99892)
 -- Name: it_infrastructure it_infrastructure_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.it_infrastructure
     ADD CONSTRAINT it_infrastructure_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3850 (class 2606 OID 36963)
+-- TOC entry 3893 (class 2606 OID 99894)
 -- Name: library_infrastructure library_infrastructure_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.library_infrastructure
     ADD CONSTRAINT library_infrastructure_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3852 (class 2606 OID 36965)
+-- TOC entry 3895 (class 2606 OID 99896)
 -- Name: nep_status nep_status_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.nep_status
     ADD CONSTRAINT nep_status_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3854 (class 2606 OID 36967)
+-- TOC entry 3897 (class 2606 OID 99898)
 -- Name: obe_implementation obe_implementation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.obe_implementation
     ADD CONSTRAINT obe_implementation_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3860 (class 2606 OID 36973)
+-- TOC entry 3899 (class 2606 OID 99900)
 -- Name: patents_copyrights patents_copyrights_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.patents_copyrights
     ADD CONSTRAINT patents_copyrights_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3862 (class 2606 OID 36975)
+-- TOC entry 3901 (class 2606 OID 99902)
 -- Name: professional_bodies professional_bodies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.professional_bodies
     ADD CONSTRAINT professional_bodies_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3864 (class 2606 OID 36977)
+-- TOC entry 3903 (class 2606 OID 99904)
 -- Name: qualifying_exams qualifying_exams_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.qualifying_exams
     ADD CONSTRAINT qualifying_exams_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3866 (class 2606 OID 36979)
+-- TOC entry 3905 (class 2606 OID 99906)
 -- Name: research_funds research_funds_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.research_funds
     ADD CONSTRAINT research_funds_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3868 (class 2606 OID 36981)
+-- TOC entry 3907 (class 2606 OID 99908)
 -- Name: research_publications research_publications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.research_publications
     ADD CONSTRAINT research_publications_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3870 (class 2606 OID 36983)
+-- TOC entry 3909 (class 2606 OID 99910)
 -- Name: research_resources research_resources_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.research_resources
     ADD CONSTRAINT research_resources_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3872 (class 2606 OID 36985)
+-- TOC entry 3819 (class 2606 OID 99329)
+-- Name: schema_versions schema_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.schema_versions
+    ADD CONSTRAINT schema_versions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3911 (class 2606 OID 99912)
 -- Name: scholarship_students scholarship_students_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.scholarship_students
     ADD CONSTRAINT scholarship_students_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3874 (class 2606 OID 36987)
+-- TOC entry 3913 (class 2606 OID 99914)
 -- Name: scholarship_summary scholarship_summary_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.scholarship_summary
     ADD CONSTRAINT scholarship_summary_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3878 (class 2606 OID 36991)
+-- TOC entry 3915 (class 2606 OID 99916)
 -- Name: sports_activities sports_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sports_activities
     ADD CONSTRAINT sports_activities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3880 (class 2606 OID 36993)
+-- TOC entry 3917 (class 2606 OID 99918)
 -- Name: sports_facilities sports_facilities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.sports_facilities
     ADD CONSTRAINT sports_facilities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3882 (class 2606 OID 36995)
+-- TOC entry 3919 (class 2606 OID 99920)
 -- Name: staff_training staff_training_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.staff_training
     ADD CONSTRAINT staff_training_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3884 (class 2606 OID 36997)
+-- TOC entry 3921 (class 2606 OID 99922)
 -- Name: statutory_bodies statutory_bodies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.statutory_bodies
     ADD CONSTRAINT statutory_bodies_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3886 (class 2606 OID 36999)
+-- TOC entry 3923 (class 2606 OID 99924)
 -- Name: student_awards student_awards_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_awards
     ADD CONSTRAINT student_awards_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3888 (class 2606 OID 37001)
+-- TOC entry 3925 (class 2606 OID 99926)
 -- Name: student_courses student_courses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_courses
     ADD CONSTRAINT student_courses_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3890 (class 2606 OID 37003)
+-- TOC entry 3927 (class 2606 OID 99928)
 -- Name: student_mentoring student_mentoring_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_mentoring
     ADD CONSTRAINT student_mentoring_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3892 (class 2606 OID 37005)
+-- TOC entry 3929 (class 2606 OID 99930)
 -- Name: student_placements student_placements_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_placements
     ADD CONSTRAINT student_placements_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3894 (class 2606 OID 37007)
+-- TOC entry 3931 (class 2606 OID 99932)
 -- Name: student_startups student_startups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_startups
     ADD CONSTRAINT student_startups_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3896 (class 2606 OID 37009)
+-- TOC entry 3933 (class 2606 OID 99934)
 -- Name: student_statistics student_statistics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_statistics
     ADD CONSTRAINT student_statistics_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3898 (class 2606 OID 37011)
+-- TOC entry 3935 (class 2606 OID 99936)
 -- Name: student_strength student_strength_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.student_strength
     ADD CONSTRAINT student_strength_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3910 (class 2606 OID 37017)
+-- TOC entry 3937 (class 2606 OID 99938)
 -- Name: success_rate success_rate_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.success_rate
     ADD CONSTRAINT success_rate_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3912 (class 2606 OID 37019)
+-- TOC entry 3939 (class 2606 OID 99940)
 -- Name: supporting_staff supporting_staff_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.supporting_staff
     ADD CONSTRAINT supporting_staff_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3914 (class 2606 OID 37021)
+-- TOC entry 3941 (class 2606 OID 99942)
 -- Name: swoc_challenges swoc_challenges_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_challenges
     ADD CONSTRAINT swoc_challenges_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3916 (class 2606 OID 37023)
+-- TOC entry 3943 (class 2606 OID 99944)
 -- Name: swoc_opportunities swoc_opportunities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_opportunities
     ADD CONSTRAINT swoc_opportunities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3918 (class 2606 OID 37025)
+-- TOC entry 3945 (class 2606 OID 99946)
 -- Name: swoc_other_information swoc_other_information_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_other_information
     ADD CONSTRAINT swoc_other_information_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3920 (class 2606 OID 37027)
+-- TOC entry 3947 (class 2606 OID 99948)
 -- Name: swoc_strength swoc_strength_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_strength
     ADD CONSTRAINT swoc_strength_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3922 (class 2606 OID 37029)
+-- TOC entry 3949 (class 2606 OID 99950)
 -- Name: swoc_weaknesses swoc_weaknesses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.swoc_weaknesses
     ADD CONSTRAINT swoc_weaknesses_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3924 (class 2606 OID 37031)
+-- TOC entry 3951 (class 2606 OID 99952)
 -- Name: syllabus_revision syllabus_revision_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.syllabus_revision
     ADD CONSTRAINT syllabus_revision_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3926 (class 2606 OID 37033)
+-- TOC entry 3953 (class 2606 OID 99954)
 -- Name: teacher_awards teacher_awards_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.teacher_awards
     ADD CONSTRAINT teacher_awards_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3928 (class 2606 OID 37035)
+-- TOC entry 3955 (class 2606 OID 99956)
 -- Name: training_activities training_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.training_activities
     ADD CONSTRAINT training_activities_pkey PRIMARY KEY (id);
 
+
 --
--- TOC entry 3940 (class 2606 OID 37043)
+-- TOC entry 3805 (class 2606 OID 99270)
+-- Name: universities uk_universities_code; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.universities
+    ADD CONSTRAINT uk_universities_code UNIQUE (code);
+
+
+--
+-- TOC entry 3807 (class 2606 OID 99268)
+-- Name: universities universities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.universities
+    ADD CONSTRAINT universities_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3811 (class 2606 OID 99297)
+-- Name: university_posts university_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.university_posts
+    ADD CONSTRAINT university_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3809 (class 2606 OID 99283)
+-- Name: university_schools university_schools_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.university_schools
+    ADD CONSTRAINT university_schools_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3957 (class 2606 OID 99958)
 -- Name: value_added_courses value_added_courses_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.value_added_courses
     ADD CONSTRAINT value_added_courses_pkey PRIMARY KEY (id);
 
--- -----------------------------------------------------------------------------
--- 2.4 INDEXES
--- -----------------------------------------------------------------------------
--- -----------------------------------------------------------------------------
--- 2.6 SEQUENCE VALUE SYNCHRONIZATION
--- -----------------------------------------------------------------------------
---
--- TOC entry 4523 (class 0 OID 0)
--- Dependencies: 220
--- Name: admin_student_awards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.admin_student_awards_id_seq', 198, true);
 
 --
--- TOC entry 4524 (class 0 OID 0)
--- Dependencies: 222
--- Name: alumni_interactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- TOC entry 3828 (class 1259 OID 99369)
+-- Name: idx_form_fields_section_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.alumni_interactions_id_seq', 123, true);
+CREATE INDEX idx_form_fields_section_id ON public.form_fields USING btree (section_id);
+
 
 --
--- TOC entry 4525 (class 0 OID 0)
+-- TOC entry 3829 (class 1259 OID 99370)
+-- Name: idx_form_fields_table_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_form_fields_table_id ON public.form_fields USING btree (table_id);
+
+
+--
+-- TOC entry 3816 (class 1259 OID 99365)
+-- Name: idx_form_schemas_audit_type; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_form_schemas_audit_type ON public.form_schemas USING btree (audit_type);
+
+
+--
+-- TOC entry 3822 (class 1259 OID 99367)
+-- Name: idx_form_sections_version_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_form_sections_version_id ON public.form_sections USING btree (version_id);
+
+
+--
+-- TOC entry 3825 (class 1259 OID 99368)
+-- Name: idx_form_tables_section_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_form_tables_section_id ON public.form_tables USING btree (section_id);
+
+
+--
+-- TOC entry 3817 (class 1259 OID 99366)
+-- Name: idx_schema_versions_schema_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_schema_versions_schema_id ON public.schema_versions USING btree (schema_id);
+
+
+--
+-- TOC entry 4253 (class 0 OID 0)
+-- Dependencies: 7
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+GRANT ALL ON SCHEMA public TO app_user;
+
+
+--
+-- TOC entry 4256 (class 0 OID 0)
+-- Dependencies: 223
+-- Name: TABLE academic_years; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.academic_years TO app_user;
+
+
+--
+-- TOC entry 4258 (class 0 OID 0)
 -- Dependencies: 224
--- Name: audit_records_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE academic_years_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.audit_records_id_seq', 113, true);
+GRANT ALL ON SEQUENCE public.academic_years_id_seq TO app_user;
+
 
 --
--- TOC entry 4526 (class 0 OID 0)
--- Dependencies: 226
--- Name: best_practices_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- TOC entry 4259 (class 0 OID 0)
+-- Dependencies: 235
+-- Name: TABLE admin_student_awards; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.best_practices_id_seq', 807, true);
+GRANT ALL ON TABLE public.admin_student_awards TO app_user;
+
 
 --
--- TOC entry 4527 (class 0 OID 0)
--- Dependencies: 228
--- Name: board_of_studies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.board_of_studies_id_seq', 188, true);
-
---
--- TOC entry 4528 (class 0 OID 0)
--- Dependencies: 230
--- Name: books_chapters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.books_chapters_id_seq', 102, true);
-
---
--- TOC entry 4529 (class 0 OID 0)
--- Dependencies: 232
--- Name: building_infrastructure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.building_infrastructure_id_seq', 179, true);
-
---
--- TOC entry 4530 (class 0 OID 0)
--- Dependencies: 234
--- Name: career_guidance_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.career_guidance_id_seq', 150, true);
-
---
--- TOC entry 4531 (class 0 OID 0)
+-- TOC entry 4261 (class 0 OID 0)
 -- Dependencies: 236
--- Name: community_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE admin_student_awards_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.community_activities_id_seq', 26, true);
+GRANT ALL ON SEQUENCE public.admin_student_awards_id_seq TO app_user;
+
 
 --
--- TOC entry 4532 (class 0 OID 0)
+-- TOC entry 4262 (class 0 OID 0)
+-- Dependencies: 237
+-- Name: TABLE alumni_interactions; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.alumni_interactions TO app_user;
+
+
+--
+-- TOC entry 4264 (class 0 OID 0)
 -- Dependencies: 238
--- Name: consultancy_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE alumni_interactions_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.consultancy_id_seq', 102, true);
+GRANT ALL ON SEQUENCE public.alumni_interactions_id_seq TO app_user;
+
 
 --
--- TOC entry 4533 (class 0 OID 0)
+-- TOC entry 4265 (class 0 OID 0)
+-- Dependencies: 239
+-- Name: TABLE audit_records; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.audit_records TO app_user;
+
+
+--
+-- TOC entry 4267 (class 0 OID 0)
 -- Dependencies: 240
--- Name: corporate_training_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE audit_records_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.corporate_training_id_seq', 123, true);
+GRANT ALL ON SEQUENCE public.audit_records_id_seq TO app_user;
+
 
 --
--- TOC entry 4534 (class 0 OID 0)
+-- TOC entry 4268 (class 0 OID 0)
+-- Dependencies: 241
+-- Name: TABLE best_practices; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.best_practices TO app_user;
+
+
+--
+-- TOC entry 4270 (class 0 OID 0)
 -- Dependencies: 242
--- Name: courses_offered_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE best_practices_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.courses_offered_id_seq', 194, true);
+GRANT ALL ON SEQUENCE public.best_practices_id_seq TO app_user;
+
 
 --
--- TOC entry 4535 (class 0 OID 0)
+-- TOC entry 4271 (class 0 OID 0)
+-- Dependencies: 243
+-- Name: TABLE board_of_studies; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.board_of_studies TO app_user;
+
+
+--
+-- TOC entry 4273 (class 0 OID 0)
 -- Dependencies: 244
--- Name: cultural_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE board_of_studies_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.cultural_activities_id_seq', 27, true);
+GRANT ALL ON SEQUENCE public.board_of_studies_id_seq TO app_user;
+
 
 --
--- TOC entry 4536 (class 0 OID 0)
+-- TOC entry 4274 (class 0 OID 0)
+-- Dependencies: 245
+-- Name: TABLE books_chapters; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.books_chapters TO app_user;
+
+
+--
+-- TOC entry 4276 (class 0 OID 0)
 -- Dependencies: 246
--- Name: divyangajan_facilities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE books_chapters_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.divyangajan_facilities_id_seq', 98, true);
+GRANT ALL ON SEQUENCE public.books_chapters_id_seq TO app_user;
+
 
 --
--- TOC entry 4537 (class 0 OID 0)
+-- TOC entry 4277 (class 0 OID 0)
+-- Dependencies: 247
+-- Name: TABLE building_infrastructure; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.building_infrastructure TO app_user;
+
+
+--
+-- TOC entry 4279 (class 0 OID 0)
 -- Dependencies: 248
--- Name: e_contents_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE building_infrastructure_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.e_contents_id_seq', 369, true);
+GRANT ALL ON SEQUENCE public.building_infrastructure_id_seq TO app_user;
+
 
 --
--- TOC entry 4538 (class 0 OID 0)
+-- TOC entry 4280 (class 0 OID 0)
+-- Dependencies: 249
+-- Name: TABLE career_guidance; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.career_guidance TO app_user;
+
+
+--
+-- TOC entry 4282 (class 0 OID 0)
 -- Dependencies: 250
--- Name: e_resources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE career_guidance_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.e_resources_id_seq', 135, true);
+GRANT ALL ON SEQUENCE public.career_guidance_id_seq TO app_user;
+
 
 --
--- TOC entry 4539 (class 0 OID 0)
+-- TOC entry 4283 (class 0 OID 0)
+-- Dependencies: 251
+-- Name: TABLE community_activities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.community_activities TO app_user;
+
+
+--
+-- TOC entry 4285 (class 0 OID 0)
 -- Dependencies: 252
--- Name: extension_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE community_activities_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.extension_activities_id_seq', 168, true);
+GRANT ALL ON SEQUENCE public.community_activities_id_seq TO app_user;
+
 
 --
--- TOC entry 4540 (class 0 OID 0)
+-- TOC entry 4286 (class 0 OID 0)
+-- Dependencies: 253
+-- Name: TABLE consultancy; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.consultancy TO app_user;
+
+
+--
+-- TOC entry 4288 (class 0 OID 0)
 -- Dependencies: 254
--- Name: faculty_experience_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE consultancy_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.faculty_experience_id_seq', 1943, true);
+GRANT ALL ON SEQUENCE public.consultancy_id_seq TO app_user;
+
 
 --
--- TOC entry 4541 (class 0 OID 0)
+-- TOC entry 4289 (class 0 OID 0)
+-- Dependencies: 255
+-- Name: TABLE corporate_training; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.corporate_training TO app_user;
+
+
+--
+-- TOC entry 4291 (class 0 OID 0)
 -- Dependencies: 256
--- Name: faculty_information_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE corporate_training_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.faculty_information_id_seq', 73, true);
+GRANT ALL ON SEQUENCE public.corporate_training_id_seq TO app_user;
+
 
 --
--- TOC entry 4542 (class 0 OID 0)
+-- TOC entry 4292 (class 0 OID 0)
+-- Dependencies: 257
+-- Name: TABLE courses_offered; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.courses_offered TO app_user;
+
+
+--
+-- TOC entry 4294 (class 0 OID 0)
 -- Dependencies: 258
--- Name: faculty_specialization_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE courses_offered_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.faculty_specialization_id_seq', 1595, true);
+GRANT ALL ON SEQUENCE public.courses_offered_id_seq TO app_user;
+
 
 --
--- TOC entry 4543 (class 0 OID 0)
+-- TOC entry 4295 (class 0 OID 0)
+-- Dependencies: 259
+-- Name: TABLE cultural_activities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.cultural_activities TO app_user;
+
+
+--
+-- TOC entry 4297 (class 0 OID 0)
 -- Dependencies: 260
--- Name: faculty_strength_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE cultural_activities_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.faculty_strength_id_seq', 107, true);
+GRANT ALL ON SEQUENCE public.cultural_activities_id_seq TO app_user;
+
 
 --
--- TOC entry 4544 (class 0 OID 0)
+-- TOC entry 4298 (class 0 OID 0)
+-- Dependencies: 261
+-- Name: TABLE divyangajan_facilities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.divyangajan_facilities TO app_user;
+
+
+--
+-- TOC entry 4300 (class 0 OID 0)
 -- Dependencies: 262
--- Name: faculty_tenure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE divyangajan_facilities_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.faculty_tenure_id_seq', 79, true);
+GRANT ALL ON SEQUENCE public.divyangajan_facilities_id_seq TO app_user;
+
 
 --
--- TOC entry 4545 (class 0 OID 0)
+-- TOC entry 4301 (class 0 OID 0)
+-- Dependencies: 263
+-- Name: TABLE e_contents; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.e_contents TO app_user;
+
+
+--
+-- TOC entry 4303 (class 0 OID 0)
 -- Dependencies: 264
--- Name: fdp_attended_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE e_contents_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.fdp_attended_id_seq', 749, true);
+GRANT ALL ON SEQUENCE public.e_contents_id_seq TO app_user;
+
 
 --
--- TOC entry 4546 (class 0 OID 0)
+-- TOC entry 4304 (class 0 OID 0)
+-- Dependencies: 265
+-- Name: TABLE e_resources; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.e_resources TO app_user;
+
+
+--
+-- TOC entry 4306 (class 0 OID 0)
 -- Dependencies: 266
--- Name: fdp_organized_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: SEQUENCE e_resources_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.fdp_organized_id_seq', 173, true);
+GRANT ALL ON SEQUENCE public.e_resources_id_seq TO app_user;
+
 
 --
--- TOC entry 4547 (class 0 OID 0)
+-- TOC entry 4307 (class 0 OID 0)
+-- Dependencies: 267
+-- Name: TABLE extension_activities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.extension_activities TO app_user;
+
+
+--
+-- TOC entry 4309 (class 0 OID 0)
+-- Dependencies: 268
+-- Name: SEQUENCE extension_activities_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.extension_activities_id_seq TO app_user;
+
+
+--
+-- TOC entry 4310 (class 0 OID 0)
 -- Dependencies: 269
--- Name: functional_mous_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE faculty_experience; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.functional_mous_id_seq', 192, true);
+GRANT ALL ON TABLE public.faculty_experience TO app_user;
+
 
 --
--- TOC entry 4548 (class 0 OID 0)
+-- TOC entry 4312 (class 0 OID 0)
+-- Dependencies: 270
+-- Name: SEQUENCE faculty_experience_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.faculty_experience_id_seq TO app_user;
+
+
+--
+-- TOC entry 4313 (class 0 OID 0)
 -- Dependencies: 271
--- Name: graduating_students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE faculty_information; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.graduating_students_id_seq', 134, true);
+GRANT ALL ON TABLE public.faculty_information TO app_user;
+
 
 --
--- TOC entry 4549 (class 0 OID 0)
+-- TOC entry 4315 (class 0 OID 0)
+-- Dependencies: 272
+-- Name: SEQUENCE faculty_information_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.faculty_information_id_seq TO app_user;
+
+
+--
+-- TOC entry 4316 (class 0 OID 0)
 -- Dependencies: 273
--- Name: guest_lectures_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE faculty_specialization; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.guest_lectures_id_seq', 186, true);
+GRANT ALL ON TABLE public.faculty_specialization TO app_user;
+
 
 --
--- TOC entry 4550 (class 0 OID 0)
+-- TOC entry 4318 (class 0 OID 0)
+-- Dependencies: 274
+-- Name: SEQUENCE faculty_specialization_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.faculty_specialization_id_seq TO app_user;
+
+
+--
+-- TOC entry 4319 (class 0 OID 0)
 -- Dependencies: 275
--- Name: hackathons_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE faculty_strength; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.hackathons_id_seq', 26, true);
+GRANT ALL ON TABLE public.faculty_strength TO app_user;
+
 
 --
--- TOC entry 4551 (class 0 OID 0)
+-- TOC entry 4321 (class 0 OID 0)
+-- Dependencies: 276
+-- Name: SEQUENCE faculty_strength_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.faculty_strength_id_seq TO app_user;
+
+
+--
+-- TOC entry 4322 (class 0 OID 0)
 -- Dependencies: 277
--- Name: higher_studies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE faculty_tenure; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.higher_studies_id_seq', 91, true);
+GRANT ALL ON TABLE public.faculty_tenure TO app_user;
+
 
 --
--- TOC entry 4552 (class 0 OID 0)
+-- TOC entry 4324 (class 0 OID 0)
+-- Dependencies: 278
+-- Name: SEQUENCE faculty_tenure_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.faculty_tenure_id_seq TO app_user;
+
+
+--
+-- TOC entry 4325 (class 0 OID 0)
 -- Dependencies: 279
--- Name: industry_collaborations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE fdp_attended; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.industry_collaborations_id_seq', 14, true);
+GRANT ALL ON TABLE public.fdp_attended TO app_user;
+
 
 --
--- TOC entry 4553 (class 0 OID 0)
+-- TOC entry 4327 (class 0 OID 0)
+-- Dependencies: 280
+-- Name: SEQUENCE fdp_attended_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.fdp_attended_id_seq TO app_user;
+
+
+--
+-- TOC entry 4328 (class 0 OID 0)
 -- Dependencies: 281
--- Name: it_infrastructure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE fdp_organized; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.it_infrastructure_id_seq', 153, true);
+GRANT ALL ON TABLE public.fdp_organized TO app_user;
+
 
 --
--- TOC entry 4554 (class 0 OID 0)
+-- TOC entry 4330 (class 0 OID 0)
+-- Dependencies: 282
+-- Name: SEQUENCE fdp_organized_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.fdp_organized_id_seq TO app_user;
+
+
+--
+-- TOC entry 4331 (class 0 OID 0)
+-- Dependencies: 233
+-- Name: TABLE form_fields; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.form_fields TO app_user;
+
+
+--
+-- TOC entry 4333 (class 0 OID 0)
+-- Dependencies: 234
+-- Name: SEQUENCE form_fields_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.form_fields_id_seq TO app_user;
+
+
+--
+-- TOC entry 4334 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: TABLE form_schemas; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.form_schemas TO app_user;
+
+
+--
+-- TOC entry 4336 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: SEQUENCE form_schemas_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.form_schemas_id_seq TO app_user;
+
+
+--
+-- TOC entry 4337 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: TABLE form_sections; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.form_sections TO app_user;
+
+
+--
+-- TOC entry 4339 (class 0 OID 0)
+-- Dependencies: 230
+-- Name: SEQUENCE form_sections_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.form_sections_id_seq TO app_user;
+
+
+--
+-- TOC entry 4340 (class 0 OID 0)
+-- Dependencies: 231
+-- Name: TABLE form_tables; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.form_tables TO app_user;
+
+
+--
+-- TOC entry 4342 (class 0 OID 0)
+-- Dependencies: 232
+-- Name: SEQUENCE form_tables_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.form_tables_id_seq TO app_user;
+
+
+--
+-- TOC entry 4343 (class 0 OID 0)
 -- Dependencies: 283
--- Name: library_infrastructure_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE functional_mous; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.library_infrastructure_id_seq', 135, true);
+GRANT ALL ON TABLE public.functional_mous TO app_user;
+
 
 --
--- TOC entry 4555 (class 0 OID 0)
+-- TOC entry 4345 (class 0 OID 0)
+-- Dependencies: 284
+-- Name: SEQUENCE functional_mous_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.functional_mous_id_seq TO app_user;
+
+
+--
+-- TOC entry 4346 (class 0 OID 0)
 -- Dependencies: 285
--- Name: nep_status_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE graduating_students; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.nep_status_id_seq', 966, true);
+GRANT ALL ON TABLE public.graduating_students TO app_user;
+
 
 --
--- TOC entry 4556 (class 0 OID 0)
+-- TOC entry 4348 (class 0 OID 0)
+-- Dependencies: 286
+-- Name: SEQUENCE graduating_students_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.graduating_students_id_seq TO app_user;
+
+
+--
+-- TOC entry 4349 (class 0 OID 0)
 -- Dependencies: 287
--- Name: obe_implementation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE guest_lectures; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.obe_implementation_id_seq', 427, true);
+GRANT ALL ON TABLE public.guest_lectures TO app_user;
+
 
 --
--- TOC entry 4558 (class 0 OID 0)
+-- TOC entry 4351 (class 0 OID 0)
+-- Dependencies: 288
+-- Name: SEQUENCE guest_lectures_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.guest_lectures_id_seq TO app_user;
+
+
+--
+-- TOC entry 4352 (class 0 OID 0)
+-- Dependencies: 289
+-- Name: TABLE hackathons; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.hackathons TO app_user;
+
+
+--
+-- TOC entry 4354 (class 0 OID 0)
+-- Dependencies: 290
+-- Name: SEQUENCE hackathons_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.hackathons_id_seq TO app_user;
+
+
+--
+-- TOC entry 4355 (class 0 OID 0)
 -- Dependencies: 291
--- Name: patents_copyrights_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE higher_studies; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.patents_copyrights_id_seq', 150, true);
+GRANT ALL ON TABLE public.higher_studies TO app_user;
+
 
 --
--- TOC entry 4559 (class 0 OID 0)
+-- TOC entry 4357 (class 0 OID 0)
+-- Dependencies: 292
+-- Name: SEQUENCE higher_studies_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.higher_studies_id_seq TO app_user;
+
+
+--
+-- TOC entry 4358 (class 0 OID 0)
 -- Dependencies: 293
--- Name: professional_bodies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE industry_collaborations; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.professional_bodies_id_seq', 159, true);
+GRANT ALL ON TABLE public.industry_collaborations TO app_user;
+
 
 --
--- TOC entry 4560 (class 0 OID 0)
+-- TOC entry 4360 (class 0 OID 0)
+-- Dependencies: 294
+-- Name: SEQUENCE industry_collaborations_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.industry_collaborations_id_seq TO app_user;
+
+
+--
+-- TOC entry 4361 (class 0 OID 0)
 -- Dependencies: 295
--- Name: qualifying_exams_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE it_infrastructure; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.qualifying_exams_id_seq', 123, true);
+GRANT ALL ON TABLE public.it_infrastructure TO app_user;
+
 
 --
--- TOC entry 4561 (class 0 OID 0)
+-- TOC entry 4363 (class 0 OID 0)
+-- Dependencies: 296
+-- Name: SEQUENCE it_infrastructure_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.it_infrastructure_id_seq TO app_user;
+
+
+--
+-- TOC entry 4364 (class 0 OID 0)
 -- Dependencies: 297
--- Name: research_funds_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE library_infrastructure; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.research_funds_id_seq', 195, true);
+GRANT ALL ON TABLE public.library_infrastructure TO app_user;
+
 
 --
--- TOC entry 4562 (class 0 OID 0)
+-- TOC entry 4366 (class 0 OID 0)
+-- Dependencies: 298
+-- Name: SEQUENCE library_infrastructure_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.library_infrastructure_id_seq TO app_user;
+
+
+--
+-- TOC entry 4367 (class 0 OID 0)
 -- Dependencies: 299
--- Name: research_publications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE nep_status; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.research_publications_id_seq', 90, true);
+GRANT ALL ON TABLE public.nep_status TO app_user;
+
 
 --
--- TOC entry 4563 (class 0 OID 0)
+-- TOC entry 4369 (class 0 OID 0)
+-- Dependencies: 300
+-- Name: SEQUENCE nep_status_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.nep_status_id_seq TO app_user;
+
+
+--
+-- TOC entry 4370 (class 0 OID 0)
 -- Dependencies: 301
--- Name: research_resources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE obe_implementation; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.research_resources_id_seq', 26, true);
+GRANT ALL ON TABLE public.obe_implementation TO app_user;
+
 
 --
--- TOC entry 4564 (class 0 OID 0)
+-- TOC entry 4372 (class 0 OID 0)
+-- Dependencies: 302
+-- Name: SEQUENCE obe_implementation_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.obe_implementation_id_seq TO app_user;
+
+
+--
+-- TOC entry 4373 (class 0 OID 0)
 -- Dependencies: 303
--- Name: scholarship_students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE patents_copyrights; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.scholarship_students_id_seq', 113, true);
+GRANT ALL ON TABLE public.patents_copyrights TO app_user;
+
 
 --
--- TOC entry 4565 (class 0 OID 0)
+-- TOC entry 4375 (class 0 OID 0)
+-- Dependencies: 304
+-- Name: SEQUENCE patents_copyrights_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.patents_copyrights_id_seq TO app_user;
+
+
+--
+-- TOC entry 4376 (class 0 OID 0)
 -- Dependencies: 305
--- Name: scholarship_summary_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE professional_bodies; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.scholarship_summary_id_seq', 113, true);
+GRANT ALL ON TABLE public.professional_bodies TO app_user;
+
 
 --
--- TOC entry 4567 (class 0 OID 0)
+-- TOC entry 4378 (class 0 OID 0)
+-- Dependencies: 306
+-- Name: SEQUENCE professional_bodies_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.professional_bodies_id_seq TO app_user;
+
+
+--
+-- TOC entry 4379 (class 0 OID 0)
+-- Dependencies: 307
+-- Name: TABLE qualifying_exams; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.qualifying_exams TO app_user;
+
+
+--
+-- TOC entry 4381 (class 0 OID 0)
+-- Dependencies: 308
+-- Name: SEQUENCE qualifying_exams_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.qualifying_exams_id_seq TO app_user;
+
+
+--
+-- TOC entry 4382 (class 0 OID 0)
 -- Dependencies: 309
--- Name: sports_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE research_funds; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.sports_activities_id_seq', 86, true);
+GRANT ALL ON TABLE public.research_funds TO app_user;
+
 
 --
--- TOC entry 4568 (class 0 OID 0)
+-- TOC entry 4384 (class 0 OID 0)
+-- Dependencies: 310
+-- Name: SEQUENCE research_funds_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.research_funds_id_seq TO app_user;
+
+
+--
+-- TOC entry 4385 (class 0 OID 0)
 -- Dependencies: 311
--- Name: sports_facilities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE research_publications; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.sports_facilities_id_seq', 57, true);
+GRANT ALL ON TABLE public.research_publications TO app_user;
+
 
 --
--- TOC entry 4569 (class 0 OID 0)
+-- TOC entry 4387 (class 0 OID 0)
+-- Dependencies: 312
+-- Name: SEQUENCE research_publications_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.research_publications_id_seq TO app_user;
+
+
+--
+-- TOC entry 4388 (class 0 OID 0)
 -- Dependencies: 313
--- Name: staff_training_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE research_resources; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.staff_training_id_seq', 26, true);
+GRANT ALL ON TABLE public.research_resources TO app_user;
+
 
 --
--- TOC entry 4570 (class 0 OID 0)
+-- TOC entry 4390 (class 0 OID 0)
+-- Dependencies: 314
+-- Name: SEQUENCE research_resources_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.research_resources_id_seq TO app_user;
+
+
+--
+-- TOC entry 4391 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: TABLE schema_versions; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.schema_versions TO app_user;
+
+
+--
+-- TOC entry 4393 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: SEQUENCE schema_versions_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.schema_versions_id_seq TO app_user;
+
+
+--
+-- TOC entry 4394 (class 0 OID 0)
 -- Dependencies: 315
--- Name: statutory_bodies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE scholarship_students; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.statutory_bodies_id_seq', 213, true);
+GRANT ALL ON TABLE public.scholarship_students TO app_user;
+
 
 --
--- TOC entry 4571 (class 0 OID 0)
+-- TOC entry 4396 (class 0 OID 0)
+-- Dependencies: 316
+-- Name: SEQUENCE scholarship_students_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.scholarship_students_id_seq TO app_user;
+
+
+--
+-- TOC entry 4397 (class 0 OID 0)
 -- Dependencies: 317
--- Name: student_awards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE scholarship_summary; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_awards_id_seq', 337, true);
+GRANT ALL ON TABLE public.scholarship_summary TO app_user;
+
 
 --
--- TOC entry 4572 (class 0 OID 0)
+-- TOC entry 4399 (class 0 OID 0)
+-- Dependencies: 318
+-- Name: SEQUENCE scholarship_summary_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.scholarship_summary_id_seq TO app_user;
+
+
+--
+-- TOC entry 4400 (class 0 OID 0)
 -- Dependencies: 319
--- Name: student_courses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE sports_activities; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_courses_id_seq', 150, true);
+GRANT ALL ON TABLE public.sports_activities TO app_user;
+
 
 --
--- TOC entry 4573 (class 0 OID 0)
+-- TOC entry 4402 (class 0 OID 0)
+-- Dependencies: 320
+-- Name: SEQUENCE sports_activities_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.sports_activities_id_seq TO app_user;
+
+
+--
+-- TOC entry 4403 (class 0 OID 0)
 -- Dependencies: 321
--- Name: student_mentoring_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE sports_facilities; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_mentoring_id_seq', 285, true);
+GRANT ALL ON TABLE public.sports_facilities TO app_user;
+
 
 --
--- TOC entry 4574 (class 0 OID 0)
+-- TOC entry 4405 (class 0 OID 0)
+-- Dependencies: 322
+-- Name: SEQUENCE sports_facilities_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.sports_facilities_id_seq TO app_user;
+
+
+--
+-- TOC entry 4406 (class 0 OID 0)
 -- Dependencies: 323
--- Name: student_placements_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE staff_training; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_placements_id_seq', 83, true);
+GRANT ALL ON TABLE public.staff_training TO app_user;
+
 
 --
--- TOC entry 4575 (class 0 OID 0)
+-- TOC entry 4408 (class 0 OID 0)
+-- Dependencies: 324
+-- Name: SEQUENCE staff_training_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.staff_training_id_seq TO app_user;
+
+
+--
+-- TOC entry 4409 (class 0 OID 0)
 -- Dependencies: 325
--- Name: student_startups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE statutory_bodies; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_startups_id_seq', 122, true);
+GRANT ALL ON TABLE public.statutory_bodies TO app_user;
+
 
 --
--- TOC entry 4576 (class 0 OID 0)
+-- TOC entry 4411 (class 0 OID 0)
+-- Dependencies: 326
+-- Name: SEQUENCE statutory_bodies_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.statutory_bodies_id_seq TO app_user;
+
+
+--
+-- TOC entry 4412 (class 0 OID 0)
 -- Dependencies: 327
--- Name: student_statistics_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE student_awards; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_statistics_id_seq', 85, true);
+GRANT ALL ON TABLE public.student_awards TO app_user;
+
 
 --
--- TOC entry 4577 (class 0 OID 0)
+-- TOC entry 4414 (class 0 OID 0)
+-- Dependencies: 328
+-- Name: SEQUENCE student_awards_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_awards_id_seq TO app_user;
+
+
+--
+-- TOC entry 4415 (class 0 OID 0)
 -- Dependencies: 329
--- Name: student_strength_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE student_courses; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_strength_id_seq', 498, true);
+GRANT ALL ON TABLE public.student_courses TO app_user;
+
 
 --
--- TOC entry 4580 (class 0 OID 0)
+-- TOC entry 4417 (class 0 OID 0)
+-- Dependencies: 330
+-- Name: SEQUENCE student_courses_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_courses_id_seq TO app_user;
+
+
+--
+-- TOC entry 4418 (class 0 OID 0)
+-- Dependencies: 331
+-- Name: TABLE student_mentoring; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.student_mentoring TO app_user;
+
+
+--
+-- TOC entry 4420 (class 0 OID 0)
+-- Dependencies: 332
+-- Name: SEQUENCE student_mentoring_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_mentoring_id_seq TO app_user;
+
+
+--
+-- TOC entry 4421 (class 0 OID 0)
+-- Dependencies: 333
+-- Name: TABLE student_placements; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.student_placements TO app_user;
+
+
+--
+-- TOC entry 4423 (class 0 OID 0)
+-- Dependencies: 334
+-- Name: SEQUENCE student_placements_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_placements_id_seq TO app_user;
+
+
+--
+-- TOC entry 4424 (class 0 OID 0)
 -- Dependencies: 335
--- Name: success_rate_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE student_startups; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.success_rate_id_seq', 92, true);
+GRANT ALL ON TABLE public.student_startups TO app_user;
+
 
 --
--- TOC entry 4581 (class 0 OID 0)
+-- TOC entry 4426 (class 0 OID 0)
+-- Dependencies: 336
+-- Name: SEQUENCE student_startups_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_startups_id_seq TO app_user;
+
+
+--
+-- TOC entry 4427 (class 0 OID 0)
 -- Dependencies: 337
--- Name: supporting_staff_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE student_statistics; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.supporting_staff_id_seq', 1502, true);
+GRANT ALL ON TABLE public.student_statistics TO app_user;
+
 
 --
--- TOC entry 4582 (class 0 OID 0)
+-- TOC entry 4429 (class 0 OID 0)
+-- Dependencies: 338
+-- Name: SEQUENCE student_statistics_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_statistics_id_seq TO app_user;
+
+
+--
+-- TOC entry 4430 (class 0 OID 0)
 -- Dependencies: 339
--- Name: swoc_challenges_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE student_strength; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.swoc_challenges_id_seq', 278, true);
+GRANT ALL ON TABLE public.student_strength TO app_user;
+
 
 --
--- TOC entry 4583 (class 0 OID 0)
+-- TOC entry 4432 (class 0 OID 0)
+-- Dependencies: 340
+-- Name: SEQUENCE student_strength_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.student_strength_id_seq TO app_user;
+
+
+--
+-- TOC entry 4433 (class 0 OID 0)
 -- Dependencies: 341
--- Name: swoc_opportunities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE success_rate; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.swoc_opportunities_id_seq', 269, true);
+GRANT ALL ON TABLE public.success_rate TO app_user;
+
 
 --
--- TOC entry 4584 (class 0 OID 0)
+-- TOC entry 4435 (class 0 OID 0)
+-- Dependencies: 342
+-- Name: SEQUENCE success_rate_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.success_rate_id_seq TO app_user;
+
+
+--
+-- TOC entry 4436 (class 0 OID 0)
 -- Dependencies: 343
--- Name: swoc_other_information_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE supporting_staff; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.swoc_other_information_id_seq', 141, true);
+GRANT ALL ON TABLE public.supporting_staff TO app_user;
+
 
 --
--- TOC entry 4585 (class 0 OID 0)
+-- TOC entry 4438 (class 0 OID 0)
+-- Dependencies: 344
+-- Name: SEQUENCE supporting_staff_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.supporting_staff_id_seq TO app_user;
+
+
+--
+-- TOC entry 4439 (class 0 OID 0)
 -- Dependencies: 345
--- Name: swoc_strength_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE swoc_challenges; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.swoc_strength_id_seq', 279, true);
+GRANT ALL ON TABLE public.swoc_challenges TO app_user;
+
 
 --
--- TOC entry 4586 (class 0 OID 0)
+-- TOC entry 4441 (class 0 OID 0)
+-- Dependencies: 346
+-- Name: SEQUENCE swoc_challenges_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.swoc_challenges_id_seq TO app_user;
+
+
+--
+-- TOC entry 4442 (class 0 OID 0)
 -- Dependencies: 347
--- Name: swoc_weaknesses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE swoc_opportunities; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.swoc_weaknesses_id_seq', 253, true);
+GRANT ALL ON TABLE public.swoc_opportunities TO app_user;
+
 
 --
--- TOC entry 4587 (class 0 OID 0)
+-- TOC entry 4444 (class 0 OID 0)
+-- Dependencies: 348
+-- Name: SEQUENCE swoc_opportunities_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.swoc_opportunities_id_seq TO app_user;
+
+
+--
+-- TOC entry 4445 (class 0 OID 0)
 -- Dependencies: 349
--- Name: syllabus_revision_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE swoc_other_information; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.syllabus_revision_id_seq', 347, true);
+GRANT ALL ON TABLE public.swoc_other_information TO app_user;
+
 
 --
--- TOC entry 4588 (class 0 OID 0)
+-- TOC entry 4447 (class 0 OID 0)
+-- Dependencies: 350
+-- Name: SEQUENCE swoc_other_information_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.swoc_other_information_id_seq TO app_user;
+
+
+--
+-- TOC entry 4448 (class 0 OID 0)
 -- Dependencies: 351
--- Name: teacher_awards_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE swoc_strength; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.teacher_awards_id_seq', 93, true);
+GRANT ALL ON TABLE public.swoc_strength TO app_user;
+
 
 --
--- TOC entry 4589 (class 0 OID 0)
+-- TOC entry 4450 (class 0 OID 0)
+-- Dependencies: 352
+-- Name: SEQUENCE swoc_strength_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.swoc_strength_id_seq TO app_user;
+
+
+--
+-- TOC entry 4451 (class 0 OID 0)
 -- Dependencies: 353
--- Name: training_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE swoc_weaknesses; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.training_activities_id_seq', 14, true);
+GRANT ALL ON TABLE public.swoc_weaknesses TO app_user;
+
 
 --
--- TOC entry 4592 (class 0 OID 0)
+-- TOC entry 4453 (class 0 OID 0)
+-- Dependencies: 354
+-- Name: SEQUENCE swoc_weaknesses_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.swoc_weaknesses_id_seq TO app_user;
+
+
+--
+-- TOC entry 4454 (class 0 OID 0)
+-- Dependencies: 355
+-- Name: TABLE syllabus_revision; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.syllabus_revision TO app_user;
+
+
+--
+-- TOC entry 4456 (class 0 OID 0)
+-- Dependencies: 356
+-- Name: SEQUENCE syllabus_revision_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.syllabus_revision_id_seq TO app_user;
+
+
+--
+-- TOC entry 4457 (class 0 OID 0)
+-- Dependencies: 357
+-- Name: TABLE teacher_awards; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.teacher_awards TO app_user;
+
+
+--
+-- TOC entry 4459 (class 0 OID 0)
+-- Dependencies: 358
+-- Name: SEQUENCE teacher_awards_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.teacher_awards_id_seq TO app_user;
+
+
+--
+-- TOC entry 4460 (class 0 OID 0)
 -- Dependencies: 359
--- Name: value_added_courses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: TABLE training_activities; Type: ACL; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.value_added_courses_id_seq', 150, true);
+GRANT ALL ON TABLE public.training_activities TO app_user;
+
+
+--
+-- TOC entry 4462 (class 0 OID 0)
+-- Dependencies: 360
+-- Name: SEQUENCE training_activities_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.training_activities_id_seq TO app_user;
+
+
+--
+-- TOC entry 4463 (class 0 OID 0)
+-- Dependencies: 217
+-- Name: TABLE universities; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.universities TO app_user;
+
+
+--
+-- TOC entry 4465 (class 0 OID 0)
+-- Dependencies: 218
+-- Name: SEQUENCE universities_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.universities_id_seq TO app_user;
+
+
+--
+-- TOC entry 4466 (class 0 OID 0)
+-- Dependencies: 221
+-- Name: TABLE university_posts; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.university_posts TO app_user;
+
+
+--
+-- TOC entry 4468 (class 0 OID 0)
+-- Dependencies: 222
+-- Name: SEQUENCE university_posts_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.university_posts_id_seq TO app_user;
+
+
+--
+-- TOC entry 4469 (class 0 OID 0)
+-- Dependencies: 219
+-- Name: TABLE university_schools; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.university_schools TO app_user;
+
+
+--
+-- TOC entry 4471 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: SEQUENCE university_schools_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.university_schools_id_seq TO app_user;
+
+
+--
+-- TOC entry 4472 (class 0 OID 0)
+-- Dependencies: 361
+-- Name: TABLE value_added_courses; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.value_added_courses TO app_user;
+
+
+--
+-- TOC entry 4474 (class 0 OID 0)
+-- Dependencies: 362
+-- Name: SEQUENCE value_added_courses_id_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.value_added_courses_id_seq TO app_user;
+
+
+--
+-- TOC entry 2447 (class 826 OID 100197)
+-- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO app_user;
+
+
+--
+-- TOC entry 2446 (class 826 OID 100196)
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO app_user;
+
+
+-- Completed on 2026-10-28 18:37:35 IST
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict 7ZXqdZNg4ff2eKWbz9E6XfxPoDMiupLR70w35NQyLA2z2P4xFdlop0AVdVGOzf3
 
